@@ -22,9 +22,14 @@ export class CollaboratorController {
     return this.collaboratorService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.collaboratorService.findOne(+id);
+  @Get('resend/email/:email')
+  resendEmail(@Param('email') email: string) {
+    return this.collaboratorService.resendCodeEmail(email);
+  }
+
+  @Get(':CPF')
+  findOne(@Param('CPF') CPF: string) {
+    return this.collaboratorService.findOne(CPF);
   }
 
   @Patch(':id')

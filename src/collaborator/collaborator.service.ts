@@ -49,13 +49,13 @@ export class CollaboratorService {
     const time = FindTimeSP();
     createCollaboratorDto.create_at = time
 
-    // const newCollaborator = await this.collaboratorRepository.save(createCollaboratorDto);
-    // if(newCollaborator){
-    //   return {
-    //     status :201,
-    //     message:'Colaborador criado com sucesso! ',
-    //   }
-    // }
+    const newCollaborator = await this.collaboratorRepository.save(createCollaboratorDto);
+    if(newCollaborator){
+      return {
+        status :201,
+        message:'Colaborador criado com sucesso! ',
+      }
+    }
   }
 
   async checkCollaborator(createCollaboratorDto: CreateCollaboratorDto){
@@ -94,12 +94,26 @@ export class CollaboratorService {
 
   }
 
+  async resendCodeEmail(email:string){
+    return await this.emailService.sendCode(email)
+  }
+
   findAll() {
     return `This action returns all collaborator`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} collaborator`;
+  async findOne(CPF: string) {
+    const response = await this.collaboratorRepository.findOne({ where: { CPF } });
+    if(response){
+      return {
+        status:200,
+        collaborator:response
+      }
+    }
+    return {
+      status :409,
+      message:'Registro não encontrado'
+    }
   }
 
   update(id: number, updateCollaboratorDto: UpdateCollaboratorDto) {
