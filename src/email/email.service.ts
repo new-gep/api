@@ -57,10 +57,10 @@ export class EmailService {
       <div style="background-color: #fde047; font-weight: bold; padding: 24px; text-align: center;">
         <p style="font-size: 32px; color: #000000;">Olá!</p>
         <div style="justify-items: center; align-items: center;">
-          <p style="font-size: 14px; color: #000000; width: 400px; text-align: justify;">Por favor, retorne à tela de registro e insira o código abaixo para confirmar sua identidade.</p>
+          <p style="font-size: 14px; color: #000000; width: 400px; text-align: justify;">Por favor, retorne à tela do aplicativo e insira o código abaixo para confirmar sua identidade.</p>
           <p style="font-size: 28px; color: #fde047; font-weight: bold; background-color: #000000; padding: 10px; border-radius: 10px;">${code}</p>
         </div>
-        <p style="font-size: 10px; color: #000000; font-weight: light;">Este código é válido por 120 segundos, contados a partir do recebimento deste e-mail.</p>
+        <p style="font-size: 10px; color: #000000; font-weight: light;">A validade deste código se mantém até ser utilizado ou substituído, ou é vitalício.</p>
       </div>
     </body>
     `;

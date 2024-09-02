@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { CollaboratorService } from './collaborator.service';
 import { CreateCollaboratorDto } from './dto/create-collaborator.dto';
 import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
-
+import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
 @Controller('collaborator')
 export class CollaboratorController {
   constructor(private readonly collaboratorService: CollaboratorService) {}
@@ -10,6 +10,11 @@ export class CollaboratorController {
   @Post()
   create(@Body() createCollaboratorDto: CreateCollaboratorDto) {
     return this.collaboratorService.create(createCollaboratorDto);
+  }
+
+  @Post('SingIn')
+  singIn(@Body() singInCollaboratorDto: SingInCollaboratorDto) {
+    return this.collaboratorService.singIn(singInCollaboratorDto);
   }
 
   @Post('checkCollaborator')
@@ -32,9 +37,9 @@ export class CollaboratorController {
     return this.collaboratorService.findOne(CPF);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCollaboratorDto: UpdateCollaboratorDto) {
-    return this.collaboratorService.update(+id, updateCollaboratorDto);
+  @Patch(':CPF')
+  update(@Param('CPF') CPF: string, @Body() updateCollaboratorDto: UpdateCollaboratorDto) {
+    return this.collaboratorService.update(CPF, updateCollaboratorDto);
   }
 
   @Delete(':id')

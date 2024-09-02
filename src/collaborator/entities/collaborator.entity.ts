@@ -8,11 +8,14 @@ export class Collaborator {
     @Column({length: 150,})
     name: string;
 
-    @Column({length: 50, })
+    @Column({length: 200, })
     password: string;
 
     @Column({length: 200,})
     email: string;
+
+    @Column({length: 11,})
+    phone: string;
 
     @Column({length: 1   })
     terms: string;
