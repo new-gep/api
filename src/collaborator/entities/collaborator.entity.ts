@@ -20,11 +20,11 @@ export class Collaborator {
     @Column({length: 1   })
     terms: string;
 
-    @Column({length: 14, default:null})
-    CNPJ_client: string;
+    @Column({length: 1   })
+    marriage: string;
 
-    @Column({length: 14, default:null})
-    CNPJ_company: string;
+    @Column({length: 250 })
+    children: string;
 
     @Column({length: 8, default:null})
     zip_code: string;

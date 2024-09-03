@@ -5,14 +5,17 @@ import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
 import { Repository   } from 'typeorm';
 import { Collaborator } from './entities/collaborator.entity';
 import { EmailService } from 'src/email/email.service';
+import { BucketService } from 'src/bucket/bucket.service';
 import * as bcrypt from 'bcrypt';
 import FindTimeSP from 'hooks/time';
+import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
 @Injectable()
 export class CollaboratorService {
   constructor(
     @Inject('COLLABORATOR_REPOSITORY') 
     private collaboratorRepository: Repository<Collaborator>,
-    private readonly emailService : EmailService
+    private readonly emailService : EmailService,
+    private readonly bucketService : BucketService
   ){}
 
   async singIn(singInCollaboratorDto: SingInCollaboratorDto) {
@@ -45,7 +48,7 @@ export class CollaboratorService {
         }
       break
     }
-  }
+  };
   
   async create(createCollaboratorDto: CreateCollaboratorDto) {
     
@@ -90,7 +93,7 @@ export class CollaboratorService {
         message:'Colaborador criado com sucesso! ',
       }
     }
-  }
+  };
 
   async checkCollaborator(createCollaboratorDto: CreateCollaboratorDto){
     const existingCPFCollaborator   = await this.collaboratorRepository.findOne({
@@ -126,15 +129,19 @@ export class CollaboratorService {
 
     return await this.emailService.sendCode(createCollaboratorDto.email)
 
-  }
+  };
 
   async resendCodeEmail(email:string){
     return await this.emailService.sendCode(email)
-  }
+  };
+
+  async UploadFile(uploadCollaboratorDto:UploadCollaboratorDto, file: Express.Multer.File){
+
+  };
 
   findAll() {
     return `This action returns all collaborator`;
-  }
+  };
 
   async findOne(CPF: string) {
     const response = await this.collaboratorRepository.findOne({ where: { CPF } });
@@ -148,7 +155,45 @@ export class CollaboratorService {
       status :409,
       message:'Registro não encontrado'
     }
-  }
+  };
+
+  async checkAccountCompletion(CPF: string) {
+    const response = await this.collaboratorRepository.findOne({ where: { CPF } });
+
+    if (response) {
+        const missingFields = [];
+        const files = await this.bucketService.checkCollaboratorBucketDocuments(response);
+        // Verifica se o endereço está completo
+        const addressFields = ['zip_code', 'street', 'district', 'city', 'uf', 'number'];
+        const missingAddressFields = addressFields.filter(field => !response[field]);
+        if (missingAddressFields.length > 0) {
+            missingFields.push('address');
+        }
+
+        // Verifica se o campo marriage está preenchido
+        if (!response.marriage) {
+            missingFields.push('marriage');
+        }
+
+        // Verifica se o campo children está preenchido
+        if (!response.children) {
+            missingFields.push('children');
+        }
+
+        return {
+            status: 200,
+            collaborator: response,
+            missingFields: missingFields.length > 0 ? missingFields : null,
+            files : files
+        };
+    } else {
+        // Caso não encontre o colaborador
+        return {
+            status: 404,
+            message: "Colaborador não encontrado",
+        };
+    }
+  };
 
   async update(CPF: string, updateCollaboratorDto: UpdateCollaboratorDto) {
     const time = FindTimeSP();
@@ -169,9 +214,9 @@ export class CollaboratorService {
         message:'Não foi possivel atualizar o colaborador, algo deu errado!'
       }
     }
-  }
+  };
 
   remove(id: number) {
     return `This action removes a #${id} collaborator`;
-  }
+  };
 }

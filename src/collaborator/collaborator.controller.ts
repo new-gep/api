@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { CollaboratorService } from './collaborator.service';
 import { CreateCollaboratorDto } from './dto/create-collaborator.dto';
 import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
 import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
 @Controller('collaborator')
 export class CollaboratorController {
   constructor(private readonly collaboratorService: CollaboratorService) {}
@@ -22,9 +24,20 @@ export class CollaboratorController {
     return this.collaboratorService.checkCollaborator(createCollaboratorDto);
   }
 
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() uploadCollaboratorDto:UploadCollaboratorDto) {
+    return this.collaboratorService.UploadFile(uploadCollaboratorDto,file)
+  }
+
   @Get()
   findAll() {
     return this.collaboratorService.findAll();
+  }
+
+  @Get('check/AccountCompletion/:cpf')
+  checkAccountCompletion(@Param('cpf') cpf: string) {
+    return this.collaboratorService.checkAccountCompletion(cpf);
   }
 
   @Get('resend/email/:email')
