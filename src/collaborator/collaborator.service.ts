@@ -135,7 +135,7 @@ export class CollaboratorService {
     return await this.emailService.sendCode(email)
   };
 
-  async UploadFile(uploadCollaboratorDto:UploadCollaboratorDto, file: Express.Multer.File){
+  async uploadFile(uploadCollaboratorDto:UploadCollaboratorDto, file: Express.Multer.File){
 
   };
 

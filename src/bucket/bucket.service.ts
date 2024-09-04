@@ -41,6 +41,7 @@ export class BucketService {
 
   async checkCollaboratorBucketDocuments(collaborator) {
     const missingDocuments = [];
+    const missingDocumentsChildren = [];
   
     // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
     const rgPdfExists = await this.isDocumentPresent(collaborator.CPF, 'RG/RG.pdf');
@@ -92,20 +93,36 @@ export class BucketService {
       missingDocuments.push('Address');
     };
   
-    // Verifica se deve exigir documentos de filhos (para cada filho, verifica uma foto e certidão de nascimento)
-    if (collaborator.children && Array.isArray(collaborator.children)) {
-      for (const child of collaborator.children) {
-        const childName = child.name;
-        const childrenDocuments = [
-          `Children.${childName}.Picture`,
-          `Children.${childName}.BirthCertificate`,
-        ];
-  
-        for (const document of childrenDocuments) {
-          if (!await this.isDocumentPresent(collaborator.CPF, document)) {
-            missingDocuments.push(document);
+    if (collaborator.children) {
+      if (collaborator.children === "0") {
+        // Se for a string "0", não há filhos, então não exigimos nenhum documento
+      } else if (typeof collaborator.children === 'object' && !Array.isArray(collaborator.children)) {
+        // Se for um objeto, percorremos os filhos e verificamos os documentos
+        for (const childKey in collaborator.children) {
+          if (collaborator.children.hasOwnProperty(childKey)) {
+            const child = collaborator.children[childKey];
+            const childName = child.name;
+    
+            // Lista de documentos a serem verificados para cada filho
+            const childrenDocuments = [`Birth_Certificate`];
+    
+            // Verifica se o documento está presente
+            for (const document of childrenDocuments) {
+              const documentPath = `Children/${childName}/Birth_Certificate`;
+    
+              if (!await this.isDocumentPresent(collaborator.CPF, documentPath)) {
+                if (!missingDocuments.includes(document)) {
+                  missingDocuments.push(document); // Adiciona o documento uma única vez
+                }
+                // Adiciona o nome do filho que deve doc
+                missingDocumentsChildren.push(childName);
+              }
+            }
           }
         }
+      } else {
+        // Se `children` for null, não exigimos nada, já que o campo não foi preenchido
+       
       }
     };
   
@@ -135,6 +152,7 @@ export class BucketService {
     return {
       status: 200,
       missingDocuments: missingDocuments.length > 0 ? missingDocuments : null,
+      missingDocumentsChildren:missingDocumentsChildren.length > 0 ? missingDocumentsChildren : null
     };
   };
   

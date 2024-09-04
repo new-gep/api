@@ -27,7 +27,7 @@ export class CollaboratorController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File, @Body() uploadCollaboratorDto:UploadCollaboratorDto) {
-    return this.collaboratorService.UploadFile(uploadCollaboratorDto,file)
+    return this.collaboratorService.uploadFile(uploadCollaboratorDto,file)
   }
 
   @Get()

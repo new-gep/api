@@ -23,8 +23,13 @@ export class Collaborator {
     @Column({length: 1   })
     marriage: string;
 
-    @Column({length: 250 })
-    children: string;
+    @Column({ type: 'json', nullable: true }) 
+    children: {
+        [key: string]: {
+            name: string;
+            birth: string;
+        };
+    } | null | '0';;
 
     @Column({length: 8, default:null})
     zip_code: string;
