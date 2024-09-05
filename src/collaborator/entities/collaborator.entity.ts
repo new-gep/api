@@ -29,7 +29,7 @@ export class Collaborator {
             name: string;
             birth: string;
         };
-    } | null | '0';;
+    } | 0;
 
     @Column({length: 8, default:null})
     zip_code: string;
@@ -49,8 +49,8 @@ export class Collaborator {
     @Column({length: 50, default:null})
     complement: string;
 
-    @Column()
-    number: number;
+    @Column({length: 50, default:null})
+    number: string;
 
     @Column({length: 50})
     create_at: string;

@@ -93,8 +93,7 @@ export class BucketService {
       missingDocuments.push('Address');
     };
   
-    if (collaborator.children) {
-      if (collaborator.children === "0") {
+      if (collaborator.children == 0) {
         // Se for a string "0", não há filhos, então não exigimos nenhum documento
       } else if (typeof collaborator.children === 'object' && !Array.isArray(collaborator.children)) {
         // Se for um objeto, percorremos os filhos e verificamos os documentos
@@ -122,9 +121,8 @@ export class BucketService {
         }
       } else {
         // Se `children` for null, não exigimos nada, já que o campo não foi preenchido
-       
       }
-    };
+    
   
     // Verifica se deve exigir documento de casamento (apenas uma foto e certidão de casamento)
     if (collaborator.marriage) {

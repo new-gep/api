@@ -176,8 +176,18 @@ export class CollaboratorService {
         }
 
         // Verifica se o campo children está preenchido
-        if (!response.children) {
+        if (!response.children && response.children != 0) {
             missingFields.push('children');
+        }
+
+        if (files.missingDocuments.includes("Picture")) {
+          // Remove "Picture" de missingDocuments
+          files.missingDocuments = files.missingDocuments.filter(doc => doc !== "Picture");
+      
+          // Adiciona "Picture" a missingFields se já não estiver lá
+          if (!missingFields.includes("Picture")) {
+              missingFields.push("Picture");
+          }
         }
 
         return {
@@ -202,15 +212,23 @@ export class CollaboratorService {
       updateCollaboratorDto.password = await bcrypt.hash(updateCollaboratorDto.password, 10);
     }
     try{
-      await this.collaboratorRepository.update(CPF,updateCollaboratorDto);
+      const response = await this.collaboratorRepository.update(CPF,updateCollaboratorDto);
+      if(response.affected === 1){
+        const collaborator = await this.findOne(CPF)
+        return {
+          status: 200,
+          collaborator:collaborator,
+          message:'Colaborador atualizado com sucesso!'
+        }
+      }
       return {
-        status: 200,
-        message:'Colaborador atualizado com sucesso!'
+        status:404,
+        message:'Não foi possivel atualizar o colaborador, algo deu errado!'
       }
     }catch(e){
       console.log(e)
       return {
-        status:409,
+        status:404,
         message:'Não foi possivel atualizar o colaborador, algo deu errado!'
       }
     }
