@@ -136,7 +136,7 @@ export class CollaboratorService {
   };
 
   async uploadFile(uploadCollaboratorDto:UploadCollaboratorDto, file: Express.Multer.File){
-
+    return await this.bucketService.UploadCollaborator(file, uploadCollaboratorDto.name, uploadCollaboratorDto.side, uploadCollaboratorDto.cpf)
   };
 
   findAll() {

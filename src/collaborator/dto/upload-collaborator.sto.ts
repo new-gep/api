@@ -1,4 +1,5 @@
 export class UploadCollaboratorDto {
-    file : string;
-    side : 'obverse' | 'reverse' | 'complete';
+    name : string;
+    side : string;
+    cpf  : string;
 }

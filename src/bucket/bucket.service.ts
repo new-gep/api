@@ -17,11 +17,70 @@ export class BucketService {
     });
   };
 
-  UploadCollaborator(file: Express.Multer.File) {
-    return 'This action adds a new company';
-  };
-
-  // Método para verificar se um documento está presente no bucket
+  async UploadCollaborator(file: Express.Multer.File, name: string, side: string, cpf: string) {
+    console.log(name, side);
+    let path: string;
+    console.log(file)
+    switch (name.toLowerCase()) {
+      case 'rg':
+        path = `collaborator/${cpf}/RG/${side}`;
+        break;
+      case 'address':
+        path = `collaborator/${cpf}/Address`;
+        break;
+      case 'work_card':
+        path = `collaborator/${cpf}/Work_Card/${side}`;
+        break;
+      case 'school_history':
+        path = `collaborator/${cpf}/School_History/${side}`;
+        break;
+      case 'marriage_certificate':
+        path = `collaborator/${cpf}/Marriage_Certificate`;
+        break;
+      case 'birth_certificate':
+        path = `collaborator/${cpf}/Birth_Certificate/${side}`;
+        break;
+      case 'military_certificate':
+        path = `collaborator/${cpf}/Military_Certificate`;
+        break;
+      case 'cnh':
+        path = `collaborator/${cpf}/CNH/${side}`;
+        break;
+      default:
+        return {
+          status: 400,
+          message: `Tipo de documento não suportado: ${name}`,
+        };
+    };
+  
+    const collaboratorFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
+  
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(collaboratorFile).promise();
+      
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+  
+    } catch (error) {
+      
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  }
+  
+  
   async isDocumentPresent(CPF: string, path: string): Promise<boolean> {
     const params = {
       Bucket: this.bucketName,
@@ -126,13 +185,14 @@ export class BucketService {
   
     // Verifica se deve exigir documento de casamento (apenas uma foto e certidão de casamento)
     if (collaborator.marriage) {
-      const marriageDocuments = [
-        'Marriage_Certificate',
-      ];
-  
-      for (const document of marriageDocuments) {
-        if (!await this.isDocumentPresent(collaborator.CPF, document)) {
-          missingDocuments.push(document);
+      if(collaborator.marriage != '0'){
+        const marriageDocuments = [
+          'Marriage_Certificate',
+        ];
+        for (const document of marriageDocuments) {
+          if (!await this.isDocumentPresent(collaborator.CPF, document)) {
+            missingDocuments.push(document);
+          }
         }
       }
     };
@@ -153,6 +213,5 @@ export class BucketService {
       missingDocumentsChildren:missingDocumentsChildren.length > 0 ? missingDocumentsChildren : null
     };
   };
-  
 
 }
