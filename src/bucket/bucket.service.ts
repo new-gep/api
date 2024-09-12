@@ -17,11 +17,44 @@ export class BucketService {
     });
   };
 
+
+  private async getFileFromBucket(key: string): Promise<string | null> {
+    try {
+      const fileData = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
+      const base64Data = fileData.Body.toString('base64');
+      return `data:${fileData.ContentType};base64,${base64Data}`;
+    } catch (error) {
+      if (error.code === 'NoSuchKey') {
+        return null; // Retorna null se o arquivo não existir
+      }
+      throw new Error(`Erro ao buscar o arquivo do bucket: ${error.message}`);
+    }
+  };
+
+  async isDocumentPresent(CPF: string, path: string): Promise<boolean> {
+    const params = {
+      Bucket: this.bucketName,
+      Key: `collaborator/${CPF}/${path}`,
+    };
+
+    try {
+      await this.bucket.headObject(params).promise();
+      return true;
+    } catch (error) {
+      if (error.code === 'NotFound') {
+        return false;
+      }
+      throw error;
+    }
+  };
+
   async UploadCollaborator(file: Express.Multer.File, name: string, side: string, cpf: string) {
-    console.log(name, side);
     let path: string;
-    console.log(file)
+
     switch (name.toLowerCase()) {
+      case 'picture':
+        path = `collaborator/${cpf}/Picture`;
+        break;
       case 'rg':
         path = `collaborator/${cpf}/RG/${side}`;
         break;
@@ -32,7 +65,7 @@ export class BucketService {
         path = `collaborator/${cpf}/Work_Card/${side}`;
         break;
       case 'school_history':
-        path = `collaborator/${cpf}/School_History/${side}`;
+        path = `collaborator/${cpf}/School_History`;
         break;
       case 'marriage_certificate':
         path = `collaborator/${cpf}/Marriage_Certificate`;
@@ -52,12 +85,14 @@ export class BucketService {
           message: `Tipo de documento não suportado: ${name}`,
         };
     };
+
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype
   
     const collaboratorFile = {
       Bucket: this.bucketName,
       Key: path,
       Body: file.buffer,
-      ContentType: file.mimetype,
+      ContentType: mimeType,
     };
   
     try {
@@ -78,23 +113,132 @@ export class BucketService {
         error: error.message,
       };
     }
-  }
+  };
   
-  
-  async isDocumentPresent(CPF: string, path: string): Promise<boolean> {
-    const params = {
-      Bucket: this.bucketName,
-      Key: `collaborator/${CPF}/${path}`,
-    };
-
+  async findCollaborator(cpf: string, name: string) {
     try {
-      await this.bucket.headObject(params).promise();
-      return true;
-    } catch (error) {
-      if (error.code === 'NotFound') {
-        return false;
+      switch (name.toLowerCase()) {
+        case 'rg':
+          const rgPdfKey = `collaborator/${cpf}/RG/complet`;  // Caso seja um PDF completo
+          const rgFrontKey = `collaborator/${cpf}/RG/front`;      // Caso tenha "front"
+          const rgBackKey = `collaborator/${cpf}/RG/back`;        // Caso tenha "back"
+  
+          // Tentar buscar o PDF completo primeiro
+          const pdfFile = await this.getFileFromBucket(rgPdfKey);
+          if (pdfFile) {
+            return {
+              status: 200,
+              type: 'pdf',
+              path: pdfFile // Retorna o PDF completo em base64
+            };
+          }
+  
+          // Se o PDF não existir, tentar buscar as imagens front e back
+          const frontFile = await this.getFileFromBucket(rgFrontKey);
+          const backFile = await this.getFileFromBucket(rgBackKey);
+  
+          // Retorna as imagens em base64
+          return {
+            status: 200,
+            type: 'picture',
+            path: [frontFile, backFile], // Retorna front e back como um array
+          };
+  
+        case 'address':
+          const addressKey = `collaborator/${cpf}/Address`;
+          const addressFile = await this.getFileFromBucket(addressKey);
+  
+          return {
+            status: 200,
+            type: 'picture',
+            path: addressFile, // arquivo base64 de endereço
+          };
+  
+        case 'work_card':
+          const workCardPdfKey = `collaborator/${cpf}/Work_Card/complet`;
+          const workCardFrontKey = `collaborator/${cpf}/Work_Card/front`;
+          const workCardBackKey = `collaborator/${cpf}/Work_Card/back`;
+  
+          // Buscar PDF completo do Work Card
+          const workCardPdf = await this.getFileFromBucket(workCardPdfKey);
+          if (workCardPdf) {
+            return {
+              status: 200,
+              type: 'pdf',
+              path: workCardPdf,
+            };
+          }
+  
+          // Caso não tenha PDF, busca imagens front/back
+          const workCardFront = await this.getFileFromBucket(workCardFrontKey);
+          const workCardBack = await this.getFileFromBucket(workCardBackKey);
+  
+          return {
+            status: 200,
+            type: 'picture',
+            path: [workCardFront, workCardBack],
+          };
+  
+        case 'school_history':
+          const schoolHistoryKey = `collaborator/${cpf}/School_History`;
+          const schoolHistoryFile = await this.getFileFromBucket(schoolHistoryKey);
+  
+          return {
+            status: 200,
+            type: 'pdf',
+            path: schoolHistoryFile, // conteúdo base64 do PDF
+          };
+  
+        case 'cnh':
+          const cnhPdfKey = `collaborator/${cpf}/CNH/complet`;  // Caso seja um PDF completo
+          const cnhFrontKey = `collaborator/${cpf}/CNH/front`;      // Caso tenha "front"
+          const cnhBackKey = `collaborator/${cpf}/CNH/back`;        // Caso tenha "back"
+    
+          // Tentar buscar o PDF completo primeiro
+          const cnhFile = await this.getFileFromBucket(cnhPdfKey);
+          if (cnhFile) {
+              return {
+                status: 200,
+                type: 'pdf',
+                path: cnhFile // Retorna o PDF completo em base64
+              };
+          }
+    
+          // Se o PDF não existir, tentar buscar as imagens front e back
+          const CNHfrontFile = await this.getFileFromBucket(cnhFrontKey);
+          const CNHbackFile = await this.getFileFromBucket(cnhBackKey);
+    
+          // Retorna as imagens em base64
+          return {
+            status: 200,
+            type: 'picture',
+            path: [CNHfrontFile, CNHbackFile], // Retorna front e back como um array
+          };
+        
+        case 'picture':
+          const pictureKey = `collaborator/${cpf}/Picture`;
+          const pictureFile = await this.getFileFromBucket(pictureKey);
+  
+          return {
+            status: 200,
+            type: 'picture',
+            path: pictureFile, // arquivo base64 de endereço
+          };
+        
+        // Adicione outros documentos conforme necessário
+  
+        default:
+          return {
+            status: 400,
+            message: `Tipo de documento não suportado: ${name}`,
+          };
       }
-      throw error;
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro ao buscar o documento',
+        error: error.message,
+      };
     }
   };
 
@@ -103,11 +247,11 @@ export class BucketService {
     const missingDocumentsChildren = [];
   
     // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
-    const rgPdfExists = await this.isDocumentPresent(collaborator.CPF, 'RG/RG.pdf');
+    const rgPdfExists = await this.isDocumentPresent(collaborator.CPF, 'RG/complet');
     let rgDocumentMissing = false;
     if (!rgPdfExists) {
-      const rgFrontExists = await this.isDocumentPresent(collaborator.CPF, 'RG/RG.Front');
-      const rgBackExists = await this.isDocumentPresent(collaborator.CPF, 'RG/RG.Back');
+      const rgFrontExists = await this.isDocumentPresent(collaborator.CPF, 'RG/front');
+      const rgBackExists = await this.isDocumentPresent(collaborator.CPF, 'RG/back');
       // Se nem o PDF, nem o Front, nem o Back existem, considera o RG como faltante
       if (!rgFrontExists || !rgBackExists) {
         rgDocumentMissing = true;
@@ -117,11 +261,11 @@ export class BucketService {
       missingDocuments.push('RG');
     };
     // Verifica a presença do documento de Work Card (se o PDF estiver presente, dispensa as imagens)
-    const workCardPdfExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/Work_Card.pdf');
+    const workCardPdfExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/complet');
     let workCardDocumentMissing = false;
     if (!workCardPdfExists) {
-      const workCardFrontExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/Work_Card.Front');
-      const workCardBackExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/Work_Card.Back');
+      const workCardFrontExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/front');
+      const workCardBackExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/back');
       // Se nem o PDF, nem o Front, nem o Back existem, considera o Work Card como faltante
       if (!workCardFrontExists || !workCardBackExists) {
         workCardDocumentMissing = true;

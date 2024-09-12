@@ -8,6 +8,9 @@ export class Collaborator {
     @Column({length: 150,})
     name: string;
 
+    @Column({length: 1,})
+    sex: string;
+
     @Column({length: 200, })
     password: string;
 

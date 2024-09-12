@@ -139,6 +139,10 @@ export class CollaboratorService {
     return await this.bucketService.UploadCollaborator(file, uploadCollaboratorDto.name, uploadCollaboratorDto.side, uploadCollaboratorDto.cpf)
   };
 
+  async findFile(cpf:string, file:string){
+    return this.bucketService.findCollaborator(cpf, file)
+  };
+
   findAll() {
     return `This action returns all collaborator`;
   };
