@@ -56,10 +56,10 @@ export class CollaboratorService {
       where: { CPF: createCollaboratorDto.CPF }
     });
     const existingPhoneCollaborator = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.phone }
+      where: { phone: createCollaboratorDto.phone }
     });
     const existingEmailCollaborator = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.email }
+      where: { email: createCollaboratorDto.email }
     });
 
     if (existingCPFCollaborator) {
@@ -101,10 +101,10 @@ export class CollaboratorService {
       where: { CPF: createCollaboratorDto.CPF }
     });
     const existingPhoneCollaborator = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.phone }
+      where: { phone: createCollaboratorDto.phone }
     });
     const existingEmailCollaborator = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.email }
+      where: { email: createCollaboratorDto.email }
     });
 
     if (existingCPFCollaborator) {
