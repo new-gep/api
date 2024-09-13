@@ -21,6 +21,7 @@ export class CollaboratorController {
 
   @Post('checkCollaborator')
   check(@Body() createCollaboratorDto: CreateCollaboratorDto) {
+    console.log(createCollaboratorDto.CPF)
     return this.collaboratorService.checkCollaborator(createCollaboratorDto);
   };
 

@@ -1,5 +1,5 @@
 export class CreateCollaboratorDto {
-    cpf     : string;
+    CPF     : string;
     email   : string;
     name    : string;
     password: string;

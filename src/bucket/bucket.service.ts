@@ -67,14 +67,14 @@ export class BucketService {
       case 'school_history':
         path = `collaborator/${cpf}/School_History`;
         break;
+      case 'military_certificate':
+        path = `collaborator/${cpf}/Military_Certificate`;
+        break
       case 'marriage_certificate':
         path = `collaborator/${cpf}/Marriage_Certificate`;
         break;
       case 'birth_certificate':
         path = `collaborator/${cpf}/Birth_Certificate/${side}`;
-        break;
-      case 'military_certificate':
-        path = `collaborator/${cpf}/Military_Certificate`;
         break;
       case 'cnh':
         path = `collaborator/${cpf}/CNH/${side}`;
@@ -215,6 +215,26 @@ export class BucketService {
             path: [CNHfrontFile, CNHbackFile], // Retorna front e back como um array
           };
         
+        case 'military_certificate':
+            const militaryKey = `collaborator/${cpf}/Military_Certificate`;
+            const militaryFile = await this.getFileFromBucket(militaryKey);
+    
+            return {
+              status: 200,
+              type: 'picture',
+              path: militaryFile, // arquivo base64 de endereço
+            };
+        
+        case 'marriage_certificate':
+          const marriageKey = `collaborator/${cpf}/Military_Certificate`;
+          const marriageFile = await this.getFileFromBucket(marriageKey);
+  
+          return {
+            status: 200,
+            type: 'picture',
+            path: marriageFile, // arquivo base64 de endereço
+          };
+        
         case 'picture':
           const pictureKey = `collaborator/${cpf}/Picture`;
           const pictureFile = await this.getFileFromBucket(pictureKey);
@@ -225,7 +245,6 @@ export class BucketService {
             path: pictureFile, // arquivo base64 de endereço
           };
         
-        // Adicione outros documentos conforme necessário
   
         default:
           return {
@@ -340,6 +359,20 @@ export class BucketService {
         }
       }
     };
+
+    if (collaborator.sex) {
+      if(collaborator.sex == 'M'){
+        const militaryDocuments = [
+          'Military_Certificate',
+        ];
+        for (const document of militaryDocuments) {
+          if (!await this.isDocumentPresent(collaborator.CPF, document)) {
+            missingDocuments.push(document);
+          }
+        }
+      }
+    };
+    
   
     // Verifica se a foto do colaborador está presente
     if (!await this.isDocumentPresent(collaborator.CPF, 'Picture')) {

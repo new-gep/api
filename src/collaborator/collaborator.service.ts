@@ -53,7 +53,7 @@ export class CollaboratorService {
   async create(createCollaboratorDto: CreateCollaboratorDto) {
     
     const existingCPFCollaborator   = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.cpf }
+      where: { CPF: createCollaboratorDto.CPF }
     });
     const existingPhoneCollaborator = await this.collaboratorRepository.findOne({
       where: { CPF: createCollaboratorDto.phone }
@@ -96,8 +96,9 @@ export class CollaboratorService {
   };
 
   async checkCollaborator(createCollaboratorDto: CreateCollaboratorDto){
+    console.log('colaborador:',createCollaboratorDto.CPF)
     const existingCPFCollaborator   = await this.collaboratorRepository.findOne({
-      where: { CPF: createCollaboratorDto.cpf }
+      where: { CPF: createCollaboratorDto.CPF }
     });
     const existingPhoneCollaborator = await this.collaboratorRepository.findOne({
       where: { CPF: createCollaboratorDto.phone }
@@ -107,6 +108,7 @@ export class CollaboratorService {
     });
 
     if (existingCPFCollaborator) {
+      console.log(existingCPFCollaborator)
       return {
         status:409,
         message:'CPF já existe.',
