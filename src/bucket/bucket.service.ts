@@ -18,11 +18,14 @@ export class BucketService {
   };
 
 
-  private async getFileFromBucket(key: string): Promise<string | null> {
+  private async getFileFromBucket(key: string): Promise<{ ContentType: string, base64Data: string } | null> {
     try {
       const fileData = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
       const base64Data = fileData.Body.toString('base64');
-      return `data:${fileData.ContentType};base64,${base64Data}`;
+      return {
+        ContentType: fileData.ContentType, // Retorna o tipo do arquivo
+        base64Data: `data:${fileData.ContentType};base64,${base64Data}` // Retorna o arquivo em base64
+      };
     } catch (error) {
       if (error.code === 'NoSuchKey') {
         return null; // Retorna null se o arquivo não existir
@@ -76,9 +79,14 @@ export class BucketService {
       case 'birth_certificate':
         path = `collaborator/${cpf}/Birth_Certificate/${side}`;
         break;
+      case 'children_certificate':
+        path = `collaborator/${cpf}/Children_Certificate/${side}`;
+        break;
       case 'cnh':
         path = `collaborator/${cpf}/CNH/${side}`;
         break;
+      
+      
       default:
         return {
           status: 400,
@@ -115,78 +123,94 @@ export class BucketService {
     }
   };
   
-  async findCollaborator(cpf: string, name: string) {
+  async findCollaborator(cpf: string, name: string, children?: string[]) {
     try {
       switch (name.toLowerCase()) {
         case 'rg':
-          const rgPdfKey = `collaborator/${cpf}/RG/complet`;  // Caso seja um PDF completo
+          const rgPdfKey   = `collaborator/${cpf}/RG/complet`;  // Caso seja um PDF completo
           const rgFrontKey = `collaborator/${cpf}/RG/front`;      // Caso tenha "front"
-          const rgBackKey = `collaborator/${cpf}/RG/back`;        // Caso tenha "back"
+          const rgBackKey  = `collaborator/${cpf}/RG/back`;        // Caso tenha "back"
   
           // Tentar buscar o PDF completo primeiro
           const pdfFile = await this.getFileFromBucket(rgPdfKey);
-          if (pdfFile) {
+          if (pdfFile?.ContentType === 'application/pdf') {
             return {
               status: 200,
               type: 'pdf',
-              path: pdfFile // Retorna o PDF completo em base64
+              path: pdfFile.base64Data // Retorna o PDF completo em base64
             };
           }
   
           // Se o PDF não existir, tentar buscar as imagens front e back
           const frontFile = await this.getFileFromBucket(rgFrontKey);
-          const backFile = await this.getFileFromBucket(rgBackKey);
+          const backFile  = await this.getFileFromBucket(rgBackKey);
   
           // Retorna as imagens em base64
           return {
             status: 200,
             type: 'picture',
-            path: [frontFile, backFile], // Retorna front e back como um array
+            path: [frontFile.base64Data, backFile.base64Data], // Retorna front e back como um array
           };
   
         case 'address':
           const addressKey = `collaborator/${cpf}/Address`;
           const addressFile = await this.getFileFromBucket(addressKey);
-  
-          return {
-            status: 200,
-            type: 'picture',
-            path: addressFile, // arquivo base64 de endereço
-          };
-  
-        case 'work_card':
-          const workCardPdfKey = `collaborator/${cpf}/Work_Card/complet`;
-          const workCardFrontKey = `collaborator/${cpf}/Work_Card/front`;
-          const workCardBackKey = `collaborator/${cpf}/Work_Card/back`;
-  
-          // Buscar PDF completo do Work Card
-          const workCardPdf = await this.getFileFromBucket(workCardPdfKey);
-          if (workCardPdf) {
+          
+          if(addressFile?.ContentType === 'application/pdf'){
             return {
               status: 200,
               type: 'pdf',
-              path: workCardPdf,
+              path: addressFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: addressFile.base64Data,
+          };
+  
+        case 'work_card':
+          const workCardPdfKey   = `collaborator/${cpf}/Work_Card/complet`;
+          const workCardFrontKey = `collaborator/${cpf}/Work_Card/front`;
+          const workCardBackKey  = `collaborator/${cpf}/Work_Card/back`;
+  
+          // Buscar PDF completo do Work Card
+          const workCardPdf = await this.getFileFromBucket(workCardPdfKey);
+          if (workCardPdf?.ContentType === 'application/pdf') {
+            return {
+              status: 200,
+              type: 'pdf',
+              path: workCardPdf.base64Data,
             };
           }
   
           // Caso não tenha PDF, busca imagens front/back
           const workCardFront = await this.getFileFromBucket(workCardFrontKey);
-          const workCardBack = await this.getFileFromBucket(workCardBackKey);
+          const workCardBack  = await this.getFileFromBucket(workCardBackKey);
   
           return {
             status: 200,
             type: 'picture',
-            path: [workCardFront, workCardBack],
+            path: [workCardFront.base64Data, workCardBack.base64Data],
           };
   
         case 'school_history':
           const schoolHistoryKey = `collaborator/${cpf}/School_History`;
           const schoolHistoryFile = await this.getFileFromBucket(schoolHistoryKey);
   
+          if(schoolHistoryFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: schoolHistoryFile.base64Data,
+            };
+          }
+
           return {
             status: 200,
-            type: 'pdf',
-            path: schoolHistoryFile, // conteúdo base64 do PDF
+            type: 'picture',
+            path: schoolHistoryFile.base64Data, // conteúdo base64 do PDF
           };
   
         case 'cnh':
@@ -196,11 +220,11 @@ export class BucketService {
     
           // Tentar buscar o PDF completo primeiro
           const cnhFile = await this.getFileFromBucket(cnhPdfKey);
-          if (cnhFile) {
+          if (cnhFile?.ContentType === 'application/pdf') {
               return {
                 status: 200,
                 type: 'pdf',
-                path: cnhFile // Retorna o PDF completo em base64
+                path: cnhFile.base64Data // Retorna o PDF completo em base64
               };
           }
     
@@ -212,28 +236,49 @@ export class BucketService {
           return {
             status: 200,
             type: 'picture',
-            path: [CNHfrontFile, CNHbackFile], // Retorna front e back como um array
+            path: [CNHfrontFile.base64Data, CNHbackFile.base64Data], // Retorna front e back como um array
           };
         
         case 'military_certificate':
-            const militaryKey = `collaborator/${cpf}/Military_Certificate`;
-            const militaryFile = await this.getFileFromBucket(militaryKey);
-    
+            
+          const militaryKey = `collaborator/${cpf}/Military_Certificate`;
+          const militaryFile = await this.getFileFromBucket(militaryKey);
+          
+          if (militaryFile?.ContentType === 'application/pdf' ) {
             return {
               status: 200,
-              type: 'picture',
-              path: militaryFile, // arquivo base64 de endereço
+              type: 'pdf',
+              path: militaryFile.base64Data // Retorna o PDF completo em base64
             };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: militaryFile.base64Data, // arquivo base64 de endereço
+          };
         
         case 'marriage_certificate':
-          const marriageKey = `collaborator/${cpf}/Military_Certificate`;
+          const marriageKey = `collaborator/${cpf}/Marriage_Certificate`;
           const marriageFile = await this.getFileFromBucket(marriageKey);
+
+          if (marriageFile?.ContentType === 'application/pdf' ) {
+            return {
+              status: 200,
+              type: 'pdf',
+              path: marriageFile.base64Data // Retorna o PDF completo em base64
+            };
+          };
   
           return {
             status: 200,
             type: 'picture',
             path: marriageFile, // arquivo base64 de endereço
           };
+        
+        case 'children_certificate':
+          console.log('childrens')
+          break
         
         case 'picture':
           const pictureKey = `collaborator/${cpf}/Picture`;
@@ -242,9 +287,8 @@ export class BucketService {
           return {
             status: 200,
             type: 'picture',
-            path: pictureFile, // arquivo base64 de endereço
-          };
-        
+            path: pictureFile.base64Data, // arquivo base64 de endereço
+          };   
   
         default:
           return {
@@ -261,7 +305,7 @@ export class BucketService {
     }
   };
 
-  async checkCollaboratorBucketDocuments(collaborator) {
+  async checkCollaboratorBucketDocuments(collaborator:any) {
     const missingDocuments = [];
     const missingDocumentsChildren = [];
   
