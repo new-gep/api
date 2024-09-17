@@ -186,15 +186,17 @@ export class CollaboratorService {
             missingFields.push('children');
         }
 
-        if (files.missingDocuments.includes("Picture")) {
-          // Remove "Picture" de missingDocuments
-          files.missingDocuments = files.missingDocuments.filter(doc => doc !== "Picture");
-      
-          // Adiciona "Picture" a missingFields se já não estiver lá
-          if (!missingFields.includes("Picture")) {
-              missingFields.push("Picture");
-          }
-        }
+        if(files.missingDocuments){
+          if (files.missingDocuments.includes("Picture")) {
+            // Remove "Picture" de missingDocuments
+            files.missingDocuments = files.missingDocuments.filter(doc => doc !== "Picture");
+        
+            // Adiciona "Picture" a missingFields se já não estiver lá
+            if (!missingFields.includes("Picture")) {
+                missingFields.push("Picture");
+            }
+          };
+        };
 
         return {
             status: 200,
@@ -202,6 +204,7 @@ export class CollaboratorService {
             missingFields: missingFields.length > 0 ? missingFields : null,
             files : files
         };
+        
     } else {
         // Caso não encontre o colaborador
         return {

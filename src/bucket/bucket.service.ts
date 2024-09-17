@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
-
+import Mask from 'hooks/mask';
 @Injectable()
 export class BucketService {
   private readonly spacesEndpoint: AWS.Endpoint;
@@ -34,10 +34,10 @@ export class BucketService {
     }
   };
 
-  async isDocumentPresent(CPF: string, path: string): Promise<boolean> {
+  async isDocumentPresent(path: string): Promise<boolean> {
     const params = {
       Bucket: this.bucketName,
-      Key: `collaborator/${CPF}/${path}`,
+      Key: path,
     };
 
     try {
@@ -326,11 +326,11 @@ export class BucketService {
     const missingDocumentsChildren = [];
   
     // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
-    const rgPdfExists = await this.isDocumentPresent(collaborator.CPF, 'RG/complet');
+    const rgPdfExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/RG/complet`);
     let rgDocumentMissing = false;
     if (!rgPdfExists) {
-      const rgFrontExists = await this.isDocumentPresent(collaborator.CPF, 'RG/front');
-      const rgBackExists = await this.isDocumentPresent(collaborator.CPF, 'RG/back');
+      const rgFrontExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/RG/front`);
+      const rgBackExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/RG/back`);
       // Se nem o PDF, nem o Front, nem o Back existem, considera o RG como faltante
       if (!rgFrontExists || !rgBackExists) {
         rgDocumentMissing = true;
@@ -340,11 +340,11 @@ export class BucketService {
       missingDocuments.push('RG');
     };
     // Verifica a presença do documento de Work Card (se o PDF estiver presente, dispensa as imagens)
-    const workCardPdfExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/complet');
+    const workCardPdfExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/Work_Card/complet`);
     let workCardDocumentMissing = false;
     if (!workCardPdfExists) {
-      const workCardFrontExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/front');
-      const workCardBackExists = await this.isDocumentPresent(collaborator.CPF, 'Work_Card/back');
+      const workCardFrontExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/Work_Card/front`);
+      const workCardBackExists = await this.isDocumentPresent(`collaborator/${collaborator.CPF}/Work_Card/back`);
       // Se nem o PDF, nem o Front, nem o Back existem, considera o Work Card como faltante
       if (!workCardFrontExists || !workCardBackExists) {
         workCardDocumentMissing = true;
@@ -364,7 +364,7 @@ export class BucketService {
   
     // Verifica se pelo menos um dos documentos existe
     for (const document of addressDocuments) {
-      if (await this.isDocumentPresent(collaborator.CPF, document)) {
+      if (await this.isDocumentPresent(`collaborator/${collaborator.CPF}/${document}`)) {
         documentFound = true;
         break; // Se encontrar um dos documentos, sai do loop
       }
@@ -382,28 +382,28 @@ export class BucketService {
         for (const childKey in collaborator.children) {
           if (collaborator.children.hasOwnProperty(childKey)) {
             const child = collaborator.children[childKey];
-            const childName = child.name;
-    
+            const childName = Mask('firstName',child.name);
             // Lista de documentos a serem verificados para cada filho
-            const childrenDocuments = [`Birth_Certificate`];
+            const childrenDocuments = [`Birth_Certificate_${childName}`];
     
             // Verifica se o documento está presente
             for (const document of childrenDocuments) {
-              const documentPath = `Children/${childName}/Birth_Certificate`;
-    
-              if (!await this.isDocumentPresent(collaborator.CPF, documentPath)) {
+              const documentPath = `Birth_Certificate/Birth_Certificate_${childName}`;
+              if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/${documentPath}`)) {
                 if (!missingDocuments.includes(document)) {
                   missingDocuments.push(document); // Adiciona o documento uma única vez
                 }
                 // Adiciona o nome do filho que deve doc
                 missingDocumentsChildren.push(childName);
               }
+    
             }
           }
         }
       } else {
         // Se `children` for null, não exigimos nada, já que o campo não foi preenchido
       }
+
     
   
     // Verifica se deve exigir documento de casamento (apenas uma foto e certidão de casamento)
@@ -413,7 +413,7 @@ export class BucketService {
           'Marriage_Certificate',
         ];
         for (const document of marriageDocuments) {
-          if (!await this.isDocumentPresent(collaborator.CPF, document)) {
+          if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/${document}`)) {
             missingDocuments.push(document);
           }
         }
@@ -426,7 +426,7 @@ export class BucketService {
           'Military_Certificate',
         ];
         for (const document of militaryDocuments) {
-          if (!await this.isDocumentPresent(collaborator.CPF, document)) {
+          if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/${document}`)) {
             missingDocuments.push(document);
           }
         }
@@ -435,12 +435,12 @@ export class BucketService {
     
   
     // Verifica se a foto do colaborador está presente
-    if (!await this.isDocumentPresent(collaborator.CPF, 'Picture')) {
+    if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/Picture`)) {
       missingDocuments.push('Picture');
     };
   
     // Verifica se o Certificate School está presente
-    if (!await this.isDocumentPresent(collaborator.CPF, 'School_History')) {
+    if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/School_History`)) {
       missingDocuments.push('School_History');
     };
   
