@@ -51,6 +51,17 @@ export class BucketService {
     }
   };
 
+  async GenerateAccess(path: string){
+    const params = {
+      Bucket: 'newgep',
+      Key: path,
+      Expires: 5000 // A URL será válida por 60 segundos
+  };
+  
+    const url = this.bucket.getSignedUrl('getObject', params);
+    return url
+  }
+
   async UploadCollaborator(file: Express.Multer.File, name: string, side: string, cpf: string) {
     let path: string;
 
@@ -149,6 +160,8 @@ export class BucketService {
             // Tentar buscar o PDF completo primeiro
             const pdfFile = await this.getFileFromBucket(rgPdfKey);
             if (pdfFile?.ContentType === 'application/pdf') {
+             console.log('é PDF')
+              const url = await this.GenerateAccess(rgPdfKey)
               return {
                 status: 200,
                 type: 'pdf',
@@ -172,6 +185,8 @@ export class BucketService {
             const addressFile = await this.getFileFromBucket(addressKey);
             
             if(addressFile?.ContentType === 'application/pdf'){
+              console.log('é PDF')
+              const url = await this.GenerateAccess(addressKey)
               return {
                 status: 200,
                 type: 'pdf',
@@ -391,7 +406,7 @@ export class BucketService {
               const documentPath = `Birth_Certificate/Birth_Certificate_${childName}`;
               if (!await this.isDocumentPresent(`collaborator/${collaborator.CPF}/${documentPath}`)) {
                 if (!missingDocuments.includes(document)) {
-                  missingDocuments.push(document); // Adiciona o documento uma única vez
+                  missingDocuments.push('Birth_Certificate'); // Adiciona o documento uma única vez
                 }
                 // Adiciona o nome do filho que deve doc
                 missingDocumentsChildren.push(childName);
