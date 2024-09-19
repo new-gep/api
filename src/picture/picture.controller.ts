@@ -22,9 +22,9 @@ export class PictureController {
     return this.pictureService.findOne(CPF_collaborator);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePictureDto: UpdatePictureDto) {
-    return this.pictureService.update(+id, updatePictureDto);
+  @Patch(':cpf')
+  update(@Param('cpf') CPF: string, @Body() updatePictureDto: UpdatePictureDto) {
+    return this.pictureService.update(CPF, updatePictureDto);
   }
 
   @Delete(':id')

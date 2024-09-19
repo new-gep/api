@@ -93,6 +93,9 @@ export class BucketService {
         case 'cnh':
           path = `collaborator/${cpf}/CNH/${side}`;
           break;
+        case 'voter_registration':
+          path = `collaborator/${cpf}/Voter_Registration/${side}`;
+          break
         default:
           return {
             status: 400,
@@ -158,14 +161,13 @@ export class BucketService {
             const rgBackKey  = `collaborator/${cpf}/RG/back`;        // Caso tenha "back"
     
             // Tentar buscar o PDF completo primeiro
-            const pdfFile = await this.getFileFromBucket(rgPdfKey);
-            if (pdfFile?.ContentType === 'application/pdf') {
-             console.log('é PDF')
+            const rgFile = await this.getFileFromBucket(rgPdfKey);
+            if (rgFile?.ContentType === 'application/pdf') {
               const url = await this.GenerateAccess(rgPdfKey)
               return {
                 status: 200,
                 type: 'pdf',
-                path: pdfFile.base64Data // Retorna o PDF completo em base64
+                path: url // Retorna o PDF completo em base64
               };
             }
     
@@ -185,12 +187,11 @@ export class BucketService {
             const addressFile = await this.getFileFromBucket(addressKey);
             
             if(addressFile?.ContentType === 'application/pdf'){
-              console.log('é PDF')
               const url = await this.GenerateAccess(addressKey)
               return {
                 status: 200,
                 type: 'pdf',
-                path: addressFile.base64Data,
+                path: url,
               };
             }
   
@@ -309,6 +310,33 @@ export class BucketService {
           case 'children_certificate':
             console.log('childrens')
             break
+          
+          case 'voter_registration':
+            const voterPdfKey   = `collaborator/${cpf}/Voter_Registration/complet`;  // Caso seja um PDF completo
+            const voterFrontKey = `collaborator/${cpf}/Voter_Registration/front`;      // Caso tenha "front"
+            const voterBackKey  = `collaborator/${cpf}/Voter_Registration/back`;        // Caso tenha "back"
+    
+            // Tentar buscar o PDF completo primeiro
+            const voterFile = await this.getFileFromBucket(voterPdfKey);
+            if (voterFile?.ContentType === 'application/pdf') {
+              const url = await this.GenerateAccess(voterPdfKey)
+              return {
+                status: 200,
+                type: 'pdf',
+                path: url // Retorna o PDF completo em base64
+              };
+            }
+    
+            // Se o PDF não existir, tentar buscar as imagens front e back
+            const voterFrontFile = await this.getFileFromBucket(voterFrontKey);
+            const voterBackFile  = await this.getFileFromBucket(voterBackKey);
+    
+            // Retorna as imagens em base64
+            return {
+              status: 200,
+              type: 'picture',
+              path: [voterFrontFile.base64Data, voterBackFile.base64Data], // Retorna front e back como um array
+            };
           
           case 'picture':
             const pictureKey = `collaborator/${cpf}/Picture`;

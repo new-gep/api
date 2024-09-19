@@ -43,7 +43,7 @@ export class PictureService {
       console.log(e)
       return {
         status: 500,
-        message: 'Ocorreu um erro no servidor',
+        message: 'Erro interno',
       };
       
     }
@@ -56,34 +56,67 @@ export class PictureService {
   async findOne(CPF_collaborator: string) {
     try {
         const pictures = await this.pictureRepository.find({
-            where: { CPF_collaborator: CPF_collaborator },
+          where: { CPF_collaborator: CPF_collaborator },
         });
-
         // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
         if (!pictures || pictures.length === 0) {
-            return {
-                status: 404,  // Usando 404, pois não encontrou os dados
-                message: 'Nenhuma imagem encontrada para este colaborador',
-            };
-        }
-
-        return {
-            status: 200,
-            pictures: pictures,
+          return {
+            status: 404,  // Usando 404, pois não encontrou os dados
+            message: 'Nenhuma imagem encontrada para este colaborador',
+          };
         };
-    } catch (e) {
-        console.error('Erro ao buscar imagens:', e);
         return {
-            status: 500,
-            message: 'Ocorreu um erro no servidor',
+          status: 200,
+          pictures: pictures,
         };
+    } catch(e){
+      console.log(e)
+      return {
+        status: 500,
+        message: 'Erro interno',
+      };
     }
-};
-
-
-  update(id: number, updatePictureDto: UpdatePictureDto) {
-    return `This action updates a #${id} picture`;
   };
+
+  async update(CPF: string, updatePictureDto: UpdatePictureDto) {
+    try{
+      const { status } = updatePictureDto;  // Extrai o campo `status` do DTO
+    
+      // Encontra o registro que corresponde ao CPF e picture
+      const pictureRecord = await this.pictureRepository.findOne({
+        where: { CPF_collaborator: CPF, picture: updatePictureDto.picture },
+      });
+    
+      if (!pictureRecord) {
+        return {
+          status: 400,
+          message: 'Registro não encontrado!',
+          updatedPicture: pictureRecord,
+        };
+      }
+    
+      // Atualiza o status e o campo `update_at` com o tempo atual
+      pictureRecord.status = status;
+      pictureRecord.update_at = FindTimeSP();  // Adiciona o tempo de atualização
+    
+      // Salva a atualização no banco de dados
+      await this.pictureRepository.save(pictureRecord);
+    
+      return {
+        status: 200,
+        message: 'Registro atualizado com sucesso!',
+        updatedPicture: pictureRecord,
+      };
+
+    }catch(e){
+      console.log(e)
+      return {
+        status: 500,
+        message: 'Erro interno',
+      };
+    }
+  };
+  
 
   remove(id: number) {
     return `This action removes a #${id} picture`;
