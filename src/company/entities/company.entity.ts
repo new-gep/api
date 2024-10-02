@@ -8,6 +8,9 @@ export class Company {
     @Column({length: 150})
     company_name: string;
 
+    @Column({length: 10})
+    type_account: string;
+
     @Column({length: 150})
     state_registration: string;
 
@@ -19,6 +22,9 @@ export class Company {
 
     @Column({length: 11})
     phone: string;
+
+    @Column({length: 8})
+    zip_code: string;
 
     @Column({length: 200})
     street: string;

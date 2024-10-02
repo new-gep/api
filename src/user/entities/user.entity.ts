@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
-    id: number;
+    id: string;
 
     @Column({length: 50})
     user: string;
@@ -16,9 +16,6 @@ export class User {
 
     @Column({length: 11})
     phone: string;
-
-    @Column({length: 14})
-    CNPJ_client: string;
 
     @Column({length: 14})
     CNPJ_company: string;

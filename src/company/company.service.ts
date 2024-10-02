@@ -3,18 +3,63 @@ import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { Company } from './entities/company.entity';
 import { Repository } from 'typeorm';
-
+import { UserService } from 'src/user/user.service';
+import FindTimeSP from 'hooks/time';
 @Injectable()
 export class CompanyService {
   constructor(
     @Inject('COMPANY_REPOSITORY') 
     private companyRepository: Repository<Company>,
+    readonly userService: UserService
   ){}
 
 
-  create(createCompanyDto: CreateCompanyDto) {
-    return 'This action adds a new company';
-  }
+  async create(createCompanyDto: CreateCompanyDto) {
+    try{
+      const existingCNPJCompany = await this.companyRepository.findOne({
+        where: { CNPJ: createCompanyDto.CNPJ }
+      });
+  
+      if(existingCNPJCompany) {
+        return {
+          status:409,
+          message:'CNPJ já cadastrado.',
+        }
+      };
+  
+      const ParamsNewUser = {
+        user: createCompanyDto.user,
+        password: createCompanyDto.password,
+        email: createCompanyDto.email,
+        phone: createCompanyDto.phone,
+        CNPJ_company:createCompanyDto.CNPJ
+      };
+      
+      const checkUp = await this.userService.singUp(ParamsNewUser)
+  
+      if(checkUp){
+        return checkUp
+      };
+  
+      const time = await FindTimeSP();
+      createCompanyDto.create_at = time;
+  
+      await this.companyRepository.save(createCompanyDto);
+      await this.userService.create(ParamsNewUser);
+
+      return{
+        status :201,
+        message:'Conta e usário criados.'
+      }
+    }catch(e){
+      console.log(e)
+      return{
+        status: 500,
+        message:'Erro internon tente mais tarde'
+      }
+    }
+    // this.userService.create()
+  };
 
   findAll() {
     return `This action returns all company`;

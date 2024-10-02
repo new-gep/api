@@ -28,6 +28,7 @@
     "aws-sdk": "^2.1687.0",
     "bcrypt": "^5.1.1",
     "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.0",
     "nodemailer": "^6.9.14",
     "path": "^0.12.7",
