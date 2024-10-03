@@ -29,6 +29,7 @@ export class CompanyService {
   
       const ParamsNewUser = {
         user: createCompanyDto.user,
+        name: createCompanyDto.responsible,
         password: createCompanyDto.password,
         email: createCompanyDto.email,
         phone: createCompanyDto.phone,
@@ -55,7 +56,7 @@ export class CompanyService {
       console.log(e)
       return{
         status: 500,
-        message:'Erro internon tente mais tarde'
+        message:'Erro interno tente mais tarde'
       }
     }
     // this.userService.create()

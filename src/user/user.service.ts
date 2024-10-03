@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import FindTimeSP from 'hooks/time';
 import GenerateToken from 'hooks/auth/generateToken';
+import DecodeToken from 'hooks/auth/decodeToken';
+import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UserService {
   constructor(
@@ -40,6 +42,7 @@ export class UserService {
     const time = FindTimeSP();
     createUserDto.create_at = time;
     createUserDto.id = await this.generateRandomId();
+    createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
     const newUser = await this.userRepository.save(createUserDto);
     if(newUser){
       return {
@@ -74,7 +77,7 @@ export class UserService {
     };
 
     return null
-  }
+  };
   
   async singIn(singInUserDto:SingInUserDto){
     
@@ -93,21 +96,40 @@ export class UserService {
     if(!singInUserDto.password){
       return  {
         status:200,
+        name: user.name,
         message:'Usúario existe'
       }
     };
 
-    if(singInUserDto.password === user.password){
-      const  token = await GenerateToken({id:user.id, user:user.user, email:user.email, phone:user.phone, cnpj:user.CNPJ_company})
-      return token
-    }
+    const auth = await bcrypt.compare(singInUserDto.password, user.password);
+    if(auth){
+      const  token = await GenerateToken({id:user.id, user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company})
+      return {
+        status:200,
+        token:token
+      }
+    }else{
+      return {
+        status:409,
+        message:'Senha incorreta.',
+      }
+    };
 
-    return{
-      status:500,
-      message:'Senha Incorreta'
-    }
+  };
 
-  }
+  verifyToken(token:string){
+    const response = DecodeToken(token);
+    if(!response){
+      return {
+        status: 400,
+        message: 'Token inválido'
+      }
+    }
+    return {
+      status: 200,
+      dates : response
+    }
+  };
 
   findAll() {
     return `This action returns all user`;

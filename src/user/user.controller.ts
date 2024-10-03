@@ -17,11 +17,15 @@ export class UserController {
     return this.userService.singIn(singInUserDto);
   };
 
+  @Get('verifyToken/:token')
+  verifyToken(@Param('token') token: string) {
+    return this.userService.verifyToken(token);
+  };
+
   @Get()
   findAll() {
     return this.userService.findAll();
   };
-
 
   @Get(':id')
   findOne(@Param('id') id: string) {

@@ -2,6 +2,7 @@ export class CreateUserDto {
     id?:string
     user:string
     password:string
+    name:string
     email:string
     phone:string
     CNPJ_client ?:string
