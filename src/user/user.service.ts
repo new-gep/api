@@ -44,10 +44,15 @@ export class UserService {
     createUserDto.id = await this.generateRandomId();
     createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
     const newUser = await this.userRepository.save(createUserDto);
+
+
     if(newUser){
+      const  token = await GenerateToken({id:newUser.id, user:newUser.user, name:newUser.name, email:newUser.email, phone:newUser.phone, cnpj:newUser.CNPJ_company})
+
       return {
         status : 201,
         message: 'Usário criado com sucesso! ',
+        token  : token
       }
     };
   }

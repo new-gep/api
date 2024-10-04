@@ -46,11 +46,12 @@ export class CompanyService {
       createCompanyDto.create_at = time;
   
       await this.companyRepository.save(createCompanyDto);
-      await this.userService.create(ParamsNewUser);
+     const user = await this.userService.create(ParamsNewUser);
 
       return{
         status :201,
-        message:'Conta e usário criados.'
+        message:'Conta e usário criados.',
+        token: user.token
       }
     }catch(e){
       console.log(e)
