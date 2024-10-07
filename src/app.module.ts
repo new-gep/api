@@ -8,9 +8,10 @@ import { UserModule } from './user/user.module';
 import { EmailService } from "./email/email.service";
 import { UserTypeModule } from './user_type/user_type.module';
 import { PictureModule } from './picture/picture.module';
+import { JobModule } from './job/job.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })
