@@ -8,5 +8,7 @@ export class CreateJobDto {
     contract: string;
     salary: string;
     time  : string;
+    CNPJ_company:string;
+    user_create: string;
     create_at:string;
 }

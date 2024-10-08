@@ -1,3 +1,4 @@
+import { Json } from 'aws-sdk/clients/robomaker';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -14,8 +15,11 @@ export class Job {
     @Column({length: 50})
     salary: string;
 
-    @Column({length: 150})
-    time: string;
+    @Column()
+    time: Json;
+
+    @Column()
+    candidates: Json;
 
     @Column({length: 1})
     transportation_voucher: string;
@@ -37,6 +41,12 @@ export class Job {
 
     @Column({length: 11})
     CPF_collaborator: string;
+
+    @Column({length: 5})
+    user_create: string;
+
+    @Column({length: 5})
+    user_edit: string;
 
     @Column({length: 50})
     create_at: string;

@@ -19,12 +19,17 @@ export class JobController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.jobService.findOne(+id);
+    return this.jobService.findOne(id);
+  }
+
+  @Get('open/:cnpj')
+  jobOpen(@Param('cnpj') cnpj: string) {
+    return this.jobService.findJobOpen(cnpj);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
-    return this.jobService.update(+id, updateJobDto);
+    return this.jobService.update(id, updateJobDto);
   }
 
   @Delete(':id')

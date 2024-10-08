@@ -46,7 +46,7 @@ export class CompanyService {
       createCompanyDto.create_at = time;
   
       await this.companyRepository.save(createCompanyDto);
-     const user = await this.userService.create(ParamsNewUser);
+      const user = await this.userService.create(ParamsNewUser);
 
       return{
         status :201,
