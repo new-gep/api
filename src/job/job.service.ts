@@ -1,14 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Job } from './entities/job.entity';
+import { UserService } from 'src/user/user.service';
 import FindTimeSP from 'hooks/time';
 @Injectable()
 export class JobService {
   constructor(
     @Inject('JOB_REPOSITORY') 
     private jobRepository: Repository<Job>,
+    readonly userService: UserService
   ){}
   
   async create(createJobDto: CreateJobDto) {
@@ -40,11 +42,11 @@ export class JobService {
   }
 
   async findJobOpen(cnpj:string){
-    const response = await this.jobRepository.find({ where: { CPF_collaborator: null, CNPJ_company: cnpj} });
+    const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
     if(response){
       return {
         status:200,
-        job:response
+        job   :response,
       }
     };
     return {
@@ -63,9 +65,12 @@ export class JobService {
         where: { id: id }
       });
       if(response){
+        //@ts-ignore
+        const user = await this.userService.findOne(response.user_create)
         return{
           status:200,
-          job:response
+          job:response,
+          userCreate:user.user
         }
       }else{
         return{
@@ -86,9 +91,9 @@ export class JobService {
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
     updateJobDto.update_at = time;
-
     try{
       const response = await this.jobRepository.update(id,updateJobDto);
+
       if(response.affected === 1){
         return {
           status: 200,
@@ -108,7 +113,31 @@ export class JobService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} job`;
+  async remove(id: string) {
+    try{
+      const time = FindTimeSP();
+      const propsDelete = {
+        delete_at: time
+      };
+  
+      const response = await this.jobRepository.update(id,propsDelete);
+      if(response.affected === 1){
+        return {
+          status: 200,
+          message:'Vaga deletada com sucesso!'
+        }
+      }
+      return {
+        status:404,
+        message:'Não foi possivel deletada a vaga, algo deu errado!'
+      }
+    }catch(e){
+      console.log(e)
+      return {
+        status:500,
+        message:'Erro interno.'
+      }
+    }
+
   }
 }

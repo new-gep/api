@@ -108,7 +108,7 @@ export class UserService {
 
     const auth = await bcrypt.compare(singInUserDto.password, user.password);
     if(auth){
-      const  token = await GenerateToken({id:user.id, user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company})
+      const  token = await GenerateToken({id:user.id, avatar:user.avatar ,user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company, lastUpdate:user.update_at})
       return {
         status:200,
         token:token
@@ -140,12 +140,74 @@ export class UserService {
     return `This action returns all user`;
   };
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    try{
+      const response = await this.userRepository.findOne({
+        where: { id: id }
+      });
+  
+      if(response){
+        return{
+          status:200,
+          user:response,
+        }
+      }else{
+        return{
+          status:404,
+          message:'usuario não encontrado'
+        }
+      }
+
+    }catch(e){
+      return{
+        status: 500,
+        message:'Erro Interno.'
+      }
+    }
   };
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    if (updateUserDto.confirmPassword.trim() === "") {
+      // A string está em branco (apenas espaços, tabs, etc.)
+      delete updateUserDto.confirmPassword;
+      delete updateUserDto.password;
+    }else{
+      const response = await this.findOne(id)
+      const auth = await bcrypt.compare(updateUserDto.password, response.user.password);
+      if(!auth){
+        return{
+          status:404,
+          message:'Senha atual incorreta!'
+        }
+      };
+      updateUserDto.password = updateUserDto.confirmPassword;
+      delete updateUserDto.confirmPassword;
+    }
+    const time = FindTimeSP();
+    updateUserDto.update_at = time;
+    try{
+      const response = await this.userRepository.update(id, updateUserDto);
+      if(response.affected === 1){
+        const user  = await this.findOne(id)
+        //@ts-ignore
+        const token = await GenerateToken({id:user.id, avatar:user.avatar ,user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company, lastUpdate:user.update_at})
+        return {
+          status : 200,
+          message: 'Usuário atualizado com sucesso!', 
+          token  : token
+        }
+      }
+      return {
+        status:404,
+        message:'Não foi possivel atualizar o usuário, algo deu errado!'
+      }
+    }catch(e){
+      console.log(e)
+      return {
+        status:500,
+        message:'Erro interno.'
+      }
+    }
   };
 
   remove(id: number) {

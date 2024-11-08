@@ -5,6 +5,9 @@ export class User {
     @PrimaryGeneratedColumn()
     id: string;
 
+    @Column({length: 50, default:null })
+    avatar: string;
+
     @Column({length: 50})
     user: string;
 

@@ -34,6 +34,6 @@ export class JobController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.jobService.remove(+id);
+    return this.jobService.remove(id);
   }
 }
