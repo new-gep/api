@@ -180,7 +180,7 @@ export class UserService {
           message:'Senha atual incorreta!'
         }
       };
-      updateUserDto.password = updateUserDto.confirmPassword;
+      updateUserDto.password = await bcrypt.hash(updateUserDto.confirmPassword, 10);
       delete updateUserDto.confirmPassword;
     }
     const time = FindTimeSP();
@@ -194,7 +194,8 @@ export class UserService {
         return {
           status : 200,
           message: 'Usuário atualizado com sucesso!', 
-          token  : token
+          token  : token,
+          update_at: time
         }
       }
       return {

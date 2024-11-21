@@ -19,7 +19,7 @@ export class Job {
     time: Json;
 
     @Column()
-    candidates: Json;
+    candidates: string;
 
     @Column({length: 1})
     transportation_voucher: string;

@@ -18,10 +18,10 @@ export class BucketService {
   };
 
 
-  private async getFileFromBucket(key: string): Promise<{ ContentType: string, base64Data: string } | null> {
+  async getFileFromBucket(key: string): Promise<{ ContentType: string, base64Data: string } | null> {
     try {
       const fileData = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
-      const base64Data = fileData.Body.toString('base64');
+      const base64Data =  fileData.Body.toString('base64');
       return {
         ContentType: fileData.ContentType, // Retorna o tipo do arquivo
         base64Data: `data:${fileData.ContentType};base64,${base64Data}` // Retorna o arquivo em base64
@@ -167,7 +167,8 @@ export class BucketService {
               return {
                 status: 200,
                 type: 'pdf',
-                path: url // Retorna o PDF completo em base64
+                path : rgFile.base64Data,
+                url: url // Retorna o PDF completo em base64
               };
             }
     
@@ -209,10 +210,12 @@ export class BucketService {
             // Buscar PDF completo do Work Card
             const workCardPdf = await this.getFileFromBucket(workCardPdfKey);
             if (workCardPdf?.ContentType === 'application/pdf') {
+              const url = await this.GenerateAccess(workCardPdfKey)
               return {
                 status: 200,
                 type: 'pdf',
                 path: workCardPdf.base64Data,
+                url : url
               };
             }
     
@@ -231,10 +234,12 @@ export class BucketService {
             const schoolHistoryFile = await this.getFileFromBucket(schoolHistoryKey);
     
             if(schoolHistoryFile?.ContentType === 'application/pdf'){
+              const url = await this.GenerateAccess(schoolHistoryKey)
               return {
                 status: 200,
                 type: 'pdf',
                 path: schoolHistoryFile.base64Data,
+                url : url
               };
             }
   
@@ -251,11 +256,13 @@ export class BucketService {
       
             // Tentar buscar o PDF completo primeiro
             const cnhFile = await this.getFileFromBucket(cnhPdfKey);
+            const url = await this.GenerateAccess(cnhPdfKey)
             if (cnhFile?.ContentType === 'application/pdf') {
                 return {
                   status: 200,
                   type: 'pdf',
-                  path: cnhFile.base64Data // Retorna o PDF completo em base64
+                  path: cnhFile.base64Data, // Retorna o PDF completo em base64
+                  url : url
                 };
             }
       
@@ -276,10 +283,12 @@ export class BucketService {
             const militaryFile = await this.getFileFromBucket(militaryKey);
             
             if (militaryFile?.ContentType === 'application/pdf' ) {
+              const url = await this.GenerateAccess(militaryKey)
               return {
                 status: 200,
                 type: 'pdf',
-                path: militaryFile.base64Data // Retorna o PDF completo em base64
+                path: militaryFile.base64Data, // Retorna o PDF completo em base64
+                url : url
               };
             }
   
@@ -294,10 +303,12 @@ export class BucketService {
             const marriageFile = await this.getFileFromBucket(marriageKey);
   
             if (marriageFile?.ContentType === 'application/pdf' ) {
+              const url = await this.GenerateAccess(marriageKey)
               return {
                 status: 200,
                 type: 'pdf',
-                path: marriageFile.base64Data // Retorna o PDF completo em base64
+                path: marriageFile.base64Data, // Retorna o PDF completo em base64
+                url : url
               };
             };
     
@@ -323,7 +334,8 @@ export class BucketService {
               return {
                 status: 200,
                 type: 'pdf',
-                path: url // Retorna o PDF completo em base64
+                path: voterFile.base64Data,
+                url: url // Retorna o PDF completo em base64
               };
             }
     

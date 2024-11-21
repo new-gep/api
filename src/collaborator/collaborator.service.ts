@@ -151,10 +151,12 @@ export class CollaboratorService {
 
   async findOne(CPF: string) {
     const response = await this.collaboratorRepository.findOne({ where: { CPF } });
+    const picture = await this.findFile(CPF, 'picture')
     if(response){
       return {
         status:200,
-        collaborator:response
+        collaborator:response,
+        picture: picture.path
       }
     }
     return {

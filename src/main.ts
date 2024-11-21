@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as bodyParser from 'body-parser';
 import { createServer } from 'node:http';
 import express from 'express';
 // import { IoAdapter } from '@nestjs/platform-socket.io';
@@ -8,6 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule,{
     cors: true,
   });
+  
   const config = new DocumentBuilder()
     .setTitle('new_gep')
     .setDescription('default new_gep')
@@ -26,7 +28,8 @@ async function bootstrap() {
   };
 
   app.enableCors(options);
-
+  app.use(bodyParser.json({limit: '50mb'}));
+  app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
   await app.listen(8080);
 }
 bootstrap();

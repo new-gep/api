@@ -1,3 +1,4 @@
+import { Year } from 'aws-sdk/clients/groundstation';
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
@@ -19,6 +20,9 @@ export class Collaborator {
 
     @Column({length: 11,})
     phone: string;
+
+    @Column()
+    birth: Date;
 
     @Column({length: 1   })
     terms: string;

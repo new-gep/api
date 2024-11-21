@@ -7,6 +7,7 @@ export class UpdateJobDto {
     contract?: string;
     salary  ?: string;
     time    ?: any;
+    candidates?:any
     user_edit?:string;
     update_at?:string;
     CPF_collaborator?:string;

@@ -10,6 +10,6 @@ import { BucketModule } from 'src/bucket/bucket.module';
   imports:[DatabaseModule, EmailModule, BucketModule],
   controllers: [CollaboratorController],
   providers: [CollaboratorService, ...collaboratorProviders],
-  
+  exports: [CollaboratorService]
 })
 export class CollaboratorModule {}

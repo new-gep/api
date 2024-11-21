@@ -4,13 +4,17 @@ import { UpdateJobDto } from './dto/update-job.dto';
 import { IsNull, Repository } from 'typeorm';
 import { Job } from './entities/job.entity';
 import { UserService } from 'src/user/user.service';
+import { CollaboratorService } from 'src/collaborator/collaborator.service';
+import { BucketService } from 'src/bucket/bucket.service';
 import FindTimeSP from 'hooks/time';
 @Injectable()
 export class JobService {
   constructor(
     @Inject('JOB_REPOSITORY') 
     private jobRepository: Repository<Job>,
-    readonly userService: UserService
+    readonly userService: UserService,
+    readonly collaboratorService: CollaboratorService,
+    readonly bucketService: BucketService,
   ){}
   
   async create(createJobDto: CreateJobDto) {
@@ -43,10 +47,17 @@ export class JobService {
 
   async findJobOpen(cnpj:string){
     const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
+    const formattedResponse = response.map(job => {
+      return {
+        ...job,
+        candidates: job.candidates ? JSON.parse(job.candidates) : job.candidates, // Analisa o JSON de candidates se for uma string
+      };
+    });
+  
     if(response){
       return {
         status:200,
-        job   :response,
+        job   :formattedResponse,
       }
     };
     return {
@@ -65,8 +76,19 @@ export class JobService {
         where: { id: id }
       });
       if(response){
-        //@ts-ignore
-        const user = await this.userService.findOne(response.user_create)
+        const user   = await this.userService.findOne(response.user_create)
+        response.candidates = JSON.parse(response.candidates)
+        for (let index = 0; index < response.candidates.length; index++) {
+          const candidate:any = response.candidates[index];
+          const collaborator:any = await this.collaboratorService.findOne(candidate.cpf);
+          const picture:any = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
+          //@ts-ignore
+          response.candidates[index] = {
+            ...candidate,                
+            name   : collaborator.collaborator.name, 
+            picture:picture.base64Data,
+          };
+        };
         return{
           status:200,
           job:response,
