@@ -18,9 +18,9 @@ export class BucketService {
   };
 
 
-  async getFileFromBucket(key: string): Promise<{ ContentType: string, base64Data: string } | null> {
+  async getFileFromBucket(key: string): Promise<any> {
     try {
-      const fileData = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
+      const fileData   = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
       const base64Data =  fileData.Body.toString('base64');
       return {
         ContentType: fileData.ContentType, // Retorna o tipo do arquivo
@@ -31,6 +31,49 @@ export class BucketService {
         return null; // Retorna null se o arquivo não existir
       }
       throw new Error(`Erro ao buscar o arquivo do bucket: ${error.message}`);
+    }
+  };
+
+  async getAllFilesChildrenFromBucket(cpf:string){
+    let childrens: AWS.S3.ObjectList = [];
+    let data: AWS.S3.ListObjectsV2Output;
+    let finishDates : any[] = [];
+    const params: AWS.S3.ListObjectsV2Request = {
+      Bucket: this.bucketName, // Nome do bucket
+      Prefix: `collaborator/${cpf}/Birth_Certificate/`, // Nome da pasta
+    };  
+
+    try{
+      do {
+        // Faz a chamada para listar os arquivos
+        data = await this.bucket.listObjectsV2(params).promise();
+        childrens = childrens.concat(data.Contents); // Adiciona os arquivos à lista
+        params.ContinuationToken = data.NextContinuationToken; // Atualiza o token para buscar mais arquivos
+      } while (data.IsTruncated); // Continua 
+      
+      // await childrens.map(async children  => {
+      //   if (children.Key) {
+      //     const base64File = await this.getFileFromBucket(children.Key); // Chama sua função para obter o arquivo em base64
+      //     const match = children.Key.match(/([^_/]+)$/);
+      //     base64File.name = match[1]
+      //     finishDates.push(base64File)
+      //   }
+      // });
+
+      for (const children of childrens) {
+        if (children.Key) {
+          const base64File = await this.getFileFromBucket(children.Key); // Chama sua função para obter o arquivo em base64
+          const match = children.Key.match(/([^_/]+)$/);
+          base64File.name = match ? match[1] : null; // Adiciona o nome extraído
+          base64File.type = base64File.ContentType == 'application/pdf' ? 'pdf' : 'picture'
+          finishDates.push(base64File);
+        }
+      }
+
+      return finishDates
+
+    }catch(e){
+      console.log(e)
     }
   };
 
@@ -319,8 +362,12 @@ export class BucketService {
             };
           
           case 'children_certificate':
-            console.log('childrens')
-            break
+            const response = await this.getAllFilesChildrenFromBucket(cpf);
+            return {
+              status: 200,
+              type: 'children',
+              path: response, // arquivo base64 de endereço
+            };  
           
           case 'voter_registration':
             const voterPdfKey   = `collaborator/${cpf}/Voter_Registration/complet`;  // Caso seja um PDF completo

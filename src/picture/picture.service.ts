@@ -80,7 +80,7 @@ export class PictureService {
 
   async update(CPF: string, updatePictureDto: UpdatePictureDto) {
     try{
-      const { status } = updatePictureDto;  // Extrai o campo `status` do DTO
+      const { status, id_user } = updatePictureDto;  // Extrai o campo `status` do DTO
     
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
@@ -96,7 +96,8 @@ export class PictureService {
       }
     
       // Atualiza o status e o campo `update_at` com o tempo atual
-      pictureRecord.status = status;
+      pictureRecord.id_user = id_user;
+      pictureRecord.status  = status;
       pictureRecord.update_at = FindTimeSP();  // Adiciona o tempo de atualização
     
       // Salva a atualização no banco de dados
@@ -116,7 +117,6 @@ export class PictureService {
       };
     }
   };
-  
 
   remove(id: number) {
     return `This action removes a #${id} picture`;
