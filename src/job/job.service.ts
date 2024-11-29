@@ -70,6 +70,36 @@ export class JobService {
     return `This action returns all job`;
   }
 
+  async findProcessAdmissional(cnpj:string){
+    const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
+    const candidatesWithStep1 = await Promise.all(
+      response.flatMap(async job => {
+        if (!job.candidates) return []; // Retorna array vazio se não houver candidatos
+    
+        const candidates = JSON.parse(job.candidates); // Parse para objeto JSON
+        return Promise.all(
+          candidates.map(async candidate => {
+            const picture = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
+            return {
+              ...candidate,
+              picture:picture.base64Data, // Inclui a imagem no resultado
+              id: job.id,
+              function: job.function,
+              salary: job.salary,
+              contract: job.contract,
+            };
+          })
+        );
+      })
+    );
+    
+    // Filtrar candidatos com step === "1"
+    const filteredCandidates = candidatesWithStep1.flat().filter(candidate => candidate.step !== "0");
+    return filteredCandidates
+    
+
+  }
+
   async findOne(id: string) {
     try{
       const response = await this.jobRepository.findOne({

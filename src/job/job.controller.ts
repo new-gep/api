@@ -27,6 +27,11 @@ export class JobController {
     return this.jobService.findJobOpen(cnpj);
   }
 
+  @Get('process/admissional/:cnpj')
+  jobProcessAdmissional(@Param('cnpj') cnpj: string) {
+    return this.jobService.findProcessAdmissional(cnpj);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
     return this.jobService.update(id, updateJobDto);
