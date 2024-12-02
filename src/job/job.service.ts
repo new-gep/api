@@ -43,7 +43,7 @@ export class JobService {
         message:'Erro Interno.',
       }
     }
-  }
+  };
 
   async findJobOpen(cnpj:string){
     const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
@@ -64,41 +64,64 @@ export class JobService {
       status :409,
       message:'Registro não encontrado'
     };
-  }
+  };
 
   findAll() {
     return `This action returns all job`;
-  }
+  };
 
   async findProcessAdmissional(cnpj:string){
-    const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
-    const candidatesWithStep1 = await Promise.all(
-      response.flatMap(async job => {
-        if (!job.candidates) return []; // Retorna array vazio se não houver candidatos
-    
-        const candidates = JSON.parse(job.candidates); // Parse para objeto JSON
-        return Promise.all(
-          candidates.map(async candidate => {
-            const picture = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
-            return {
-              ...candidate,
-              picture:picture.base64Data, // Inclui a imagem no resultado
-              id: job.id,
-              function: job.function,
-              salary: job.salary,
-              contract: job.contract,
-            };
-          })
-        );
-      })
-    );
-    
-    // Filtrar candidatos com step === "1"
-    const filteredCandidates = candidatesWithStep1.flat().filter(candidate => candidate.step !== "0");
-    return filteredCandidates
-    
+    try{
+      const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
+      const candidatesWithStep = await Promise.all(
+        response.flatMap(async job => {
+          if (!job.candidates) return []; // Retorna array vazio se não houver candidatos
+          const candidates = JSON.parse(job.candidates); // Parse para objeto JSON
+          for (const candidate of candidates) {
+            const response = await this.collaboratorService.findOne(candidate.cpf); // Busca os dados pelo CPF
+            if (response.status === 200) {
+              delete response.collaborator.password;
+              delete response.collaborator.CPF;
+              Object.assign(candidate, response.collaborator); // Adiciona os dados diretamente ao objeto
+            }
+          }
 
-  }
+          return Promise.all(
+            candidates.map(async candidate => {
+              const picture = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
+              return {
+                ...candidate,
+                picture:picture.base64Data, 
+                id      : job.id,
+                function: job.function,
+                salary  : job.salary,
+                contract: job.contract,
+                update_atJob:job.update_at
+              }
+            })
+          );
+        })
+      );
+      const filteredCandidates = candidatesWithStep.flat().filter(candidate => candidate.step !== "0");
+      const stepCounts = filteredCandidates.reduce((acc, candidate) => {
+          const step = candidate.step;
+          acc[step] = (acc[step] || 0) + 1;
+          return acc;
+      }, {});
+    
+      return{
+        status:200,
+        candidates:filteredCandidates,
+        counts:stepCounts
+      }
+
+    }catch(e){
+      return{
+        status:500,
+        message:'Unexpected Error'
+      }
+    } 
+  };
 
   async findOne(id: string) {
     try{
@@ -138,7 +161,7 @@ export class JobService {
         message:'Erro Interno.'
       }
     }
-  }
+  };
 
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
@@ -162,7 +185,7 @@ export class JobService {
         message:'Erro interno.'
       }
     }
-  }
+  };
 
   async remove(id: string) {
     try{
@@ -190,5 +213,5 @@ export class JobService {
       }
     }
 
-  }
+  };
 }
