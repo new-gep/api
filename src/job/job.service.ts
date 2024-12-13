@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable} from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { IsNull, Repository } from 'typeorm';
@@ -7,8 +7,11 @@ import { UserService } from 'src/user/user.service';
 import { CollaboratorService } from 'src/collaborator/collaborator.service';
 import { BucketService } from 'src/bucket/bucket.service';
 import FindTimeSP from 'hooks/time';
+import { UpadteJobDto } from './dto/update.job.dto';
+
 @Injectable()
 export class JobService {
+
   constructor(
     @Inject('JOB_REPOSITORY') 
     private jobRepository: Repository<Job>,
@@ -43,6 +46,22 @@ export class JobService {
         message:'Erro Interno.',
       }
     }
+  };
+
+  async uploadFile(upadteJobDto:UpadteJobDto, file: Express.Multer.File){
+    return await this.bucketService.UploadJob(file, upadteJobDto.name, upadteJobDto.signature,upadteJobDto.idJob, upadteJobDto?.dynamic)
+  };
+
+  async UploadJobFileSignature(upadteJobDto:UpadteJobDto, file: Express.Multer.File){
+    return this.bucketService.UploadJobFileSignature(file, upadteJobDto.name, upadteJobDto.idJob, upadteJobDto.dynamic);
+  };
+
+  async checkDocumentAdmissional(id:number){
+    return this.bucketService.checkJobBucketDocumentsObligation(id);
+  };
+
+  async findFile(id: number, name: string, signature: any, dynamic?:string){
+    return this.bucketService.findJob(id, name, signature, dynamic);
   };
 
   async findJobOpen(cnpj:string){
@@ -187,6 +206,10 @@ export class JobService {
     }
   };
 
+  async removeDocumentDynamic(id:number ,name:string){
+    return this.bucketService.DeleteDocumentDynamic(id, name)
+  };
+
   async remove(id: string) {
     try{
       const time = FindTimeSP();
@@ -214,4 +237,5 @@ export class JobService {
     }
 
   };
+  
 }

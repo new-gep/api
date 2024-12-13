@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import * as AWS from 'aws-sdk';
 import Mask from 'hooks/mask';
+import Poppler from 'node-poppler';
+import ConvertImageToBase64 from 'hooks/covertImageToBase64';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import * as fs from 'fs';
+import * as path from 'path';
+
 @Injectable()
 export class BucketService {
   private readonly spacesEndpoint: AWS.Endpoint;
@@ -17,7 +23,87 @@ export class BucketService {
     });
   };
 
+  async replaceLastPage(pdfBase64:string, imageFileSignature:Express.Multer.File){
+    pdfBase64    = pdfBase64.replace('data:application/pdf;base64,', '');
 
+    const pdfBytes = Buffer.from(pdfBase64, 'base64');
+
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pages = pdfDoc.getPages();
+    const numPages = pages.length;
+  
+    // Remove a última página
+    pdfDoc.removePage(numPages - 1);
+  
+    // Adiciona uma nova página
+    const novaPagina = pdfDoc.addPage();
+  
+    // Embutir a imagem na nova página (usando o buffer do Multer)
+    const imagemPdf = await pdfDoc.embedPng(imageFileSignature.buffer); 
+    
+    const paginaLargura = novaPagina.getWidth();
+    const paginaAltura = novaPagina.getHeight();
+    const imagemLargura = imagemPdf.width;
+    const imagemAltura = imagemPdf.height;
+
+    let escala = 1; // Começa com escala 1:1 (tamanho original)
+
+    // Se a imagem for maior que a página em alguma dimensão, calcula a escala
+    if (imagemLargura > paginaLargura || imagemAltura > paginaAltura) {
+      escala = Math.min(paginaLargura / imagemLargura, paginaAltura / imagemAltura);
+    }
+
+    const { width, height } = imagemPdf.scale(escala); // Aplica a escala, se necessário
+
+    // --- Fim dos ajustes ---
+
+    novaPagina.drawImage(imagemPdf, {
+      x: novaPagina.getWidth() / 2 - width / 2,
+      y: novaPagina.getHeight() / 2 - height / 2,
+      width: width,
+      height: height,
+    });
+
+    // Salva o PDF modificado
+    const pdfModificado = await pdfDoc.save();
+
+    // --- Ajustar o retorno da função ---
+    return Buffer.from(pdfModificado);
+  };
+
+  async convertPDFinImage(base64) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        base64 = base64.replace('data:application/pdf;base64,', '');
+        const buffer = await Buffer.from(base64, 'base64');
+        const poppler = new Poppler();
+        const options = {
+          lastPageToConvert: 1,
+          pngFile: true,
+        };
+  
+        poppler.pdfToCairo(buffer, "./temp/example.png", options)
+          .then(async (res) => {
+            const response = await ConvertImageToBase64('./temp/example.png');
+            fs.unlink('./temp/example.pdf',(err) => {
+              if (err) {
+                console.error(err);
+              }
+            });
+            resolve(`data:image/png;base64,${response}`);
+          })
+          .catch((err) => {
+            console.error(err);
+            reject(err); // Rejeita a promise com o erro
+          });
+  
+      } catch (error) {
+        console.error('Erro ao converter PDF para imagem:', error);
+        reject(error); // Rejeita a promise com o erro
+      }
+    });
+  };
+  
   async getFileFromBucket(key: string): Promise<any> {
     try {
       const fileData   = await this.bucket.getObject({ Bucket: this.bucketName, Key: key }).promise();
@@ -94,6 +180,54 @@ export class BucketService {
     }
   };
 
+  async checkPaste(folderPath: string): Promise<{ [key: number]: string }> {
+    const bucketName = this.bucketName;
+    const result: { [key: number]: string } = {};
+  
+    try {
+      // Lista os objetos no bucket
+      const data = await this.bucket.listObjectsV2({
+        Bucket: bucketName,
+        Prefix: folderPath, // Prefixo para listar arquivos dentro da pasta
+      }).promise();
+  
+      // Se os arquivos existirem, processa os nomes
+      if (data.Contents) {
+        let index = 0; // Inicializa o índice
+        data.Contents.forEach((item) => {
+          if (item.Key) {
+            // Extrai o nome do arquivo removendo o caminho completo
+            const fileName = item.Key.replace(folderPath, '');
+            if (fileName) {
+              result[index] = fileName;
+              index++;
+            }
+          }
+        });
+      }
+  
+      return result;
+    } catch (error) {
+      console.error('Erro ao verificar os arquivos dinâmicos no bucket:', error.message);
+      throw new Error('Não foi possível verificar os arquivos dinâmicos no bucket.');
+    }
+  };
+
+  async deleteFile(path: string): Promise<boolean> {
+    try {
+      const params = {
+        Bucket: this.bucketName, 
+        Key: path,
+      };
+
+      await this.bucket.deleteObject(params).promise();
+      return true; 
+    } catch (error) {
+      console.error('Erro ao excluir arquivo:', error);
+      return false; 
+    }
+  }
+
   async GenerateAccess(path: string){
     const params = {
       Bucket: 'newgep',
@@ -103,7 +237,7 @@ export class BucketService {
   
     const url = this.bucket.getSignedUrl('getObject', params);
     return url
-  }
+  };
 
   async UploadCollaborator(file: Express.Multer.File, name: string, side: string, cpf: string) {
     let path: string;
@@ -138,6 +272,9 @@ export class BucketService {
           break;
         case 'voter_registration':
           path = `collaborator/${cpf}/Voter_Registration/${side}`;
+          break
+        case 'medical_examination':
+          path = `collaborator/${cpf}/Medical_Examination`;
           break
         default:
           return {
@@ -407,6 +544,26 @@ export class BucketService {
               path: pictureFile.base64Data, // arquivo base64 de endereço
             };   
     
+          case 'medical_examination':
+            const medicalKey = `collaborator/${cpf}/Medical_Examination`;
+            const medicalFile = await this.getFileFromBucket(medicalKey);
+            
+            if (medicalFile?.ContentType === 'application/pdf' ) {
+              const url = await this.GenerateAccess(militaryKey)
+              return {
+                status: 200,
+                type: 'pdf',
+                path: medicalFile.base64Data, // Retorna o PDF completo em base64
+                url : url
+              };
+            }
+  
+            return {
+              status: 200,
+              type: 'picture',
+              path: medicalFile.base64Data, // arquivo base64 de endereço
+            };
+          
           default:
             return {
               status: 400,
@@ -551,6 +708,568 @@ export class BucketService {
       missingDocuments: missingDocuments.length > 0 ? missingDocuments : null,
       missingDocumentsChildren:missingDocumentsChildren.length > 0 ? missingDocumentsChildren : null
     };
+  };
+
+  async checkJobBucketDocumentsObligation(id: number){
+    const registration =  await this.isDocumentPresent(`job/${id}/Admission/Registration_Form`);
+    const experience   =  await this.isDocumentPresent(`job/${id}/Admission/Experience_Contract`);
+    const extension    =  await this.isDocumentPresent(`job/${id}/Admission/Hours_Extension`);
+    const compensation =  await this.isDocumentPresent(`job/${id}/Admission/Hours_Compensation`);
+    const voucher      =  await this.isDocumentPresent(`job/${id}/Admission/Transport_Voucher`);
+    //
+    const registrationSignature =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Registration_Form`);
+    const experienceSignature   =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Experience_Contract`);
+    const extensionSignature    =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Hours_Extension`);
+    const compensationSignature =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Hours_Compensation`);
+    const voucherSignature      =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Transport_Voucher`);
+    //
+    const documentDynamic  = await this.checkPaste(`job/${id}/Admission/Dynamic/`)
+    const signatureDynamic = await this.checkPaste(`job/${id}/Admission/Signature/Dynamic`)
+    //
+    const documentSignature  = await this.checkPaste(`job/${id}/Admission/Complet/`)
+
+    return{
+      status: 200,
+      date  :{
+        obligation:{
+          registration: registration,
+          experience:experience,
+          extension:extension,
+          compensation: compensation,
+          voucher:voucher
+        },
+        signature:{
+          registration: registrationSignature,
+          experience  :experienceSignature,
+          extension   :extensionSignature,
+          compensation: compensationSignature,
+          voucher:voucherSignature
+        },
+        dynamic:{
+          document :documentDynamic,
+          signature:signatureDynamic
+        },
+        documentSignature: documentSignature
+      }
+    }
+  };
+
+  async UploadJob(file: Express.Multer.File, name: string, signature: any, id: number, dynamic?:string) {
+    let path: string;
+    switch (name.toLowerCase()) {
+      case 'registration':
+        if(signature == '1'){
+          path = `job/${id}/Admission/Signature/Registration_Form`;
+          break
+        }
+        path = `job/${id}/Admission/Registration_Form`; 
+        break;
+      case 'experience':
+        if(signature == '1'){
+          path = `job/${id}/Admission/Signature/Experience_Contract`;
+          break
+        }
+        path = `job/${id}/Admission/Experience_Contract`; 
+        break
+      case 'extension':
+          if(signature == '1'){
+            path = `job/${id}/Admission/Signature/Hours_Extension`;
+            break
+          }
+          path = `job/${id}/Admission/Hours_Extension`; 
+        break
+      case 'compensation':
+          if(signature == '1'){
+            path = `job/${id}/Admission/Signature/Hours_Compensation`;
+            break
+          }
+          path = `job/${id}/Admission/Hours_Compensation`; 
+        break
+      case 'voucher':
+          if(signature == '1'){
+            path = `job/${id}/Admission/Signature/Transport_Voucher`;
+            break
+          }
+          path = `job/${id}/Admission/Transport_Voucher`; 
+        break
+      case 'dynamic':
+        if(signature == '1'){
+          path = `job/${id}/Admission/Signature/Dynamic/${dynamic}`;
+          break
+        }
+        path = `job/${id}/Admission/Dynamic/${dynamic}`;
+        break
+      default:
+        return {
+          status: 400,
+          message: `Tipo de documento não suportado: ${name}`,
+        };
+    };
+
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype
+    const jobFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body: file.buffer,
+      ContentType: mimeType,
+    };
+
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(jobFile).promise();
+      
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+  
+    } catch (error) {
+      
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  };
+
+  async UploadJobFileSignature(file: Express.Multer.File, name: string, id: number, dynamic?:string){
+    let pathOrigin:string;
+    let path     :string;
+    let response:any;
+    let newPDF:any
+
+    switch (name.toLowerCase()) {
+      case 'registration_form':
+        pathOrigin = `job/${id}/Admission/Registration_Form`; 
+        path       = `job/${id}/Admission/Complet/Registration_Form`; 
+        response = await this.getFileFromBucket(pathOrigin);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        };
+
+        break;
+      case 'experience_contract':
+        pathOrigin = `job/${id}/Admission/Experience_Contract`;
+        path       = `job/${id}/Admission/Complet/Experience_Contract`; 
+        response = await this.getFileFromBucket(pathOrigin);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        }
+        break
+      case 'hours_extension':
+        pathOrigin = `job/${id}/Admission/Experience_Extension`;
+        path = `job/${id}/Admission/Complet/Hours_Extension`; 
+        response = await this.getFileFromBucket(pathOrigin);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        }
+        break
+      case 'hours_compensation':
+        pathOrigin = `job/${id}/Admission/Experience_Compensation`;
+        path = `job/${id}/Admission/Complet/Hours_Compensation`; 
+        response = await this.getFileFromBucket(path);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        }
+        break
+      case 'transport_voucher':
+        pathOrigin = `job/${id}/Admission/Transport_Voucher`;
+        path = `job/${id}/Admission/Complet/Transport_Voucher`; 
+        response = await this.getFileFromBucket(path);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        }
+        break
+      case 'dynamic':
+        pathOrigin = `job/${id}/Admission/Dynamic/${dynamic}`;
+        path = `job/${id}/Admission/Complet/Dynamic/${dynamic}`;
+        response = await this.getFileFromBucket(path);
+        if(response && response.ContentType.includes('pdf')){
+          newPDF = await this.replaceLastPage(response.base64Data, file)
+        }
+        break
+      default:
+        return {
+          status: 400,
+          message: `Tipo de documento não suportado: ${name}`,
+        };
+      }
+
+      const mimeType = response && response.ContentType.includes('pdf') ? 'application/pdf' : file.mimetype
+      const fileSignature = {
+        Bucket: this.bucketName,
+        Key: path,
+        Body: response && response.ContentType.includes('pdf') ? newPDF : file.buffer,
+        ContentType: mimeType,
+      };
+    
+      try {
+          // Fazendo o upload para o bucket (exemplo com AWS S3)
+          const s3Response = await this.bucket.upload(fileSignature).promise();
+
+          return {
+            status: 200,
+            message: 'Upload realizado com sucesso',
+            location: s3Response.Location, // Retorna a URL do arquivo no bucket
+          };
+      
+      } catch (error) {
+          
+      return {
+            status: 500,
+            message: 'Erro no upload do arquivo',
+            error: error.message,
+      };
+    }
+
+  };
+
+  async DeleteDocumentDynamic(id:number, name:string){
+    try{
+      const document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`)
+      const signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`)
+  
+      console.log(document)
+      console.log(signature)
+  
+      return {
+        status :200,
+        document : document,
+        signature: signature
+      }
+
+    }catch(e){
+      return {
+        status :500,
+        message:'Erro ao excluir o documento dinâmico'
+      }
+    }
+  };
+
+  async findJob(id: number, name: string, signature: any, dynamic?:string) {
+    switch (name.toLowerCase()) {
+      case 'registration':
+        if(signature == '1'){
+          const registrationSignatureKey   = `job/${id}/Admission/Signature/Registration_Form`; 
+          const registrationSignatureFile = await this.getFileFromBucket(registrationSignatureKey);
+
+          if(!registrationSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(registrationSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: registrationSignatureFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: registrationSignatureFile.base64Data,
+          };
+
+        }else{
+          const registrationKey   = `job/${id}/Admission/Registration_Form`; 
+          const registrationFile = await this.getFileFromBucket(registrationKey);
+          if(!registrationFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(registrationFile?.ContentType === 'application/pdf'){
+            const imageBase64 = await this.convertPDFinImage(registrationFile.base64Data);
+            console.log('', imageBase64)
+            return {
+              status: 200,
+              type: 'pdf',
+              path: registrationFile.base64Data,
+              picture: imageBase64
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: registrationFile.base64Data,
+          };
+        }
+        break
+			case 'experience':
+        if(signature == '1' ){
+          const experienceSignatureKey  = `job/${id}/Admission/Signature/Experience_Contract`; 
+          const experienceSignatureFile = await this.getFileFromBucket(experienceSignatureKey);
+
+          if(!experienceSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(experienceSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: experienceSignatureFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: experienceSignatureFile.base64Data,
+          };
+
+        }else{
+          const experienceKey   = `job/${id}/Admission/Experience_Contract`; 
+          const experienceFile = await this.getFileFromBucket(experienceKey);
+          if(!experienceFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+          
+          if(experienceFile?.ContentType === 'application/pdf'){
+            const imageBase64 = await this.convertPDFinImage(experienceFile.base64Data);
+            return {
+              status: 200,
+              type: 'pdf',
+              path: experienceFile.base64Data,
+              picture: imageBase64
+            };
+          };
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: experienceFile.base64Data,
+          };
+        }
+				break;
+			case 'extension':
+        if(signature == '1'){
+          const extensionSignatureKey  = `job/${id}/Admission/Signature/Hours_Extension`; 
+          const extensionSignatureFile = await this.getFileFromBucket(extensionSignatureKey);
+
+          if(!extensionSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(extensionSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: extensionSignatureFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: extensionSignatureFile.base64Data,
+          };
+        }else{
+          const extensionKey   = `job/${id}/Admission/Hours_Extension`; 
+          const extensionFile = await this.getFileFromBucket(extensionKey);
+
+          if(!extensionFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(extensionFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: extensionFile.base64Data,
+            };
+          };
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: extensionFile.base64Data,
+          };
+        }
+				break;
+			case 'compensation':
+        if(signature == '1'){
+          const compensationSignatureKey   = `job/${id}/Admission/Signature/Hours_Compensation`; 
+          const compensationSignatureFile = await this.getFileFromBucket(compensationSignatureKey);
+
+          if(!compensationSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(compensationSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: compensationSignatureFile.base64Data,
+            };
+          };
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: compensationSignatureFile.base64Data,
+          };
+
+        }else{
+          const compensationKey   = `job/${id}/Admission/Hours_Compensation`; 
+          const compensationFile = await this.getFileFromBucket(compensationKey);
+
+          if(!compensationFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          }
+
+          if(compensationFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: compensationFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: compensationFile.base64Data,
+          };
+        }
+				break;
+			case 'voucher':
+        if(signature == '1'){
+          const voucherSignatureKey   = `job/${id}/Admission/Signature/Transport_Voucher`; 
+          const voucherSignatureFile = await this.getFileFromBucket(voucherSignatureKey);
+
+          if(!voucherSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          };
+
+          if(voucherSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: voucherSignatureFile.base64Data,
+            };
+          };
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: voucherSignatureFile.base64Data,
+          };
+
+        }else{
+          const voucherKey   = `job/${id}/Admission/Transport_Voucher`; 
+          const voucherFile = await this.getFileFromBucket(voucherKey);
+
+          if(!voucherFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          };
+
+          if(voucherFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: voucherFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: voucherFile.base64Data,
+          };
+        }
+				break;
+      case 'dynamic':
+        if(signature == '1'){
+          const voucherSignatureKey   = `job/${id}/Admission/Signature/Dynamic/${dynamic}`; 
+          const voucherSignatureFile = await this.getFileFromBucket(voucherSignatureKey);
+
+          if(!voucherSignatureFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          };
+
+          if(voucherSignatureFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: voucherSignatureFile.base64Data,
+            };
+          };
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: voucherSignatureFile.base64Data,
+          };
+
+        }else{
+          const voucherKey   = `job/${id}/Admission/Dynamic/${dynamic}`; 
+          const voucherFile = await this.getFileFromBucket(voucherKey);
+
+          if(!voucherFile){
+            return{
+              status:404,
+              message:'Arquivo não encontrado'
+            }
+          };
+
+          if(voucherFile?.ContentType === 'application/pdf'){
+            return {
+              status: 200,
+              type: 'pdf',
+              path: voucherFile.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: voucherFile.base64Data,
+          };
+        }
+        break
+      default:
+        return {
+          status: 400,
+          message: `Tipo de documento não suportado: ${name}`,
+        };
+    }
   };
 
 }
