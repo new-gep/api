@@ -1,7 +1,7 @@
 import { Inject, Injectable} from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Job } from './entities/job.entity';
 import { UserService } from 'src/user/user.service';
 import { CollaboratorService } from 'src/collaborator/collaborator.service';
@@ -85,6 +85,32 @@ export class JobService {
     };
   };
 
+  async findCollaboratorCompany(cnpj:string){
+    const collaboratorCompany = [] as any;
+    const response = await this.jobRepository.find({ where: { CNPJ_company: cnpj, CPF_collaborator: Not(IsNull())}});
+
+    if(response){
+      await Promise.all(response.map(async job => { 
+        const CPF = job.CPF_collaborator;
+        const collaborator = await this.collaboratorService.findOne(CPF);
+        if (collaborator.status === 200) {
+          collaboratorCompany.push(collaborator);
+        }
+      }));
+      
+      return {
+        status: 200,
+        collaborator: collaboratorCompany
+      };
+    };
+
+    return {
+      status :409,
+      message:'Registro não encontrado'
+    };
+
+  };
+
   findAll() {
     return `This action returns all job`;
   };
@@ -123,7 +149,7 @@ export class JobService {
       );
       const filteredCandidates = candidatesWithStep.flat().filter(candidate => candidate.step !== "0");
       const stepCounts = filteredCandidates.reduce((acc, candidate) => {
-          const step = candidate.step;
+          const step = `step${candidate.step}`;
           acc[step] = (acc[step] || 0) + 1;
           return acc;
       }, {});

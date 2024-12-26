@@ -47,6 +47,11 @@ export class JobController {
     return this.jobService.findAll();
   };
 
+  @Get('collaborator/company/:cnpj')
+  findCollaboratorCompany(@Param('cnpj') cnpj: string) {
+    return this.jobService.findCollaboratorCompany(cnpj);
+  };
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.jobService.findOne(id);

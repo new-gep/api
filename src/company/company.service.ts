@@ -5,12 +5,14 @@ import { Company } from './entities/company.entity';
 import { Repository } from 'typeorm';
 import { UserService } from 'src/user/user.service';
 import FindTimeSP from 'hooks/time';
+import { BucketService } from 'src/bucket/bucket.service';
 @Injectable()
 export class CompanyService {
   constructor(
     @Inject('COMPANY_REPOSITORY') 
     private companyRepository: Repository<Company>,
-    readonly userService: UserService
+    readonly userService: UserService,
+    readonly bucketService: BucketService,
   ){}
 
 
@@ -65,17 +67,21 @@ export class CompanyService {
 
   findAll() {
     return `This action returns all company`;
-  }
+  };
+
+  findSignature(cnpj:string){
+    return this.bucketService.findCompanySingnature(cnpj)
+  };
 
   findOne(id: number) {
     return `This action returns a #${id} company`;
-  }
+  };
 
   update(id: number, updateCompanyDto: UpdateCompanyDto) {
     return `This action updates a #${id} company`;
-  }
+  };
 
   remove(id: number) {
     return `This action removes a #${id} company`;
-  }
+  };
 }

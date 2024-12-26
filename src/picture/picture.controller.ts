@@ -17,6 +17,11 @@ export class PictureController {
     return this.pictureService.findAll();
   }
 
+  @Get('signature/admission/:CPF')
+  findSignatureAdmission(@Param('CPF') CPF_collaborator: string) {
+    return this.pictureService.findSignatureAdmission(CPF_collaborator);
+  }
+
   @Get(':CPF')
   findOne(@Param('CPF') CPF_collaborator: string) {
     return this.pictureService.findOne(CPF_collaborator);

@@ -49,6 +49,35 @@ export class PictureService {
     }
   };
 
+  async findSignatureAdmission(CPF_collaborator: string){
+    try {
+      const pictures = await this.pictureRepository.find({
+        where: { CPF_collaborator: CPF_collaborator },
+      });
+      // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
+      if (!pictures || pictures.length === 0) {
+        return {
+          status: 404,  // Usando 404, pois não encontrou os dados
+          message: 'Nenhuma imagem encontrada para este colaborador',
+        };
+      };
+
+      const filteredPictures = pictures.filter(item => item.picture.includes('Admission_Signature'));
+      
+      return {
+        status: 200,
+        pictures: filteredPictures,
+      };
+      
+  } catch(e){
+    console.log(e)
+    return {
+      status: 500,
+      message: 'Erro interno',
+    };
+  }
+  };
+
   findAll() {
     return `This action returns all picture`;
   };
@@ -65,6 +94,7 @@ export class PictureService {
             message: 'Nenhuma imagem encontrada para este colaborador',
           };
         };
+        
         return {
           status: 200,
           pictures: pictures,
