@@ -65,7 +65,9 @@ export class JobService {
   };
 
   async findJobOpen(cnpj:string){
+    console.log(cnpj)
     const response = await this.jobRepository.find({ where: { CPF_collaborator: IsNull(), CNPJ_company: cnpj, delete_at: IsNull()} });
+    console.log('aqui')
     const formattedResponse = response.map(job => {
       return {
         ...job,
@@ -190,17 +192,21 @@ export class JobService {
       if(response){
         const user   = await this.userService.findOne(response.user_create)
         response.candidates = JSON.parse(response.candidates)
-        for (let index = 0; index < response.candidates.length; index++) {
-          const candidate:any = response.candidates[index];
-          const collaborator:any = await this.collaboratorService.findOne(candidate.cpf);
-          const picture:any = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
-          //@ts-ignore
-          response.candidates[index] = {
-            ...candidate,                
-            name   : collaborator.collaborator.name, 
-            picture:picture.base64Data,
+        if (response.candidates) { 
+          for (let index = 0; index < response.candidates.length; index++) {
+            const candidate:any = response.candidates[index];
+            const collaborator:any = await this.collaboratorService.findOne(candidate.cpf);
+            const picture:any = await this.bucketService.getFileFromBucket(`collaborator/${candidate.cpf}/Picture`);
+            //@ts-ignore
+            response.candidates[index] = {
+              ...candidate,                
+              name   : collaborator.collaborator.name, 
+              picture:picture.base64Data,
+            };
           };
-        };
+        }else{
+          response.candidates = null
+        }
         return{
           status:200,
           job:response,
