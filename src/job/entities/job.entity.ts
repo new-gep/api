@@ -15,6 +15,12 @@ export class Job {
     @Column({length: 50})
     salary: string;
 
+    @Column({length: 1, default:null })
+    demission: string;
+
+    @Column({length: 50, default:null })
+    motion_demission: string;
+
     @Column()
     time: Json;
 

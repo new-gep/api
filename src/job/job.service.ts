@@ -90,17 +90,31 @@ export class JobService {
     const response = await this.jobRepository.find({ where: { CNPJ_company: cnpj, CPF_collaborator: Not(IsNull())}});
 
     if(response){
+
       await Promise.all(response.map(async job => { 
         const CPF = job.CPF_collaborator;
         const collaborator = await this.collaboratorService.findOne(CPF);
         if (collaborator.status === 200) {
-          collaboratorCompany.push(collaborator);
+          collaboratorCompany.push({
+            ...collaborator,
+            isDeleted: job.delete_at ? true : false,
+          });
         }
       }));
+
+      const uniqueCollaborators = collaboratorCompany.reduce((acc, current) => {
+        const existing = acc[current.CPF_collaborator];
+        if (!existing || (existing.isDeleted && !current.isDeleted)) {
+          acc[current.CPF_collaborator] = current;
+        }
+        return acc;
+      }, {});
       
+
       return {
         status: 200,
-        collaborator: collaboratorCompany
+        collaborator:  Object.values(uniqueCollaborators)
+        // job:
       };
     };
 

@@ -26,7 +26,6 @@ export class JobController {
     return this.jobService.UploadJobFileSignature(uploadCollaboratorDto,file)
   };
 
-
   @Get('file/:id/:name/:signature/:dynamic')
   findFile(
     @Param('id') id: string,
