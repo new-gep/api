@@ -6,6 +6,9 @@ export class Job {
     @PrimaryGeneratedColumn()
     id: string;
 
+    @Column({length: 1})
+    PCD: string;
+
     @Column({length: 50})
     image: string;
 

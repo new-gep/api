@@ -6,6 +6,7 @@ export class UpdateJobDto {
     function?: string;
     contract?: string;
     salary  ?: string;
+    PCD     ?: string;
     time    ?: any;
     demission?:string;
     candidates?:any
