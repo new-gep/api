@@ -80,7 +80,6 @@ export class JobService {
   };
 
   async findJobOpen(cnpj: string) {
-    console.log(cnpj);
     const response = await this.jobRepository.find({
       where: {
         CPF_collaborator: IsNull(),
@@ -88,7 +87,6 @@ export class JobService {
         delete_at: IsNull(),
       },
     });
-    console.log('aqui');
     const formattedResponse = response.map((job) => {
       return {
         ...job,

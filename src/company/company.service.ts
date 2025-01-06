@@ -78,6 +78,9 @@ export class CompanyService {
 
   async findOne(cnpj: string) {
     try {
+      const logo = await this.bucketService.findCompanyDocument(cnpj, 'logo');
+      const signature = await this.bucketService.findCompanyDocument(cnpj, 'signature');
+
       const response = await this.companyRepository.findOne({
         where: { CNPJ: cnpj },
       });
@@ -86,6 +89,8 @@ export class CompanyService {
         return {
           status: 200,
           company: response,
+          logo:  logo.status == 404 ? null : logo.path,
+          signature:signature.status == 404 ? null : signature.path, 
         };
       }
       return {
@@ -93,6 +98,7 @@ export class CompanyService {
         message: 'Registro não encontrado',
       };
     } catch (error) {
+      console.log(error); 
       return {
         status: 500,
         message: 'Erro no servidor',

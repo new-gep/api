@@ -1318,9 +1318,9 @@ export class BucketService {
   async findCompanyDocument(cnpj:string, name:string){
     switch (name.toLowerCase()) {
       case 'signature':
-        const signatureKey   = `company/${cnpj}/Signature/Signature`; 
+        const signatureKey  = `company/${cnpj}/Signature/Signature`; 
         const signatureFile = await this.getFileFromBucket(signatureKey);
-        
+
         if(!signatureFile){
           return{
             status:404,
@@ -1333,8 +1333,22 @@ export class BucketService {
           type  : signatureFile.ContentType  === 'application/pdf' ? 'pdf' : 'picture',
           path  : signatureFile.base64Data
         };
-      case 'picture':
-        return
+      case 'logo':
+        const logoKey   = `company/${cnpj}/Logo`; 
+        const logoFile = await this.getFileFromBucket(logoKey);
+        
+        if(!logoFile){
+          return{
+            status:404,
+            message:'Arquivo não encontrado'
+          }
+        }
+
+        return {
+          status:200,
+          type  : logoFile.ContentType  === 'application/pdf' ? 'pdf' : 'picture',
+          path  : logoFile.base64Data
+        };
     }
   };
 

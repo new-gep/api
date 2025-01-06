@@ -32,7 +32,6 @@ export class CompanyController {
     return this.companyService.uploadCompanyDocument(uploadCollaboratorDto.cnpj, uploadCollaboratorDto.document, file);
   }
 
-  
   @Get()
   findAll() {
     return this.companyService.findAll();
