@@ -21,7 +21,6 @@ export class JobService {
     readonly companyService: CompanyService,
   ){}
   
-  ) {}
 
   async create(createJobDto: CreateJobDto) {
     try {
