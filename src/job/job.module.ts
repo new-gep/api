@@ -6,9 +6,10 @@ import { jobProviders } from './job.provider';
 import { UserModule } from 'src/user/user.module';
 import { CollaboratorModule } from 'src/collaborator/collaborator.module';
 import { BucketModule } from 'src/bucket/bucket.module';
+import { CompanyModule } from 'src/company/company.module';
 
 @Module({
-  imports:[DatabaseModule, UserModule, CollaboratorModule, BucketModule],
+  imports:[DatabaseModule, UserModule, CollaboratorModule, BucketModule, CompanyModule],
   controllers: [JobController],
   providers: [JobService, ...jobProviders],
 })
