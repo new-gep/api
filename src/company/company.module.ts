@@ -10,5 +10,6 @@ import { BucketModule } from 'src/bucket/bucket.module';
   imports:[DatabaseModule, UserModule, BucketModule],
   controllers: [CompanyController],
   providers: [CompanyService, ...companyProviders],
+  exports: [CompanyService]
 })
 export class CompanyModule {}

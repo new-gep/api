@@ -73,8 +73,29 @@ export class CompanyService {
     return this.bucketService.findCompanySingnature(cnpj)
   };
 
-  findOne(id: number) {
-    return `This action returns a #${id} company`;
+  async findOne(cnpj: string) {
+    try {
+
+  
+      const response = await this.companyRepository.findOne({where: {CNPJ: cnpj}});
+
+      if(response){
+        return {
+          status:200,
+          company   :response,
+        }
+      };
+      return {
+        status :409,
+        message:'Registro não encontrado'
+      }; 
+      
+    } catch (error) {
+      return {
+        status :500,
+        message:'Erro no servidor'
+      };
+    }
   };
 
   update(id: number, updateCompanyDto: UpdateCompanyDto) {

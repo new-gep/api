@@ -8,6 +8,7 @@ import { CollaboratorService } from 'src/collaborator/collaborator.service';
 import { BucketService } from 'src/bucket/bucket.service';
 import FindTimeSP from 'hooks/time';
 import { UpadteJobDto } from './dto/update.job.dto';
+import { CompanyService } from 'src/company/company.service';
 
 @Injectable()
 export class JobService {
@@ -18,6 +19,7 @@ export class JobService {
     readonly userService: UserService,
     readonly collaboratorService: CollaboratorService,
     readonly bucketService: BucketService,
+    readonly companyService: CompanyService,
   ){}
   
   async create(createJobDto: CreateJobDto) {
@@ -125,8 +127,39 @@ export class JobService {
 
   };
 
-  findAll() {
-    return `This action returns all job`;
+  async findAll() {
+    try {
+      
+      const response = await this.jobRepository.find({ where: { delete_at: IsNull(), CPF_collaborator: IsNull() } });
+
+      const enrichedJobs = await Promise.all(
+        response.map(async (job) => {
+          const companyResponse = await this.companyService.findOne(job.CNPJ_company);
+          if (companyResponse.status === 200) {
+            job.company = companyResponse.company;
+            // Adicionando o novo campo que vem do banco de `company`
+          }
+          return job; // Retorna o job enriquecido
+        })
+      );
+
+      if(response){
+        return {
+          status:200,
+          job   :enrichedJobs,
+        }
+      };
+      return {
+        status :409,
+        message:'Registro não encontrado'
+      };
+
+    } catch (error) {
+      return {
+        status :500,
+        message:'Erro no servidor'
+      };
+    }
   };
 
   async findProcessAdmissional(cnpj:string){

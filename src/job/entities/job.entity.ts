@@ -62,4 +62,5 @@ export class Job {
 
     @Column({length: 50, default:null })
     delete_at: string;
+  company: import("c:/Users/Mix - Matheus/Desktop/M2C projects/gep/api/src/company/entities/company.entity").Company;
 }

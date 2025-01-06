@@ -22,9 +22,9 @@ export class CompanyController {
     return this.companyService.findSignature(cnpj);
   };
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.companyService.findOne(+id);
+  @Get(':cnpj')
+  findOne(@Param('cnpj') cnpj: string) {
+    return this.companyService.findOne(cnpj);
   };
 
   @Patch(':id')

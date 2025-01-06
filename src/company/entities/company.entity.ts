@@ -8,6 +8,9 @@ export class Company {
     @Column({length: 150})
     company_name: string;
 
+    @Column({length: 200})
+    email: string;
+
     @Column({length: 10})
     type_account: string;
 
