@@ -68,8 +68,12 @@ export class CompanyService {
     return `This action returns all company`;
   }
 
-  findSignature(cnpj: string) {
-    return this.bucketService.findCompanySingnature(cnpj);
+  findCompanyDocument(cnpj: string, document:string) {
+    return this.bucketService.findCompanyDocument(cnpj, document);
+  }
+
+  uploadCompanyDocument(cnpj: string, document:string, file: any) {
+    return this.bucketService.uploadCompany(file, cnpj, document);
   }
 
   async findOne(cnpj: string) {

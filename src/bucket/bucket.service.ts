@@ -1315,6 +1315,73 @@ export class BucketService {
 
   // Company
 
+  async findCompanyDocument(cnpj:string, name:string){
+    switch (name.toLowerCase()) {
+      case 'signature':
+        const signatureKey   = `company/${cnpj}/Signature/Signature`; 
+        const signatureFile = await this.getFileFromBucket(signatureKey);
+        
+        if(!signatureFile){
+          return{
+            status:404,
+            message:'Arquivo não encontrado'
+          }
+        }
+
+        return {
+          status:200,
+          type  : signatureFile.ContentType  === 'application/pdf' ? 'pdf' : 'picture',
+          path  : signatureFile.base64Data
+        };
+      case 'picture':
+        return
+    }
+  };
+
+  async uploadCompany(file: Express.Multer.File, cnpj: string, document: string) {
+    let path: string;
+    switch (document.toLowerCase()) {
+      case 'logo':
+        path = `company/${cnpj}/Logo`;
+        break
+      case 'signature':
+        path = `company/${cnpj}/Signature/Signature`;
+        break
+      default:
+        return {
+          status: 400,
+          message: `Tipo de documento não suportado: ${name}`,
+        };
+    };
+
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype
+    const jobFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body: file.buffer,
+      ContentType: mimeType,
+    };
+
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(jobFile).promise();
+      
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+  
+    } catch (error) {
+      
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  };
+
   async findCompanySingnature(cnpj:string){
     const signatureKey   = `company/${cnpj}/Signature/Signature`; 
     const signatureFile = await this.getFileFromBucket(signatureKey);
