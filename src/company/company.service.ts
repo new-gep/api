@@ -9,81 +9,98 @@ import { BucketService } from 'src/bucket/bucket.service';
 @Injectable()
 export class CompanyService {
   constructor(
-    @Inject('COMPANY_REPOSITORY') 
+    @Inject('COMPANY_REPOSITORY')
     private companyRepository: Repository<Company>,
     readonly userService: UserService,
     readonly bucketService: BucketService,
-  ){}
-
+  ) {}
 
   async create(createCompanyDto: CreateCompanyDto) {
-    try{
+    try {
       const existingCNPJCompany = await this.companyRepository.findOne({
-        where: { CNPJ: createCompanyDto.CNPJ }
+        where: { CNPJ: createCompanyDto.CNPJ },
       });
-  
-      if(existingCNPJCompany) {
+
+      if (existingCNPJCompany) {
         return {
-          status:409,
-          message:'CNPJ já cadastrado.',
-        }
-      };
-  
+          status: 409,
+          message: 'CNPJ já cadastrado.',
+        };
+      }
+
       const ParamsNewUser = {
         user: createCompanyDto.user,
         name: createCompanyDto.responsible,
         password: createCompanyDto.password,
         email: createCompanyDto.email,
         phone: createCompanyDto.phone,
-        CNPJ_company:createCompanyDto.CNPJ
+        CNPJ_company: createCompanyDto.CNPJ,
       };
-      
-      const checkUp = await this.userService.singUp(ParamsNewUser)
-  
-      if(checkUp){
-        return checkUp
-      };
-  
+
+      const checkUp = await this.userService.singUp(ParamsNewUser);
+
+      if (checkUp) {
+        return checkUp;
+      }
+
       const time = await FindTimeSP();
       createCompanyDto.create_at = time;
-  
+
       await this.companyRepository.save(createCompanyDto);
       const user = await this.userService.create(ParamsNewUser);
 
-      return{
-        status :201,
-        message:'Conta e usário criados.',
-        token: user.token
-      }
-    }catch(e){
-      console.log(e)
-      return{
+      return {
+        status: 201,
+        message: 'Conta e usário criados.',
+        token: user.token,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
         status: 500,
-        message:'Erro interno tente mais tarde'
-      }
+        message: 'Erro interno tente mais tarde',
+      };
     }
     // this.userService.create()
-  };
+  }
 
   findAll() {
     return `This action returns all company`;
-  };
+  }
 
-  findSignature(cnpj:string){
-    return this.bucketService.findCompanySingnature(cnpj)
-  };
+  findSignature(cnpj: string) {
+    return this.bucketService.findCompanySingnature(cnpj);
+  }
 
- 
+  async findOne(cnpj: string) {
+    try {
+      const response = await this.companyRepository.findOne({
+        where: { CNPJ: cnpj },
+      });
 
-  findOne(id: number) {
-    return `This action returns a #${id} company`;
-  };
+      if (response) {
+        return {
+          status: 200,
+          company: response,
+        };
+      }
+      return {
+        status: 409,
+        message: 'Registro não encontrado',
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro no servidor',
+      };
+    }
+  }
 
   update(id: number, updateCompanyDto: UpdateCompanyDto) {
     return `This action updates a #${id} company`;
-  };
+  }
 
   remove(id: number) {
     return `This action removes a #${id} company`;
-  };
+  }
 }
