@@ -160,6 +160,7 @@ export class JobService {
         response.map(async (job) => {
           const companyResponse = await this.companyService.findOne(job.CNPJ_company);
           if (companyResponse.status === 200) {
+            //@ts-ignore
             job.company = companyResponse.company;
             // Adicionando o novo campo que vem do banco de `company`
           }
