@@ -2,6 +2,7 @@ export class CreateJobDto {
     obligations?: string;
     benefits?: string;
     details ?: string;
+    PCD     : string;
     image   : string;
     function: string;
     journey : string;
