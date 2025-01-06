@@ -73,7 +73,7 @@ export class CompanyService {
     return this.bucketService.findCompanySingnature(cnpj)
   };
 
-  uploadSignature
+ 
 
   findOne(id: number) {
     return `This action returns a #${id} company`;
