@@ -8,6 +8,9 @@ export class Company {
     @Column({length: 150})
     company_name: string;
 
+    @Column({length: 1, default : '0'})
+    isVisible: string;
+
     @Column({length: 200})
     email: string;
 
@@ -40,6 +43,9 @@ export class Company {
 
     @Column({length: 2})
     uf: string;
+
+    @Column({length: 50})
+    state: string;
 
     @Column()
     number: number;

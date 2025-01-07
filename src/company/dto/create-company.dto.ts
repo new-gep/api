@@ -10,10 +10,12 @@ export class CreateCompanyDto {
     phone   : string
     responsible: string
     zip_code: string
+    state  ?: string
     district: string
     city  : string
     number: number
     street: string
     uf    : string
+    isVisible   ?: string
     create_at?:string
 }

@@ -50,9 +50,14 @@ export class CompanyController {
     return this.companyService.findOne(cnpj);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto) {
-    return this.companyService.update(+id, updateCompanyDto);
+  @Patch(':cnpj')
+  update(@Param('cnpj') cnpj: string, @Body() updateCompanyDto: UpdateCompanyDto) {
+    return this.companyService.update(cnpj, updateCompanyDto);
+  }
+
+  @Delete('file/:path')
+  removeFile(@Param('path') path: string) {
+    return this.companyService.removeFile(path);
   }
 
   @Delete(':id')

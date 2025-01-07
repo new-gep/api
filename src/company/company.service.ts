@@ -106,9 +106,55 @@ export class CompanyService {
     }
   }
 
-  update(id: number, updateCompanyDto: UpdateCompanyDto) {
-    return `This action updates a #${id} company`;
+  async update(CNPJ: string, updateCompanyDto: UpdateCompanyDto) {
+    console.log(CNPJ)
+    console.log(updateCompanyDto.isVisible)
+    const time = FindTimeSP();
+    updateCompanyDto.update_at = time;
+    try{
+      const response = await this.companyRepository.update(CNPJ,updateCompanyDto);
+      if(response.affected === 1){
+        return {
+          status: 200,
+          message:'Empresa atualizada com sucesso!'
+        }
+      }
+      return {
+        status:404,
+        message:'Não foi possivel atualizar a empresa, algo deu errado!'
+      }
+    }catch(e){
+      console.log(e)
+      return {
+        status :500,
+        message:'Erro interno!'
+      }
+    }
   }
+
+  async removeFile(path: string) {
+    try{
+      const response = await this.bucketService.deleteFile(path);
+      if(response){
+        return {
+          status : 200,
+          message: 'Arquivo deletado com sucesso',
+        }
+      }
+  
+      return {
+        status : 404,
+        message: 'Erro ao deletar o arquivo',
+      }
+
+    }catch(e){
+      return {
+        status : 500,
+        message: 'Erro ao tentar deletar arquivo',
+      }
+    }
+
+  };
 
   remove(id: number) {
     return `This action removes a #${id} company`;
