@@ -56,6 +56,11 @@ export class JobController {
     return this.jobService.findOne(id);
   };
 
+  @Get(':id')
+  findAllCadasterCandidate(@Param('cpf') cpf: string) {
+    return this.jobService.findOne(cpf);
+  };
+
   @Get('open/:cnpj')
   jobOpen(@Param('cnpj') cnpj: string) {
     return this.jobService.findJobOpen(cnpj);
