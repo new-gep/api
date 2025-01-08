@@ -11,6 +11,7 @@ export class Company {
     @Column({length: 1, default : '0'})
     isVisible: string;
 
+
     @Column({length: 200})
     email: string;
 

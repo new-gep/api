@@ -9,6 +9,9 @@ export class Collaborator {
     @Column({length: 150,})
     name: string;
 
+    @Column({length: 150,})
+    id_work: string;
+
     @Column({length: 1,})
     sex: string;
 
