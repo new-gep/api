@@ -149,6 +149,38 @@ export class JobService {
     };
   };
 
+  async findAllAplicatedInJob(CPF_collaborator: string) {
+    // Consulta todas as vagas abertas
+    const openJobs = await this.jobRepository.find({
+      where: { 
+        candidates: Not(IsNull()),
+        delete_at: IsNull(),
+        CPF_collaborator: IsNull(),
+       },
+       // Certifica-se de que há candidatos na vaga
+    });
+  
+    // Filtra as vagas onde o CPF aparece na lista de candidatos
+    const jobsWithCpf = openJobs.filter((job) =>
+      JSON.parse(job.candidates).some((candidate) => String(candidate.cpf) === String(CPF_collaborator)) // Verifica se há um candidato com o CPF na lista
+    );
+  
+    if (jobsWithCpf.length > 0) {
+      return {
+        status: 200,
+        message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpf.length} vaga(s) aberta(s).`,
+        jobs: jobsWithCpf, // Retorna todas as vagas onde o CPF foi encontrado
+      };
+    }
+  
+    return {
+      status: 404,
+      message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
+    };
+  }
+  
+  
+
   async findAll() {
     try {
       
@@ -184,6 +216,8 @@ export class JobService {
       };
     }
   };
+
+
 
   async findProcessAdmissional(cnpj: string) {
     try {

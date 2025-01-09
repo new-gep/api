@@ -56,9 +56,9 @@ export class JobController {
     return this.jobService.findOne(id);
   };
 
-  @Get(':id')
-  findAllCadasterCandidate(@Param('cpf') cpf: string) {
-    return this.jobService.findOne(cpf);
+  @Get('collaborator/aplicated/job/:cpf')
+  findAllAplicatedInJob(@Param('cpf') cpf: string) {
+    return this.jobService.findAllAplicatedInJob(cpf);
   };
 
   @Get('open/:cnpj')
@@ -75,6 +75,8 @@ export class JobController {
   update(@Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
     return this.jobService.update(id, updateJobDto);
   };
+
+
 
   @Delete('document/dynamic/:name/:id')
   removeDocumentDynamic(@Param('name') name: string, @Param('id') id: string) {
