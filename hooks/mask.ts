@@ -38,7 +38,6 @@ export default function Mask(type : any, value : any){
                 style: 'currency',
                 currency: 'BRL'
               });
-              console.log(formattedAmount)
             return formattedAmount;
         case 'cpf':
             // Máscara para CPF: xxx.xxx.xxx-xx

@@ -107,8 +107,6 @@ export class CompanyService {
   }
 
   async update(CNPJ: string, updateCompanyDto: UpdateCompanyDto) {
-    console.log(CNPJ)
-    console.log(updateCompanyDto.isVisible)
     const time = FindTimeSP();
     updateCompanyDto.update_at = time;
     try{

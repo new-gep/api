@@ -1245,12 +1245,12 @@ export class BucketService {
 				break;
       case 'dynamic':
         if(signature == '1'){
+          console.log('log aqui', dynamic)
           const dynamicSignatureKey  = `job/${id}/Admission/Signature/Dynamic/${dynamic}`; 
           const dynamicSignatureFile = await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Admission/Complet/${dynamic}`; 
-          console.log('dinamico', dynamic)
           const dynamicSignatureCompletFile = await this.getFileFromBucket(dynamicSignatureCompletKey);
-
+          
           if(!dynamicSignatureFile){
             return{
               status:404,
