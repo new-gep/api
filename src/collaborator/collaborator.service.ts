@@ -96,7 +96,6 @@ export class CollaboratorService {
   };
 
   async checkCollaborator(createCollaboratorDto: CreateCollaboratorDto){
-    console.log('colaborador:',createCollaboratorDto.CPF)
     const existingCPFCollaborator   = await this.collaboratorRepository.findOne({
       where: { CPF: createCollaboratorDto.CPF }
     });
@@ -108,7 +107,6 @@ export class CollaboratorService {
     });
 
     if (existingCPFCollaborator) {
-      console.log(existingCPFCollaborator)
       return {
         status:409,
         message:'CPF já existe.',
