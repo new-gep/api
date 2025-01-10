@@ -62,19 +62,19 @@ export class CompanyService {
       };
     }
     // this.userService.create()
-  }
+  };
 
   findAll() {
     return `This action returns all company`;
-  }
+  };
 
   findCompanyDocument(cnpj: string, document:string) {
     return this.bucketService.findCompanyDocument(cnpj, document);
-  }
+  };
 
   uploadCompanyDocument(cnpj: string, document:string, file: any) {
     return this.bucketService.uploadCompany(file, cnpj, document);
-  }
+  };
 
   async findOne(cnpj: string) {
     try {
@@ -104,7 +104,7 @@ export class CompanyService {
         message: 'Erro no servidor',
       };
     }
-  }
+  };
 
   async update(CNPJ: string, updateCompanyDto: UpdateCompanyDto) {
     const time = FindTimeSP();
@@ -128,7 +128,7 @@ export class CompanyService {
         message:'Erro interno!'
       }
     }
-  }
+  };
 
   async removeFile(path: string) {
     try{
@@ -156,5 +156,5 @@ export class CompanyService {
 
   remove(id: number) {
     return `This action removes a #${id} company`;
-  }
+  };
 }

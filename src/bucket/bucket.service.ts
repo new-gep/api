@@ -1304,7 +1304,6 @@ export class BucketService {
             path: DynamicFile.base64Data,
           };
         }
-        break
       default:
         return {
           status: 400,

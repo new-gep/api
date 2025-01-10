@@ -4,11 +4,13 @@ import { UpdatePictureDto } from './dto/update-picture.dto';
 import { Picture } from './entities/picture.entity';
 import { Repository } from 'typeorm';
 import FindTimeSP from 'hooks/time';
+import { CollaboratorService } from 'src/collaborator/collaborator.service';
 @Injectable()
 export class PictureService {
   constructor(
     @Inject('PICTURE_REPOSITORY') 
     private pictureRepository: Repository<Picture>,
+    readonly collaboratorService: CollaboratorService
   ){}
 
   async create(createPictureDto: CreatePictureDto) {
@@ -84,8 +86,9 @@ export class PictureService {
 
   async findOne(CPF_collaborator: string) {
     try {
-        const pictures = await this.pictureRepository.find({
-          where: { CPF_collaborator: CPF_collaborator },
+        const response = await this.collaboratorService.findOne(CPF_collaborator)
+        let pictures = await this.pictureRepository.find({
+          where: { CPF_collaborator },
         });
         // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
         if (!pictures || pictures.length === 0) {
@@ -94,7 +97,13 @@ export class PictureService {
             message: 'Nenhuma imagem encontrada para este colaborador',
           };
         };
-        
+        if(response.collaborator.marriage == '0'){
+          pictures = pictures.filter(pic => pic.picture !== 'Marriage_Certificate');
+        };
+        if(response.collaborator.sex == 'F'){
+          pictures = pictures.filter(pic => pic.picture !== 'Military_Certificate');
+        };
+
         return {
           status: 200,
           pictures: pictures,
