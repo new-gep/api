@@ -161,24 +161,29 @@ export class JobService {
     });
   
     // Filtra as vagas onde o CPF aparece na lista de candidatos
-    const jobsWithCpf = openJobs.filter((job) =>
-      JSON.parse(job.candidates).some((candidate) => String(candidate.cpf) === String(CPF_collaborator)) // Verifica se há um candidato com o CPF na lista
-    );
-  
+    const jobsWithCpf = openJobs.filter((job) => {
+      const candidates = JSON.parse(job.candidates); // Parse dos candidatos
+      return candidates.some(
+        (candidate) => String(candidate.cpf) === String(CPF_collaborator) && candidate.step > 0
+      ); // Retorna apenas jobs onde o candidato com CPF tem step > 0
+    });
+    
+    const processAdmission = jobsWithCpf.length > 0; // `true` se encontrou ao menos um job com `step > 0`, `false` caso contrário.
+    
     if (jobsWithCpf.length > 0) {
       return {
         status: 200,
         message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpf.length} vaga(s) aberta(s).`,
         jobs: jobsWithCpf, // Retorna todas as vagas onde o CPF foi encontrado
+        processAdmission, // Retorna true ou false
       };
     }
-  
+    
     return {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
-    };
+    }; 
   }
-  
   
 
   async findAll() {
