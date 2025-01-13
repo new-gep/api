@@ -150,40 +150,65 @@ export class JobService {
   };
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
+  
     // Consulta todas as vagas abertas
     const openJobs = await this.jobRepository.find({
-      where: { 
-        candidates: Not(IsNull()),
-        delete_at: IsNull(),
-        CPF_collaborator: IsNull(),
-       },
-       // Certifica-se de que há candidatos na vaga
+      where: {
+        candidates: Not(IsNull()), // Certifica-se de que há candidatos
+        delete_at: IsNull(), // A vaga não foi deletada
+      },
     });
+
+    let processAdmission: boolean
   
     // Filtra as vagas onde o CPF aparece na lista de candidatos
-    const jobsWithCpf = openJobs.filter((job) => {
-      const candidates = JSON.parse(job.candidates); // Parse dos candidatos
-      return candidates.some(
-        (candidate) => String(candidate.cpf) === String(CPF_collaborator) && candidate.step > 0
-      ); // Retorna apenas jobs onde o candidato com CPF tem step > 0
-    });
-    
-    const processAdmission = jobsWithCpf.length > 0; // `true` se encontrou ao menos um job com `step > 0`, `false` caso contrário.
-    
+    const jobsWithCpf = openJobs
+      .map((job) => {
+        let candidates = [];
+        try {
+          candidates = JSON.parse(job.candidates); // Faz parse do JSON string
+        } catch (error) {
+          console.error("Erro ao parsear candidates:", error);
+          return null; // Ignora caso não consiga parsear
+        }
+  
+        // Encontra o candidato correspondente ao CPF fornecido
+        const candidate = candidates.find(
+          (candidate) => String(candidate.cpf) === String(CPF_collaborator)
+        );
+  
+        if (candidate) {
+
+          if (candidate.step > 0) {
+            processAdmission = true
+            return {
+              ...job,
+              candidates: JSON.stringify([candidate]), // Substitui a lista de candidatos com apenas o candidato correspondente
+            };
+            
+          }
+        }
+  
+        return null; // Remove jobs que não possuem o candidato ou que não estão em processo
+      })
+      .filter((job) => job !== null); // Remove nulls
+
     if (jobsWithCpf.length > 0) {
       return {
         status: 200,
         message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpf.length} vaga(s) aberta(s).`,
         jobs: jobsWithCpf, // Retorna todas as vagas onde o CPF foi encontrado
-        processAdmission, // Retorna true ou false
+        processAdmission:processAdmission
       };
     }
-    
+  
     return {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
-    }; 
+    };
   }
+  
+  
   
 
   async findAll() {
