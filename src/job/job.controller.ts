@@ -82,7 +82,6 @@ export class JobController {
   };
 
 
-
   @Delete('document/dynamic/:name/:id')
   removeDocumentDynamic(@Param('name') name: string, @Param('id') id: string) {
     return this.jobService.removeDocumentDynamic(+id, name);

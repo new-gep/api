@@ -184,7 +184,6 @@ export class JobService {
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
     };
   }
-  
 
   async findAll() {
     try {

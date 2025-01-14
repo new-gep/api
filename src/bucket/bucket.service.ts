@@ -803,6 +803,7 @@ export class BucketService {
         }
         path = `job/${id}/Admission/Dynamic/${dynamic}`;
         break
+      case 'medical':
       default:
         return {
           status: 400,
