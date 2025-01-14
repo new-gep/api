@@ -367,19 +367,28 @@ export class JobService {
         }),
       );
 
-      // const filteredCandidates = candidatesWithStep
-      //   .flat()
-      //   .filter((candidate) => candidate.step !== '0');
-      // const stepCounts = filteredCandidates.reduce((acc, candidate) => {
-      //   const step = `step${candidate.step}`;
-      //   acc[step] = (acc[step] || 0) + 1;
-      //   return acc;
-      // }, {});
+      const stepCounts = collaboratorsInProcess.reduce((acc, collaborator) => {
+        try {
+          // Acessar o campo "demission" diretamente
+          const demission = collaborator.demission;
+      
+          // Obter o step e criar a chave dinamicamente
+          //@ts-ignore
+          const step = `step${collaborator.demission.step}`;
+      
+          // Incrementar o contador para o step correspondente
+          acc[step] = (acc[step] || 0) + 1;
+        } catch (error) {
+          console.error("Erro ao processar demission:", collaborator.demission, error);
+        }
+      
+        return acc;
+      }, {});
 
       return {
         status: 200,
         job: collaboratorsInProcess,
-        // counts: stepCounts,
+        counts: stepCounts,
       };
     } catch (e) {
       console.log(e);
