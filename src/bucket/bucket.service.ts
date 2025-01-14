@@ -804,6 +804,8 @@ export class BucketService {
         path = `job/${id}/Admission/Dynamic/${dynamic}`;
         break
       case 'medical':
+        path = `job/${id}/Admission/Medical_Examination`;
+        break
       default:
         return {
           status: 400,
