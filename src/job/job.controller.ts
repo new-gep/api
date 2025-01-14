@@ -71,6 +71,11 @@ export class JobController {
     return this.jobService.findProcessAdmissional(cnpj);
   };
 
+  @Get('process/demissional/:cnpj')
+  jobProcessDemissional(@Param('cnpj') cnpj: string) {
+    return this.jobService.findProcessDemissional(cnpj);
+  };
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
     return this.jobService.update(id, updateJobDto);

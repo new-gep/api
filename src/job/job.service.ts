@@ -19,8 +19,7 @@ export class JobService {
     readonly collaboratorService: CollaboratorService,
     readonly bucketService: BucketService,
     readonly companyService: CompanyService,
-  ){}
-  
+  ) {}
 
   async create(createJobDto: CreateJobDto) {
     try {
@@ -47,7 +46,7 @@ export class JobService {
         message: 'Erro Interno.',
       };
     }
-  };
+  }
 
   async uploadFile(upadteJobDto: UpadteJobDto, file: Express.Multer.File) {
     return await this.bucketService.UploadJob(
@@ -57,7 +56,7 @@ export class JobService {
       upadteJobDto.idJob,
       upadteJobDto?.dynamic,
     );
-  };
+  }
 
   async UploadJobFileSignature(
     upadteJobDto: UpadteJobDto,
@@ -69,15 +68,15 @@ export class JobService {
       upadteJobDto.idJob,
       upadteJobDto.dynamic,
     );
-  };
+  }
 
   async checkDocumentAdmissional(id: number) {
     return this.bucketService.checkJobBucketDocumentsObligation(id);
-  };
+  }
 
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
     return this.bucketService.findJob(id, name, signature, dynamic);
-  };
+  }
 
   async findJobOpen(cnpj: string) {
     const response = await this.jobRepository.find({
@@ -106,7 +105,7 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  };
+  }
 
   async findCollaboratorCompany(cnpj: string) {
     const collaboratorCompany = [] as any;
@@ -147,29 +146,31 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  };
+  }
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
     // Consulta todas as vagas abertas
     const openJobs = await this.jobRepository.find({
-      where: { 
+      where: {
         candidates: Not(IsNull()),
         delete_at: IsNull(),
         CPF_collaborator: IsNull(),
-       },
-       // Certifica-se de que há candidatos na vaga
+      },
+      // Certifica-se de que há candidatos na vaga
     });
-  
+
     // Filtra as vagas onde o CPF aparece na lista de candidatos
     const jobsWithCpf = openJobs.filter((job) => {
       const candidates = JSON.parse(job.candidates); // Parse dos candidatos
       return candidates.some(
-        (candidate) => String(candidate.cpf) === String(CPF_collaborator) && candidate.step > 0
+        (candidate) =>
+          String(candidate.cpf) === String(CPF_collaborator) &&
+          candidate.step > 0,
       ); // Retorna apenas jobs onde o candidato com CPF tem step > 0
     });
-    
+
     const processAdmission = jobsWithCpf.length > 0; // `true` se encontrou ao menos um job com `step > 0`, `false` caso contrário.
-    
+
     if (jobsWithCpf.length > 0) {
       return {
         status: 200,
@@ -178,51 +179,50 @@ export class JobService {
         processAdmission, // Retorna true ou false
       };
     }
-    
+
     return {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
-    }; 
+    };
   }
-  
 
   async findAll() {
     try {
-      
-      const response = await this.jobRepository.find({ where: { delete_at: IsNull(), CPF_collaborator: IsNull() } });
+      const response = await this.jobRepository.find({
+        where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
+      });
 
       const enrichedJobs = await Promise.all(
         response.map(async (job) => {
-          const companyResponse = await this.companyService.findOne(job.CNPJ_company);
+          const companyResponse = await this.companyService.findOne(
+            job.CNPJ_company,
+          );
           if (companyResponse.status === 200) {
             //@ts-ignore
             job.company = companyResponse.company;
             // Adicionando o novo campo que vem do banco de `company`
           }
           return job; // Retorna o job enriquecido
-        })
+        }),
       );
 
-      if(response){
+      if (response) {
         return {
-          status:200,
-          job   :enrichedJobs,
-        }
-      };
+          status: 200,
+          job: enrichedJobs,
+        };
+      }
       return {
-        status :409,
-        message:'Registro não encontrado'
+        status: 409,
+        message: 'Registro não encontrado',
       };
-
     } catch (error) {
       return {
-        status :500,
-        message:'Erro no servidor'
+        status: 500,
+        message: 'Erro no servidor',
       };
     }
-  };
-
-
+  }
 
   async findProcessAdmissional(cnpj: string) {
     try {
@@ -233,42 +233,83 @@ export class JobService {
           delete_at: IsNull(),
         },
       });
+
       const candidatesWithStep = await Promise.all(
-        response.flatMap(async (job) => {
+        response.map(async (job) => {
           if (!job.candidates) return []; // Retorna array vazio se não houver candidatos
-          const candidates = JSON.parse(job.candidates); // Parse para objeto JSON
-          for (const candidate of candidates) {
-            const response = await this.collaboratorService.findOne(
-              candidate.cpf,
-            ); // Busca os dados pelo CPF
-            if (response.status === 200) {
-              delete response.collaborator.password;
-              delete response.collaborator.CPF;
-              Object.assign(candidate, response.collaborator); // Adiciona os dados diretamente ao objeto
-            }
+
+          // Tenta fazer o parse de job.candidates
+          let candidates;
+          try {
+            candidates = JSON.parse(job.candidates);
+          } catch (error) {
+            console.error(
+              `Erro ao fazer JSON.parse em job.candidates para job ID ${job.id}:`,
+              error,
+            );
+            return []; // Retorna vazio em caso de erro no parse
           }
 
+          // Processa os candidatos
+          await Promise.all(
+            candidates.map(async (candidate) => {
+              try {
+                const collaboratorResponse =
+                  await this.collaboratorService.findOne(candidate.cpf);
+                if (collaboratorResponse?.status === 200) {
+                  // Atualiza os dados do candidato com os dados do colaborador
+                  delete collaboratorResponse.collaborator.password;
+                  delete collaboratorResponse.collaborator.CPF;
+
+                  Object.assign(candidate, {
+                    ...collaboratorResponse.collaborator, // Adiciona os dados do colaborador
+                    step: candidate.step || 0, // Mantém o step original
+                    status: candidate.status ?? null, // Mantém status original ou null
+                  });
+                }
+              } catch (error) {
+                console.error(
+                  `Erro ao buscar colaborador para CPF ${candidate.cpf}:`,
+                  error,
+                );
+              }
+            }),
+          );
+
+          // Adiciona os dados complementares aos candidatos
           return Promise.all(
             candidates.map(async (candidate) => {
-              const picture = await this.bucketService.getFileFromBucket(
-                `collaborator/${candidate.cpf}/Picture`,
-              );
-              return {
-                ...candidate,
-                picture: picture.base64Data,
-                id: job.id,
-                function: job.function,
-                salary: job.salary,
-                contract: job.contract,
-                update_atJob: job.update_at,
-              };
+              try {
+                const pictureResponse =
+                  await this.bucketService.getFileFromBucket(
+                    `collaborator/${candidate.cpf}/Picture`,
+                  );
+
+                return {
+                  ...candidate,
+                  picture: pictureResponse?.base64Data || null, // Adiciona a imagem (ou null)
+                  id: job.id,
+                  function: job.function,
+                  salary: job.salary,
+                  contract: job.contract,
+                  update_atJob: job.update_at,
+                };
+              } catch (error) {
+                console.error(
+                  `Erro ao buscar picture para CPF ${candidate.cpf}:`,
+                  error,
+                );
+                return null; // Retorna null em caso de erro
+              }
             }),
           );
         }),
       );
+
       const filteredCandidates = candidatesWithStep
         .flat()
         .filter((candidate) => candidate.step !== '0');
+
       const stepCounts = filteredCandidates.reduce((acc, candidate) => {
         const step = `step${candidate.step}`;
         acc[step] = (acc[step] || 0) + 1;
@@ -286,7 +327,69 @@ export class JobService {
         message: 'Unexpected Error',
       };
     }
-  };
+  }
+
+  async findProcessDemissional(cnpj: string) {
+    try {
+      const response = await this.jobRepository.find({
+        where: {
+          CPF_collaborator: Not(IsNull()),
+          CNPJ_company: cnpj,
+          delete_at: IsNull(),
+          motion_demission: Not(IsNull()),
+        },
+      });
+
+      const collaboratorsInProcess = await Promise.all(
+        response.flatMap(async (job) => {
+          const response = await this.collaboratorService.findOne(
+            job.CPF_collaborator,
+          );
+
+          if (job.demission) {
+            try {
+              job.demission = JSON.parse(job.demission); // Converte demission para JSON
+            } catch (error) {
+              console.error('Erro ao fazer JSON.parse em demission:', error);
+              job.demission = null; // Define como null em caso de erro
+            }
+          }
+
+          if (response.status === 200) {
+            delete response.collaborator.password;
+            delete response.collaborator.CPF;
+            //@ts-ignore
+            response.collaborator.picture = response.picture;
+            return {
+              ...job,
+              collaborator: response.collaborator,
+            };
+          }
+        }),
+      );
+
+      // const filteredCandidates = candidatesWithStep
+      //   .flat()
+      //   .filter((candidate) => candidate.step !== '0');
+      // const stepCounts = filteredCandidates.reduce((acc, candidate) => {
+      //   const step = `step${candidate.step}`;
+      //   acc[step] = (acc[step] || 0) + 1;
+      //   return acc;
+      // }, {});
+
+      return {
+        status: 200,
+        job: collaboratorsInProcess,
+        // counts: stepCounts,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'Unexpected Error',
+      };
+    }
+  }
 
   async findOne(id: string) {
     try {
@@ -333,7 +436,7 @@ export class JobService {
         message: 'Erro Interno.',
       };
     }
-  };
+  }
 
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
@@ -357,11 +460,11 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  };
+  }
 
   async removeDocumentDynamic(id: number, name: string) {
     return this.bucketService.DeleteDocumentDynamic(id, name);
-  };
+  }
 
   async remove(id: string) {
     try {
@@ -388,5 +491,5 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  };
+  }
 }

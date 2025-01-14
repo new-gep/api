@@ -8,6 +8,7 @@ export class UpdateJobDto {
     salary  ?: string;
     PCD     ?: string;
     time    ?: any;
+    motion_demission?:string;
     demission?:string;
     candidates?:any
     user_edit ?:string;

@@ -548,7 +548,8 @@ export class BucketService {
             const medicalFile = await this.getFileFromBucket(medicalKey);
             
             if (medicalFile?.ContentType === 'application/pdf' ) {
-              const url = await this.GenerateAccess(militaryKey)
+              const url = await this.GenerateAccess(medicalKey)
+
               return {
                 status: 200,
                 type: 'pdf',
@@ -717,6 +718,7 @@ export class BucketService {
     const extension    =  await this.isDocumentPresent(`job/${id}/Admission/Hours_Extension`);
     const compensation =  await this.isDocumentPresent(`job/${id}/Admission/Hours_Compensation`);
     const voucher      =  await this.isDocumentPresent(`job/${id}/Admission/Transport_Voucher`);
+    const medical      =  await this.isDocumentPresent(`job/${id}/Admission/Medical_Examination`);
     //
     const registrationSignature =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Registration_Form`);
     const experienceSignature   =  await this.isDocumentPresent(`job/${id}/Admission/Signature/Experience_Contract`);
@@ -733,6 +735,7 @@ export class BucketService {
       status: 200,
       date  :{
         obligation:{
+          medical:medical,
           registration: registration,
           experience:experience,
           extension:extension,
@@ -1303,13 +1306,40 @@ export class BucketService {
             type: 'picture',
             path: DynamicFile.base64Data,
           };
+      }
+      break
+      case 'medical':
+        const medicalKey = `job/${id}/Admission/Medical_Examination`; ;
+        const medicalFile = await this.getFileFromBucket(medicalKey);
+
+        if(!medicalFile){
+          return{
+            status:404,
+            message:'Arquivo não encontrado'
+          }
+        };
+
+        if (medicalFile?.ContentType === 'application/pdf' ) {
+          const url = await this.GenerateAccess(medicalKey)
+          return {
+            status: 200,
+            type: 'pdf',
+            path: medicalFile.base64Data, // Retorna o PDF completo em base64
+            url : url
+          };
         }
+  
+        return {
+          status: 200,
+          type: 'picture',
+          path: medicalFile.base64Data, // arquivo base64 de endereço
+        };
       default:
         return {
           status: 400,
           message: `Tipo de documento não suportado: ${name}`,
         };
-    }
+      }
   };
 
   // Company

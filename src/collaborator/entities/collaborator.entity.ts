@@ -24,6 +24,7 @@ export class Collaborator {
     @Column({length: 200,})
     email: string;
 
+
     @Column({length: 11,})
     phone: string;
 
