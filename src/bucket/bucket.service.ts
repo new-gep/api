@@ -1251,7 +1251,6 @@ export class BucketService {
 				break;
       case 'dynamic':
         if(signature == '1'){
-          console.log('log aqui', dynamic)
           const dynamicSignatureKey  = `job/${id}/Admission/Signature/Dynamic/${dynamic}`; 
           const dynamicSignatureFile = await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Admission/Complet/${dynamic}`; 
@@ -1336,6 +1335,32 @@ export class BucketService {
           status: 200,
           type: 'picture',
           path: medicalFile.base64Data, // arquivo base64 de endereço
+        };
+      case 'dismissal_hand':
+        const dismissalHandKey = `job/${id}/Dismissal/Dismissal_Hand`; ;
+        const dismissalHandFile = await this.getFileFromBucket(dismissalHandKey);
+
+        if(!dismissalHandFile){
+          return{
+            status:404,
+            message:'Arquivo não encontrado'
+          }
+        };
+
+        if (dismissalHandFile?.ContentType === 'application/pdf' ) {
+          const url = await this.GenerateAccess(medicalKey)
+          return {
+            status: 200,
+            type: 'pdf',
+            path: dismissalHandFile.base64Data, // Retorna o PDF completo em base64
+            url : url
+          };
+        }
+  
+        return {
+          status: 200,
+          type: 'picture',
+          path: dismissalHandFile.base64Data, // arquivo base64 de endereço
         };
       default:
         return {
