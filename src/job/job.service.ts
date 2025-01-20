@@ -71,7 +71,11 @@ export class JobService {
   }
 
   async checkDocumentAdmissional(id: number) {
-    return this.bucketService.checkJobBucketDocumentsObligation(id);
+    return this.bucketService.checkJobAdmissionBucketDocumentsObligation(id);
+  }
+
+  async checkDocumentDismissal(id: number) {
+    return this.bucketService.checkJobDismissalBucketDocumentsObligation(id);
   }
 
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
@@ -99,6 +103,26 @@ export class JobService {
       return {
         status: 200,
         job: formattedResponse,
+      };
+    }
+    return {
+      status: 409,
+      message: 'Registro não encontrado',
+    };
+  }
+
+  async findAllJobsCollaborator(cpf: string) {
+    const response = await this.jobRepository.find({
+      where: {
+        CPF_collaborator: cpf,
+        delete_at: IsNull(),
+      },
+    });
+
+    if (response) {
+      return {
+        status: 200,
+        job: response,
       };
     }
     return {

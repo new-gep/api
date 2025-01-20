@@ -41,6 +41,17 @@ export class JobController {
     return this.jobService.checkDocumentAdmissional(+id);
   };
 
+  @Get('dismissal/check/:id')
+  checkDocumentDismissal(@Param('id') id: string) {
+    return this.jobService.checkDocumentDismissal(+id);
+  };
+
+  @Get('all/:cpf')
+  findAllJobsCollaborator(@Param('cpf') cpf: string)
+  {
+    return this.jobService.findAllJobsCollaborator(cpf);
+  };
+
   @Get()
   findAll() {
     return this.jobService.findAll();
