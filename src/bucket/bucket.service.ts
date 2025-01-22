@@ -234,9 +234,11 @@ export class BucketService {
         Bucket: this.bucketName,
         Key: path,
       };
-
-      await this.bucket.deleteObject(params).promise();
-      return true;
+      console.log(params)
+      const response = await this.bucket.deleteObject(params).promise();
+      if(response){
+        return true;
+      } return false;
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
       return false;
@@ -775,6 +777,9 @@ export class BucketService {
       `job/${id}/Dismissal/Complet/`,
     );
 
+
+    
+
     return {
       status: 200,
       date: {
@@ -1013,11 +1018,19 @@ export class BucketService {
       case 'dynamic':
         pathOrigin = `job/${id}/Admission/Dynamic/${dynamic}`;
         path = `job/${id}/Admission/Complet/${dynamic}`;
-        response = await this.getFileFromBucket(path);
+        response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
           newPDF = await this.replaceLastPage(response.base64Data, file);
         }
         break;
+      case 'dismissal_dynamic':
+        pathOrigin = `job/${id}/Dismissal/Dynamic/${dynamic}`;
+        path = `job/${id}/Dismissal/Complet/${dynamic}`;
+        response = await this.getFileFromBucket(pathOrigin);
+        if (response && response.ContentType.includes('pdf')) {
+          newPDF = await this.replaceLastPage(response.base64Data, file);
+        }
+        break
       default:
         return {
           status: 400,
@@ -1052,14 +1065,17 @@ export class BucketService {
     }
   }
 
-  async DeleteDocumentDynamic(id: number, name: string) {
+  async DeleteDocumentDynamic(id: number, name: string, where?:string) {
     try {
-      const document = await this.deleteFile(
-        `job/${id}/Admission/Dynamic/${name}`,
-      );
-      const signature = await this.deleteFile(
-        `job/${id}/Admission/Signature/Dynamic/${name}`,
-      );
+      let document;
+      let signature;
+      if(where){
+        document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/${name}`);
+        signature = await this.deleteFile(`job/${id}/Dismissal/Signature/Dynamic/${name}`);
+      }else{
+        document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
+        signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
+      }
 
       return {
         status: 200,

@@ -26,12 +26,12 @@ export class JobController {
     return this.jobService.UploadJobFileSignature(uploadCollaboratorDto,file)
   };
 
-  @Get('file/:id/:name/:signature/:dynamic')
+  @Get('file/:id/:name/:signature/:dynamic/')
   findFile(
     @Param('id') id: string,
     @Param('name') name: string,
     @Param('dynamic') dynamic: string,
-    @Param('signature') signature: Boolean
+    @Param('signature') signature: Boolean,
   ){
     return this.jobService.findFile(+id, name, signature, dynamic);
   };
@@ -93,9 +93,9 @@ export class JobController {
   };
 
 
-  @Delete('document/dynamic/:name/:id')
-  removeDocumentDynamic(@Param('name') name: string, @Param('id') id: string) {
-    return this.jobService.removeDocumentDynamic(+id, name);
+  @Delete('document/dynamic/:name/:id/:where')
+  removeDocumentDynamic(@Param('name') name: string, @Param('id') id: string, @Param('where') where: string) {
+    return this.jobService.removeDocumentDynamic(+id, name, where);
   };
 
   @Delete(':id')
