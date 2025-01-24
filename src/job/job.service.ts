@@ -503,6 +503,7 @@ export class JobService {
   async remove(id: string) {
     try {
       const time = FindTimeSP();
+      
       const propsDelete = {
         delete_at: time,
       };

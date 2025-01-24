@@ -794,6 +794,7 @@ export class BucketService {
           communication:{
             document: documentDynamicCommunication,
             signature: documentSignatureCommunication,
+            complet: documentDynamicCommunicationComplet
           },
           document: documentDynamic,
           signature: signatureDynamic,
@@ -1095,9 +1096,11 @@ export class BucketService {
     try {
       let document;
       let signature;
-      if(where){
-        document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/${name}`);
-        signature = await this.deleteFile(`job/${id}/Dismissal/Signature/Dynamic/${name}`);
+      let complet;
+      if(where == 'communication'){
+        document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/Communication/${name}`);
+        complet = await this.deleteFile(`job/${id}/Dismissal/Complet/Communication/${name}`);
+        
       }else{
         document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
         signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
@@ -1677,7 +1680,7 @@ export class BucketService {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication`;
           const dynamicSignatureFile =
           await this.getFileFromBucket(dynamicSignatureKey);
-          const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
+          const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
           );
