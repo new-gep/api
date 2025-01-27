@@ -6,6 +6,7 @@ import ConvertImageToBase64 from 'hooks/covertImageToBase64';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
+import { type } from 'os';
 
 @Injectable()
 export class BucketService {
@@ -924,6 +925,9 @@ export class BucketService {
         }
         path = `job/${id}/Dismissal/Dynamic/${dynamic}`;
         break;
+      case 'signature_admission':
+        path = `job/${id}/Admission/Signature/Collaborator`;
+        break;
       default:
         return {
           status: 400,
@@ -931,8 +935,7 @@ export class BucketService {
         };
     }
 
-    const mimeType =
-      file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
     const jobFile = {
       Bucket: this.bucketName,
       Key: path,
