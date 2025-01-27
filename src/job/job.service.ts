@@ -338,6 +338,8 @@ export class JobService {
         acc[step] = (acc[step] || 0) + 1;
         return acc;
       }, {});
+    
+      
 
       return {
         status: 200,
@@ -494,13 +496,14 @@ export class JobService {
     }
   }
 
-  async removeDocumentDynamic(id: number, name: string) {
-    return this.bucketService.DeleteDocumentDynamic(id, name);
+  async removeDocumentDynamic(id: number, name: string, where?:string) {
+    return this.bucketService.DeleteDocumentDynamic(id, name, where);
   }
 
   async remove(id: string) {
     try {
       const time = FindTimeSP();
+      
       const propsDelete = {
         delete_at: time,
       };

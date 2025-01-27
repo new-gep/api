@@ -235,9 +235,11 @@ export class BucketService {
         Bucket: this.bucketName,
         Key: path,
       };
-
-      await this.bucket.deleteObject(params).promise();
-      return true;
+      console.log(params)
+      const response = await this.bucket.deleteObject(params).promise();
+      if(response){
+        return true;
+      } return false;
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
       return false;
@@ -768,6 +770,15 @@ export class BucketService {
     const documentDynamic = await this.checkPaste(
       `job/${id}/Dismissal/Dynamic/`,
     );
+    const documentDynamicCommunication = await this.checkPaste(
+      `job/${id}/Dismissal/Dynamic/Communication`,
+    );
+    const documentDynamicCommunicationComplet = await this.checkPaste(
+      `job/${id}/Dismissal/Complet/Communication`,
+    );
+    const documentSignatureCommunication = await this.checkPaste(
+      `job/${id}/Dismissal/Signature/Communication`,
+    );
     const signatureDynamic = await this.checkPaste(
       `job/${id}/Dismissal/Signature/Dynamic`,
     );
@@ -776,10 +787,16 @@ export class BucketService {
       `job/${id}/Dismissal/Complet/`,
     );
 
+
     return {
       status: 200,
       date: {
         dynamic: {
+          communication:{
+            document: documentDynamicCommunication,
+            signature: documentSignatureCommunication,
+            complet: documentDynamicCommunicationComplet
+          },
           document: documentDynamic,
           signature: signatureDynamic,
         },
@@ -918,16 +935,20 @@ export class BucketService {
       case 'medical':
         path = `job/${id}/Admission/Medical_Examination`;
         break;
-      case 'dismissal_dynamic':
+      case 'dismissal_communication_dynamic':
         if (signature == '1') {
-          path = `job/${id}/Dismissal/Signature/Dynamic/${dynamic}`;
+          path = `job/${id}/Dismissal/Signature/Communication/Dynamic/Collaborator`;
+          break;
+        }
+        path = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
+        break;
+      case 'dismissal_kit_dynamic':
+        if (signature == '1') {
+          path = `job/${id}/Dismissal/Signature/Dynamic/Collaborator`;
           break;
         }
         path = `job/${id}/Dismissal/Dynamic/${dynamic}`;
-        break;
-      case 'signature_admission':
-        path = `job/${id}/Admission/Signature/Collaborator`;
-        break;
+       break
       default:
         return {
           status: 400,
@@ -1016,11 +1037,27 @@ export class BucketService {
       case 'dynamic':
         pathOrigin = `job/${id}/Admission/Dynamic/${dynamic}`;
         path = `job/${id}/Admission/Complet/${dynamic}`;
-        response = await this.getFileFromBucket(path);
+        response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
           newPDF = await this.replaceLastPage(response.base64Data, file);
         }
         break;
+      case 'dismissal_dynamic':
+        pathOrigin = `job/${id}/Dismissal/Dynamic/${dynamic}`;
+        path = `job/${id}/Dismissal/Complet/${dynamic}`;
+        response = await this.getFileFromBucket(pathOrigin);
+        if (response && response.ContentType.includes('pdf')) {
+          newPDF = await this.replaceLastPage(response.base64Data, file);
+        }
+        break
+      case 'dismissal_communication_dynamic':
+        pathOrigin = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
+        path = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
+        response = await this.getFileFromBucket(pathOrigin);
+        if (response && response.ContentType.includes('pdf')) {
+          newPDF = await this.replaceLastPage(response.base64Data, file);
+        }
+        break
       default:
         return {
           status: 400,
@@ -1055,14 +1092,19 @@ export class BucketService {
     }
   }
 
-  async DeleteDocumentDynamic(id: number, name: string) {
+  async DeleteDocumentDynamic(id: number, name: string, where?:string) {
     try {
-      const document = await this.deleteFile(
-        `job/${id}/Admission/Dynamic/${name}`,
-      );
-      const signature = await this.deleteFile(
-        `job/${id}/Admission/Signature/Dynamic/${name}`,
-      );
+      let document;
+      let signature;
+      let complet;
+      if(where == 'communication'){
+        document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/Communication/${name}`);
+        complet = await this.deleteFile(`job/${id}/Dismissal/Complet/Communication/${name}`);
+        
+      }else{
+        document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
+        signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
+      }
 
       return {
         status: 200,
@@ -1631,8 +1673,104 @@ export class BucketService {
             type: 'picture',
             path: DynamicFile.base64Data,
           };
-      }
+        }
       break
+      case 'dismissal_communication_dynamic':
+        if (signature == '1') {
+          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication`;
+          const dynamicSignatureFile =
+          await this.getFileFromBucket(dynamicSignatureKey);
+          const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
+          const dynamicSignatureCompletFile = await this.getFileFromBucket(
+            dynamicSignatureCompletKey,
+          );
+
+          if (!dynamicSignatureFile) {
+            return {
+              status: 404,
+              message: 'Arquivo não encontrado',
+            };
+          }
+
+          if (dynamicSignatureFile?.ContentType === 'application/pdf') {
+            return {
+              status: 200,
+              type: 'pdf',
+              path: dynamicSignatureFile.base64Data,
+              typeDocumentSignature:
+                dynamicSignatureCompletFile?.ContentType === 'application/pdf'
+                  ? 'pdf'
+                  : 'picture',
+              pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: dynamicSignatureFile.base64Data,
+            typeDocumentSignature:
+              dynamicSignatureCompletFile?.ContentType === 'application/pdf'
+                ? 'pdf'
+                : 'picture',
+            pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
+          };
+        } else {
+          const DynamicKey = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
+          const DynamicFile = await this.getFileFromBucket(DynamicKey);
+
+          if (!DynamicFile) {
+            return {
+              status: 404,
+              message: 'Arquivo não encontrado',
+            };
+          }
+
+          if (DynamicFile?.ContentType === 'application/pdf') {
+            const imageBase64 = await this.convertPDFinImage(
+              DynamicFile.base64Data,
+            );
+            return {
+              status: 200,
+              type: 'pdf',
+              path: DynamicFile.base64Data,
+              picture: imageBase64,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: DynamicFile.base64Data,
+          };
+        }
+        break
+      case 'dismissal_medical':
+        const dismissalMedicalKey = `job/${id}/Dismissal/Medical_Examination`;
+        const dismissalMedicalFile = await this.getFileFromBucket(dismissalMedicalKey);
+        console.log(dismissalMedicalFile)
+        if (!dismissalMedicalFile) {
+          return {
+            status: 404,
+            message: 'Arquivo não encontrado',
+          };
+        };
+
+        if (dismissalMedicalFile?.ContentType === 'application/pdf') {
+          const url = await this.GenerateAccess(dismissalMedicalKey);
+          return {
+            status: 200,
+            type: 'pdf',
+            path: dismissalMedicalFile.base64Data, // Retorna o PDF completo em base64
+            url: url,
+          };
+        };
+
+        return {
+          status: 200,
+          type: 'picture',
+          path: dismissalMedicalFile.base64Data, // arquivo base64 de endereço
+        };
       default:
         return {
           status: 400,
