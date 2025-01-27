@@ -938,6 +938,9 @@ export class BucketService {
       case 'medical':
         path = `job/${id}/Admission/Medical_Examination`;
         break;
+      case 'signature_admission':
+        path = `job/${id}/Admission/Signature/Collaborator`;
+        break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
           path = `job/${id}/Dismissal/Signature/Communication/Dynamic/Collaborator`;
