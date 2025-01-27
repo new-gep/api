@@ -234,7 +234,6 @@ export class BucketService {
         Bucket: this.bucketName,
         Key: path,
       };
-      console.log(params)
       const response = await this.bucket.deleteObject(params).promise();
       if(response){
         return true;
@@ -766,8 +765,11 @@ export class BucketService {
   async checkJobDismissalBucketDocumentsObligation(id: number) {
 
     //
-    const documentDynamic = await this.checkPaste(
+    let documentDynamic = await this.checkPaste(
       `job/${id}/Dismissal/Dynamic/`,
+    );
+    documentDynamic = Object.fromEntries(
+      Object.entries(documentDynamic).filter(([_, value]) => !value.startsWith('Communication/'))
     );
     const documentDynamicCommunication = await this.checkPaste(
       `job/${id}/Dismissal/Dynamic/Communication`,
@@ -782,11 +784,12 @@ export class BucketService {
       `job/${id}/Dismissal/Signature/Dynamic`,
     );
     //
-    const documentSignature = await this.checkPaste(
+    let documentSignature = await this.checkPaste(
       `job/${id}/Dismissal/Complet/`,
     );
-
-
+    documentSignature = Object.fromEntries(
+      Object.entries(documentSignature).filter(([_, value]) => !value.startsWith('Communication/'))
+    );
     return {
       status: 200,
       date: {
@@ -1748,7 +1751,7 @@ export class BucketService {
       case 'dismissal_medical':
         const dismissalMedicalKey = `job/${id}/Dismissal/Medical_Examination`;
         const dismissalMedicalFile = await this.getFileFromBucket(dismissalMedicalKey);
-        console.log(dismissalMedicalFile)
+
         if (!dismissalMedicalFile) {
           return {
             status: 404,

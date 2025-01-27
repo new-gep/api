@@ -235,7 +235,7 @@ export class CollaboratorService {
         message:'Não foi possivel atualizar o colaborador, algo deu errado!'
       }
     }catch(e){
-      console.log(e)
+      (e)
       return {
         status:404,
         message:'Não foi possivel atualizar o colaborador, algo deu errado!'
