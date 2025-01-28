@@ -1105,14 +1105,21 @@ export class BucketService {
       let document;
       let signature;
       let complet;
-      if(where == 'communication'){
-        document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/Communication/${name}`);
-        complet = await this.deleteFile(`job/${id}/Dismissal/Complet/Communication/${name}`);
-        
-      }else{
-        document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
-        signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
+      switch(where){
+        case 'communication':
+          document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/Communication/${name}`);
+          complet = await this.deleteFile(`job/${id}/Dismissal/Complet/Communication/${name}`);
+          break;
+        case 'kitDismissal':
+          document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/${name}`);
+          complet = await this.deleteFile(`job/${id}/Dismissal/Complet/${name}`);
+          break;
+        default:
+          document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
+          signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
+          break;
       }
+      
 
       return {
         status: 200,
@@ -1131,7 +1138,7 @@ export class BucketService {
     switch (name.toLowerCase()) {
       case 'registration':
         if (signature == '1') {
-          const registrationSignatureKey = `job/${id}/Admission/Signature/Registration_Form`;
+          const registrationSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const registrationSignatureFile = await this.getFileFromBucket(
             registrationSignatureKey,
           );
@@ -1205,7 +1212,7 @@ export class BucketService {
         break;
       case 'experience':
         if (signature == '1') {
-          const experienceSignatureKey = `job/${id}/Admission/Signature/Experience_Contract`;
+          const experienceSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const experienceSignatureFile = await this.getFileFromBucket(
             experienceSignatureKey,
           );
@@ -1276,7 +1283,7 @@ export class BucketService {
         break;
       case 'extension':
         if (signature == '1') {
-          const extensionSignatureKey = `job/${id}/Admission/Signature/Hours_Extension`;
+          const extensionSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const extensionSignatureFile = await this.getFileFromBucket(
             extensionSignatureKey,
           );
@@ -1347,7 +1354,7 @@ export class BucketService {
         break;
       case 'compensation':
         if (signature == '1') {
-          const compensationSignatureKey = `job/${id}/Admission/Signature/Hours_Compensation`;
+          const compensationSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const compensationSignatureFile = await this.getFileFromBucket(
             compensationSignatureKey,
           );
@@ -1422,7 +1429,7 @@ export class BucketService {
         break;
       case 'voucher':
         if (signature == '1') {
-          const voucherSignatureKey = `job/${id}/Admission/Signature/Transport_Voucher`;
+          const voucherSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const voucherSignatureFile =
             await this.getFileFromBucket(voucherSignatureKey);
           const voucherSignatureCompletKey = `job/${id}/Admission/Complet/Transport_Voucher`;
@@ -1492,7 +1499,7 @@ export class BucketService {
         break;
       case 'dynamic':
         if (signature == '1') {
-          const dynamicSignatureKey = `job/${id}/Admission/Signature/Dynamic/${dynamic}`;
+          const dynamicSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const dynamicSignatureFile =
             await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Admission/Complet/${dynamic}`;
@@ -1753,6 +1760,77 @@ export class BucketService {
           };
         }
         break
+      case 'dismissal_kit_dynamic':
+          if (signature == '1') {
+            const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Kit`;
+            const dynamicSignatureFile =
+            await this.getFileFromBucket(dynamicSignatureKey);
+            const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
+            const dynamicSignatureCompletFile = await this.getFileFromBucket(
+            dynamicSignatureCompletKey,
+            );
+  
+            if (!dynamicSignatureFile) {
+              return {
+                status: 404,
+                message: 'Arquivo não encontrado',
+              };
+            };
+  
+            if (dynamicSignatureFile?.ContentType === 'application/pdf') {
+              return {
+                status: 200,
+                type: 'pdf',
+                path: dynamicSignatureFile.base64Data,
+                typeDocumentSignature:
+                  dynamicSignatureCompletFile?.ContentType === 'application/pdf'
+                    ? 'pdf'
+                    : 'picture',
+                pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
+              };
+            };
+  
+            return {
+              status: 200,
+              type: 'picture',
+              path: dynamicSignatureFile.base64Data,
+              typeDocumentSignature:
+                dynamicSignatureCompletFile?.ContentType === 'application/pdf'
+                  ? 'pdf'
+                  : 'picture',
+              pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
+            };
+
+          } else {
+            const DynamicKey = `job/${id}/Dismissal/Dynamic/${dynamic}`;
+            const DynamicFile = await this.getFileFromBucket(DynamicKey);
+  
+            if (!DynamicFile) {
+              return {
+                status: 404,
+                message: 'Arquivo não encontrado',
+              };
+            }
+  
+            if (DynamicFile?.ContentType === 'application/pdf') {
+              const imageBase64 = await this.convertPDFinImage(
+                DynamicFile.base64Data,
+              );
+              return {
+                status: 200,
+                type: 'pdf',
+                path: DynamicFile.base64Data,
+                picture: imageBase64,
+              };
+            }
+  
+            return {
+              status: 200,
+              type: 'picture',
+              path: DynamicFile.base64Data,
+            };
+          }
+          break
       case 'dismissal_medical':
         const dismissalMedicalKey = `job/${id}/Dismissal/Medical_Examination`;
         const dismissalMedicalFile = await this.getFileFromBucket(dismissalMedicalKey);
