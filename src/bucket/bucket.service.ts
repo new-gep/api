@@ -892,7 +892,6 @@ export class BucketService {
     dynamic?: string,
   ) {
     let path: string;
-    console.log(name)
     switch (name.toLowerCase()) {
       case 'registration':
         if (signature == '1') {
@@ -940,7 +939,6 @@ export class BucketService {
         path = `job/${id}/Admission/Medical_Examination`;
         break;
       case 'admission_signature':
-        console.log("Olá mundo")
         path = `job/${id}/Admission/Signature/Collaborator`;
         break;
       case 'dismissal_communication_dynamic':
