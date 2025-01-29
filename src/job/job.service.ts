@@ -134,12 +134,41 @@ export class JobService {
   async findCollaboratorCompany(cnpj: string) {
     const collaboratorCompany = [] as any;
     const response = await this.jobRepository.find({
-      where: { CNPJ_company: cnpj, CPF_collaborator: Not(IsNull()) },
+      where: [
+        { CNPJ_company: cnpj, CPF_collaborator: Not(IsNull()) }, 
+      ],
+      order: {
+        delete_at: 'DESC', // Para garantir que, entre os deletados, o mais recente seja priorizado
+        update_at: 'DESC' // Caso queira priorizar o mais recente em termos de atualização, caso seja necessário
+      }
+    });
+    // console.log(response)
+    const seenCpfs = new Set();
+    const uniqueJobs = response.filter(job => {
+      // Se o CPF já foi visto, verifica se o registro atual tem prioridade
+      if (seenCpfs.has(job.CPF_collaborator)) {
+        // Encontra o registro existente com o mesmo CPF
+        const existingJob = response.find(j => j.CPF_collaborator === job.CPF_collaborator);
+        
+        // Se o registro atual tem `demission: null` e o existente não, substitui
+        if (job.demission === null && existingJob.demission !== null) {
+          // Remove o registro existente e adiciona o atual
+          const index = uniqueJobs.indexOf(existingJob);
+          uniqueJobs.splice(index, 1);
+          return true;
+        }
+        // Caso contrário, descarta o registro atual
+        return false;
+      } else {
+        // Se o CPF não foi visto, adiciona ao Set e mantém o registro
+        seenCpfs.add(job.CPF_collaborator);
+        return true;
+      }
     });
 
-    if (response) {
+    if (uniqueJobs) {
       await Promise.all(
-        response.map(async (job) => {
+        uniqueJobs.map(async (job) => {
           const CPF = job.CPF_collaborator;
           const collaborator = await this.collaboratorService.findOne(CPF);
           if (collaborator.status === 200) {
@@ -151,18 +180,11 @@ export class JobService {
         }),
       );
 
-      const uniqueCollaborators = collaboratorCompany.reduce((acc, current) => {
-        const existing = acc[current.CPF_collaborator];
-        if (!existing || (existing.isDeleted && !current.isDeleted)) {
-          acc[current.CPF_collaborator] = current;
-        }
-        return acc;
-      }, {});
+      
 
       return {
         status: 200,
-        collaborator: Object.values(uniqueCollaborators),
-        // job:
+        collaborator: collaboratorCompany,
       };
     }
 
@@ -170,6 +192,7 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
+
   }
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
