@@ -280,8 +280,6 @@ export class JobService {
         },
       });
 
-      console.log('response: ',response)
-
       const candidatesWithStep = await Promise.all(
         response.map(async (job) => {
           if (!job.candidates) return []; // Retorna array vazio se não houver candidatos

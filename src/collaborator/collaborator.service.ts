@@ -241,7 +241,7 @@ export class CollaboratorService {
         message:'Não foi possivel atualizar o colaborador, algo deu errado!'
       }
     }
-  };
+  };  
 
   remove(id: number) {
     return `This action removes a #${id} collaborator`;

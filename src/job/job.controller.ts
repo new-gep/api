@@ -79,7 +79,6 @@ export class JobController {
 
   @Get('process/admissional/:cnpj')
   jobProcessAdmissional(@Param('cnpj') cnpj: string) {
-    console.log('cnpj: ',cnpj)
     return this.jobService.findProcessAdmissional(cnpj);
   };
 
