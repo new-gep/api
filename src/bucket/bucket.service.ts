@@ -585,12 +585,6 @@ export class BucketService {
               type: 'picture',
               path: medicalFile.base64Data, // arquivo base64 de endereço
             };
-
-          default:
-            return {
-              status: 400,
-              message: `Tipo de documento não suportado: ${name}`,
-            };
         }
       }
     } catch (error) {
@@ -891,6 +885,7 @@ export class BucketService {
     id: number,
     dynamic?: string,
   ) {
+    console.log(name)
     let path: string;
     switch (name.toLowerCase()) {
       case 'registration':
@@ -955,7 +950,13 @@ export class BucketService {
         }
         path = `job/${id}/Dismissal/Dynamic/${dynamic}`;
        break
-      default:
+      case 'dismissal_hand':
+        path = `job/${id}/Dismissal/Dismissal_Hand`;
+        break;
+      case 'dismissal_medical_examination':
+          path = `job/${id}/Dismissal/Medical_Examination`;
+          break;
+       default:
         return {
           status: 400,
           message: `Tipo de documento não suportado: ${name}`,
@@ -973,7 +974,7 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(jobFile).promise();
-
+      console.log(s3Response)
       return {
         status: 200,
         message: 'Upload realizado com sucesso',
@@ -1590,6 +1591,30 @@ export class BucketService {
           status: 200,
           type: 'picture',
           path: medicalFile.base64Data, // arquivo base64 de endereço
+        };
+      case 'dismissal_medical_examination':
+        const medicalDismissalKey = `job/${id}/Dismissal/Dismissal_Medical_Examination`;
+        const medicalDismissalFile = await this.getFileFromBucket(medicalDismissalKey);
+
+
+        if (!medicalDismissalFile) {
+          return {
+            status: 404,
+            message: 'Arquivo não encontrado',
+          };
+        } if (medicalDismissalFile?.ContentType === 'application/pdf') {
+          const url = await this.GenerateAccess(medicalDismissalKey);
+          return {
+            status: 200,
+            type: 'pdf',
+            path: medicalDismissalFile.base64Data, // Retorna o PDF completo em base64
+            url: url,
+          };
+        }
+        return {
+          status: 200,
+          type: 'picture',
+          path: medicalDismissalFile.base64Data, // arquivo base64 de endereço
         };
       case 'dismissal_hand':
         const dismissalHandKey = `job/${id}/Dismissal/Dismissal_Hand`;
