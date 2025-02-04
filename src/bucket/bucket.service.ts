@@ -1664,8 +1664,7 @@ export class BucketService {
       case 'dismissal_dynamic':
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Dynamic/${dynamic}`;
-          const dynamicSignatureFile =
-            await this.getFileFromBucket(dynamicSignatureKey);
+          const dynamicSignatureFile = await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
@@ -1803,7 +1802,7 @@ export class BucketService {
         break;
       case 'dismissal_kit_dynamic':
         if (signature == '1') {
-          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Kit`;
+          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Collaborator`;
           const dynamicSignatureFile =
             await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
