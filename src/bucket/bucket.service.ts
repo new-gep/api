@@ -236,9 +236,10 @@ export class BucketService {
         Key: path,
       };
       const response = await this.bucket.deleteObject(params).promise();
-      if(response){
+      if (response) {
         return true;
-      } return false;
+      }
+      return false;
     } catch (error) {
       console.error('Erro ao excluir arquivo:', error);
       return false;
@@ -758,13 +759,12 @@ export class BucketService {
   // Job Dismissal
 
   async checkJobDismissalBucketDocumentsObligation(id: number) {
-
     //
-    let documentDynamic = await this.checkPaste(
-      `job/${id}/Dismissal/Dynamic/`,
-    );
+    let documentDynamic = await this.checkPaste(`job/${id}/Dismissal/Dynamic/`);
     documentDynamic = Object.fromEntries(
-      Object.entries(documentDynamic).filter(([_, value]) => !value.startsWith('Communication/'))
+      Object.entries(documentDynamic).filter(
+        ([_, value]) => !value.startsWith('Communication/'),
+      ),
     );
     const documentDynamicCommunication = await this.checkPaste(
       `job/${id}/Dismissal/Dynamic/Communication`,
@@ -783,16 +783,18 @@ export class BucketService {
       `job/${id}/Dismissal/Complet/`,
     );
     documentSignature = Object.fromEntries(
-      Object.entries(documentSignature).filter(([_, value]) => !value.startsWith('Communication/'))
+      Object.entries(documentSignature).filter(
+        ([_, value]) => !value.startsWith('Communication/'),
+      ),
     );
     return {
       status: 200,
       date: {
         dynamic: {
-          communication:{
+          communication: {
             document: documentDynamicCommunication,
             signature: documentSignatureCommunication,
-            complet: documentDynamicCommunicationComplet
+            complet: documentDynamicCommunicationComplet,
           },
           document: documentDynamic,
           signature: signatureDynamic,
@@ -885,7 +887,7 @@ export class BucketService {
     id: number,
     dynamic?: string,
   ) {
-    console.log(name)
+    console.log(name);
     let path: string;
     switch (name.toLowerCase()) {
       case 'registration':
@@ -936,6 +938,9 @@ export class BucketService {
       case 'admission_signature':
         path = `job/${id}/Admission/Signature/Collaborator`;
         break;
+      case 'dismissal_signature':
+        path = `job/${id}/Dismissal/Signature/Collaborator`;
+        break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
           path = `job/${id}/Dismissal/Signature/Communication/Dynamic/Collaborator`;
@@ -949,21 +954,22 @@ export class BucketService {
           break;
         }
         path = `job/${id}/Dismissal/Dynamic/${dynamic}`;
-       break
+        break;
       case 'dismissal_hand':
         path = `job/${id}/Dismissal/Dismissal_Hand`;
         break;
       case 'dismissal_medical_examination':
-          path = `job/${id}/Dismissal/Medical_Examination`;
-          break;
-       default:
+        path = `job/${id}/Dismissal/Medical_Examination`;
+        break;
+      default:
         return {
           status: 400,
           message: `Tipo de documento não suportado: ${name}`,
         };
     }
 
-    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
+    const mimeType =
+      file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
     const jobFile = {
       Bucket: this.bucketName,
       Key: path,
@@ -974,7 +980,7 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(jobFile).promise();
-      console.log(s3Response)
+      console.log(s3Response);
       return {
         status: 200,
         message: 'Upload realizado com sucesso',
@@ -1056,7 +1062,7 @@ export class BucketService {
         if (response && response.ContentType.includes('pdf')) {
           newPDF = await this.replaceLastPage(response.base64Data, file);
         }
-        break
+        break;
       case 'dismissal_communication_dynamic':
         pathOrigin = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
         path = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
@@ -1064,7 +1070,7 @@ export class BucketService {
         if (response && response.ContentType.includes('pdf')) {
           newPDF = await this.replaceLastPage(response.base64Data, file);
         }
-        break
+        break;
       default:
         return {
           status: 400,
@@ -1099,26 +1105,37 @@ export class BucketService {
     }
   }
 
-  async DeleteDocumentDynamic(id: number, name: string, where?:string) {
+  async DeleteDocumentDynamic(id: number, name: string, where?: string) {
     try {
       let document;
       let signature;
       let complet;
-      switch(where){
+      switch (where) {
         case 'communication':
-          document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/Communication/${name}`);
-          complet = await this.deleteFile(`job/${id}/Dismissal/Complet/Communication/${name}`);
+          document = await this.deleteFile(
+            `job/${id}/Dismissal/Dynamic/Communication/${name}`,
+          );
+          complet = await this.deleteFile(
+            `job/${id}/Dismissal/Complet/Communication/${name}`,
+          );
           break;
         case 'kitDismissal':
-          document = await this.deleteFile(`job/${id}/Dismissal/Dynamic/${name}`);
-          complet = await this.deleteFile(`job/${id}/Dismissal/Complet/${name}`);
+          document = await this.deleteFile(
+            `job/${id}/Dismissal/Dynamic/${name}`,
+          );
+          complet = await this.deleteFile(
+            `job/${id}/Dismissal/Complet/${name}`,
+          );
           break;
         default:
-          document = await this.deleteFile(`job/${id}/Admission/Dynamic/${name}`);
-          signature = await this.deleteFile(`job/${id}/Admission/Signature/Dynamic/${name}`);
+          document = await this.deleteFile(
+            `job/${id}/Admission/Dynamic/${name}`,
+          );
+          signature = await this.deleteFile(
+            `job/${id}/Admission/Signature/Dynamic/${name}`,
+          );
           break;
       }
-      
 
       return {
         status: 200,
@@ -1594,15 +1611,16 @@ export class BucketService {
         };
       case 'dismissal_medical_examination':
         const medicalDismissalKey = `job/${id}/Dismissal/Dismissal_Medical_Examination`;
-        const medicalDismissalFile = await this.getFileFromBucket(medicalDismissalKey);
-
+        const medicalDismissalFile =
+          await this.getFileFromBucket(medicalDismissalKey);
 
         if (!medicalDismissalFile) {
           return {
             status: 404,
             message: 'Arquivo não encontrado',
           };
-        } if (medicalDismissalFile?.ContentType === 'application/pdf') {
+        }
+        if (medicalDismissalFile?.ContentType === 'application/pdf') {
           const url = await this.GenerateAccess(medicalDismissalKey);
           return {
             status: 200,
@@ -1647,7 +1665,7 @@ export class BucketService {
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Dynamic/${dynamic}`;
           const dynamicSignatureFile =
-          await this.getFileFromBucket(dynamicSignatureKey);
+            await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
@@ -1712,12 +1730,12 @@ export class BucketService {
             path: DynamicFile.base64Data,
           };
         }
-      break
+        break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication`;
           const dynamicSignatureFile =
-          await this.getFileFromBucket(dynamicSignatureKey);
+            await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
@@ -1782,40 +1800,28 @@ export class BucketService {
             path: DynamicFile.base64Data,
           };
         }
-        break
+        break;
       case 'dismissal_kit_dynamic':
-          if (signature == '1') {
-            const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Kit`;
-            const dynamicSignatureFile =
+        if (signature == '1') {
+          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Kit`;
+          const dynamicSignatureFile =
             await this.getFileFromBucket(dynamicSignatureKey);
-            const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
-            const dynamicSignatureCompletFile = await this.getFileFromBucket(
+          const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
+          const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
-            );
-  
-            if (!dynamicSignatureFile) {
-              return {
-                status: 404,
-                message: 'Arquivo não encontrado',
-              };
+          );
+
+          if (!dynamicSignatureFile) {
+            return {
+              status: 404,
+              message: 'Arquivo não encontrado',
             };
-  
-            if (dynamicSignatureFile?.ContentType === 'application/pdf') {
-              return {
-                status: 200,
-                type: 'pdf',
-                path: dynamicSignatureFile.base64Data,
-                typeDocumentSignature:
-                  dynamicSignatureCompletFile?.ContentType === 'application/pdf'
-                    ? 'pdf'
-                    : 'picture',
-                pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
-              };
-            };
-  
+          }
+
+          if (dynamicSignatureFile?.ContentType === 'application/pdf') {
             return {
               status: 200,
-              type: 'picture',
+              type: 'pdf',
               path: dynamicSignatureFile.base64Data,
               typeDocumentSignature:
                 dynamicSignatureCompletFile?.ContentType === 'application/pdf'
@@ -1823,47 +1829,59 @@ export class BucketService {
                   : 'picture',
               pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
             };
+          }
 
-          } else {
-            const DynamicKey = `job/${id}/Dismissal/Dynamic/${dynamic}`;
-            const DynamicFile = await this.getFileFromBucket(DynamicKey);
-  
-            if (!DynamicFile) {
-              return {
-                status: 404,
-                message: 'Arquivo não encontrado',
-              };
-            }
-  
-            if (DynamicFile?.ContentType === 'application/pdf') {
-              const imageBase64 = await this.convertPDFinImage(
-                DynamicFile.base64Data,
-              );
-              return {
-                status: 200,
-                type: 'pdf',
-                path: DynamicFile.base64Data,
-                picture: imageBase64,
-              };
-            }
-  
+          return {
+            status: 200,
+            type: 'picture',
+            path: dynamicSignatureFile.base64Data,
+            typeDocumentSignature:
+              dynamicSignatureCompletFile?.ContentType === 'application/pdf'
+                ? 'pdf'
+                : 'picture',
+            pathDocumentSignature: dynamicSignatureCompletFile?.base64Data,
+          };
+        } else {
+          const DynamicKey = `job/${id}/Dismissal/Dynamic/${dynamic}`;
+          const DynamicFile = await this.getFileFromBucket(DynamicKey);
+
+          if (!DynamicFile) {
             return {
-              status: 200,
-              type: 'picture',
-              path: DynamicFile.base64Data,
+              status: 404,
+              message: 'Arquivo não encontrado',
             };
           }
-          break
+
+          if (DynamicFile?.ContentType === 'application/pdf') {
+            const imageBase64 = await this.convertPDFinImage(
+              DynamicFile.base64Data,
+            );
+            return {
+              status: 200,
+              type: 'pdf',
+              path: DynamicFile.base64Data,
+              picture: imageBase64,
+            };
+          }
+
+          return {
+            status: 200,
+            type: 'picture',
+            path: DynamicFile.base64Data,
+          };
+        }
+        break;
       case 'dismissal_medical':
         const dismissalMedicalKey = `job/${id}/Dismissal/Medical_Examination`;
-        const dismissalMedicalFile = await this.getFileFromBucket(dismissalMedicalKey);
+        const dismissalMedicalFile =
+          await this.getFileFromBucket(dismissalMedicalKey);
 
         if (!dismissalMedicalFile) {
           return {
             status: 404,
             message: 'Arquivo não encontrado',
           };
-        };
+        }
 
         if (dismissalMedicalFile?.ContentType === 'application/pdf') {
           const url = await this.GenerateAccess(dismissalMedicalKey);
@@ -1873,7 +1891,7 @@ export class BucketService {
             path: dismissalMedicalFile.base64Data, // Retorna o PDF completo em base64
             url: url,
           };
-        };
+        }
 
         return {
           status: 200,
