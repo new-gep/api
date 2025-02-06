@@ -1774,9 +1774,12 @@ export class BucketService {
         } else {
           const DynamicKey = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
           const DynamicFile = await this.getFileFromBucket(DynamicKey);
-
+          if(dynamic == 'TesteTeste'){
+            console.log(DynamicFile)
+          }
           if (!DynamicFile) {
             return {
+
               status: 404,
               message: 'Arquivo não encontrado',
             };
