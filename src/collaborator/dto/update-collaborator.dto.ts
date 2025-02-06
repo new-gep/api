@@ -23,7 +23,7 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
     uf       ?:string;
     complement?:string;
     number   ?:string;
-    id_work  ?:string;
+    id_work  ?:string | null;
     PCD  ?:string;
     update_at?:string;
 };
