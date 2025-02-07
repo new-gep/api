@@ -224,14 +224,14 @@ export class JobService {
       // Atualiza a lista de candidatos na vaga para conter apenas o candidato específico
       job.candidates = JSON.stringify(candidates);
       
-      console.log('Candidatos da vaga após filtro:', candidates);
+      // console.log('Candidatos da vaga após filtro:', candidates);
       
       // Verifica se o candidato tem step > 0
       return candidates.some(candidate => candidate.step > 0);
     });
   
-    console.log('jobsWithCpfStepGreaterThanZero', jobsWithCpfStepGreaterThanZero.length);
-    console.log('jobsWithCpfAll', jobsWithCpfAll.length);
+    // console.log('jobsWithCpfStepGreaterThanZero', jobsWithCpfStepGreaterThanZero.length);
+    // console.log('jobsWithCpfAll', jobsWithCpfAll.length);
   
 
     // Se existir ao menos uma vaga com step > 0, retorna apenas essas vagas
@@ -262,10 +262,39 @@ export class JobService {
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
     };
   }
+
+  async jobServices(id: any, typeService: any, year: any, month: any) {
+    const response = await this.bucketService.findServices(id, typeService, year, month)
+    const responsee = await this.jobRepository.find({
+      where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
+    });
+    console.log('responsee', responsee)
+    const enrichedJobs = await Promise.all(
+      responsee.map(async (job) => {
+        const companyResponse = await this.companyService.findOne(
+          job.CNPJ_company,
+        );
+        if (companyResponse.status === 200) {
+          //@ts-ignore
+          job.company = companyResponse.company;
+          // Adicionando o novo campo que vem do banco de `company`
+        }
+        return job; // Retorna o job enriquecido
+      }),
+    );
+    return {
+      status: 200,
+      message: `id: ${id}, typeService: ${typeService}, year: ${year}, month: ${month}`,
+    };
+  }
+
+
+
   
 
   async findAll() {
     try {
+
       const response = await this.jobRepository.find({
         where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
       });

@@ -1908,7 +1908,59 @@ export class BucketService {
     }
   }
 
+  // Job Services
+
+  async findServices(id: any, typeService: any, year: any, month: any) {
+    const servicesKey = `job/${id}/${typeService}/${year}/${month}`;
+    const servicesFile = await this.getFileFromBucket(servicesKey);
+
+    if (!servicesFile) {
+      return {
+        status: 404,
+        message: 'Arquivo não encontrado',
+      };
+    }
+
+
+    if (servicesFile?.ContentType === 'application/pdf') {
+      const url = await this.GenerateAccess(servicesKey);
+
+      switch (typeService) {
+        case 'Point':
+          return {
+            status: 200,
+            type: 'pdf',
+            path: servicesFile.base64Data, // Retorna o PDF completo em base64
+            url: url,
+          }
+  
+        case 'PayStub':
+          return {
+            status: 200,
+            type: 'pdf',
+            path: servicesFile.base64Data, // Retorna o PDF completo em base64
+            url: url,
+          }
+
+          default:
+          return {
+            status: 400,
+            message: `Tipo de documento não suportado: ${typeService}`,
+          };
+
+      }
+      
+    }
+
+    return {
+      status: 200,
+      type: 'picture',
+      path: servicesFile.base64Data, // arquivo base64 de endereço
+    };
+  }
+
   // Company
+
 
   async findCompanyDocument(cnpj: string, name: string) {
     switch (name.toLowerCase()) {

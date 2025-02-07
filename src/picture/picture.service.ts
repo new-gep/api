@@ -98,6 +98,8 @@ export class PictureService {
         item.picture.includes('Dismissal_Signature'),
       );
 
+      console.log(filteredPictures);
+
       return {
         status: 200,
         pictures: filteredPictures,

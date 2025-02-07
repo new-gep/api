@@ -82,6 +82,23 @@ export class JobController {
     return this.jobService.findProcessAdmissional(cnpj);
   };
 
+  @Get('fileService/:id/:typeService/:year/:month')
+  jobServices(@Param('id') id: any,
+   @Param('typeService') typeService: any,
+    @Param('year') year: any,
+     @Param('month') month: any) {
+      console.log('teste', id, typeService, year, month)
+    return this.jobService.jobServices(id, typeService, year, month);
+  };
+
+
+
+
+
+
+
+
+
   @Get('process/demissional/:cnpj')
   jobProcessDemissional(@Param('cnpj') cnpj: string) {
     return this.jobService.findProcessDemissional(cnpj);
