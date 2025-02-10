@@ -1911,53 +1911,107 @@ export class BucketService {
   // Job Services
 
   async findServices(id: any, typeService: any, year: any, month: any) {
-    const servicesKey = `job/${id}/${typeService}/${year}/${month}`;
-    const servicesFile = await this.getFileFromBucket(servicesKey);
+    const folderServiceTreated = [];
+    const paste = await this.checkPaste(
+        `job/${id}/${typeService}/${year}/${month}`
+    );
 
-    if (!servicesFile) {
-      return {
-        status: 404,
-        message: 'Arquivo não encontrado',
-      };
+    // Mantém apenas entradas que são arquivos (valores começam com '/')
+    const filterPaste = Object.fromEntries(
+        Object.entries(paste).filter(([key, value]) => value.startsWith('/'))
+    );
+
+    // Itera sobre cada arquivo usando CHAVE + VALOR
+    for (const [fileId, filePath] of Object.entries(filterPaste)) {
+        const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
+        const servicesFile = await this.getFileFromBucket(servicesKey);
+
+        if (!servicesFile) {
+            folderServiceTreated.push({
+                status: 404,
+                message: `Arquivo ${filePath} não encontrado`,
+                service: typeService,
+                fileName: fileId
+            });
+            continue;
+        }
+
+        // Processa PDF
+        if (servicesFile.ContentType === 'application/pdf') {
+            const url = await this.GenerateAccess(servicesKey);
+            folderServiceTreated.push({
+                status: 200,
+                type: 'pdf',
+                path: servicesFile.base64Data,
+                url: url,
+                service: typeService,
+                fileName: fileId
+            });
+        } else {
+            // Processa Imagem
+            folderServiceTreated.push({
+                status: 200,
+                type: 'picture',
+                path: servicesFile.base64Data,
+                service: typeService,
+                fileName: fileId
+            });
+        }
     }
 
-
-    if (servicesFile?.ContentType === 'application/pdf') {
-      const url = await this.GenerateAccess(servicesKey);
-
-      switch (typeService) {
-        case 'Point':
-          return {
-            status: 200,
-            type: 'pdf',
-            path: servicesFile.base64Data, // Retorna o PDF completo em base64
-            url: url,
-          }
-  
-        case 'PayStub':
-          return {
-            status: 200,
-            type: 'pdf',
-            path: servicesFile.base64Data, // Retorna o PDF completo em base64
-            url: url,
-          }
-
-          default:
-          return {
-            status: 400,
-            message: `Tipo de documento não suportado: ${typeService}`,
-          };
-
-      }
-      
+    if (folderServiceTreated.length === 0) {
+        return {
+            status: 404,
+            message: 'Nenhum arquivo encontrado'
+        };
     }
 
-    return {
-      status: 200,
-      type: 'picture',
-      path: servicesFile.base64Data, // arquivo base64 de endereço
-    };
-  }
+    return folderServiceTreated;
+}
+
+  // async findServices(id: any, typeService: any, year: any, month: any) {
+  //   const folderServiceTreated = [];
+  //   const paste = await this.checkPaste(
+  //     `job/${id}/${typeService}/${year}/${month}`,
+  //   );
+
+  //   const filterPaste = Object.fromEntries(Object.entries(paste).filter(([key, value]) => value !== '/'));
+
+  //   // Use Object.keys para obter o número de chaves em filterPaste
+  //   for (let index = 0; index < Object.keys(filterPaste).length; index++) {
+  //      console.log(index)
+  //   }
+  //   console.log(filterPaste)
+
+  //   // return
+  //   const servicesKey = `job/${id}/${typeService}/${year}/${month}`;
+  //   const servicesFile = await this.getFileFromBucket(servicesKey);
+
+  //   if (!servicesFile) {
+  //     return {
+  //       status: 404,
+  //       message: 'Arquivo não encontrado',
+  //     };
+  //   }
+
+  //   if (servicesFile?.ContentType === 'application/pdf') {
+  //     const url = await this.GenerateAccess(servicesKey);
+  //     return {
+  //       status: 200,
+  //       type: 'pdf',
+  //       path: servicesFile.base64Data, // Retorna o PDF completo em base64
+  //       url: url,
+  //       service:typeService
+  //     }
+  //   }
+
+  //   return {
+  //     status: 200,
+  //     type: 'picture',
+  //     path: servicesFile.base64Data, // arquivo base64 de endereço
+  //     service:typeService
+  //   };
+  // }
 
   // Company
 

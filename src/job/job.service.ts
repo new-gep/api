@@ -264,33 +264,8 @@ export class JobService {
   }
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
-    const response = await this.bucketService.findServices(id, typeService, year, month)
-    const responsee = await this.jobRepository.find({
-      where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
-    });
-    console.log('responsee', responsee)
-    const enrichedJobs = await Promise.all(
-      responsee.map(async (job) => {
-        const companyResponse = await this.companyService.findOne(
-          job.CNPJ_company,
-        );
-        if (companyResponse.status === 200) {
-          //@ts-ignore
-          job.company = companyResponse.company;
-          // Adicionando o novo campo que vem do banco de `company`
-        }
-        return job; // Retorna o job enriquecido
-      }),
-    );
-    return {
-      status: 200,
-      message: `id: ${id}, typeService: ${typeService}, year: ${year}, month: ${month}`,
-    };
+    return await this.bucketService.findServices(id, typeService, year, month)
   }
-
-
-
-  
 
   async findAll() {
     try {

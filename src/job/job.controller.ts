@@ -87,7 +87,6 @@ export class JobController {
    @Param('typeService') typeService: any,
     @Param('year') year: any,
      @Param('month') month: any) {
-      console.log('teste', id, typeService, year, month)
     return this.jobService.jobServices(id, typeService, year, month);
   };
 
