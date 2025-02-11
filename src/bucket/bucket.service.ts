@@ -1664,7 +1664,8 @@ export class BucketService {
       case 'dismissal_dynamic':
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Dynamic/${dynamic}`;
-          const dynamicSignatureFile = await this.getFileFromBucket(dynamicSignatureKey);
+          const dynamicSignatureFile =
+            await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
@@ -1773,12 +1774,11 @@ export class BucketService {
         } else {
           const DynamicKey = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
           const DynamicFile = await this.getFileFromBucket(DynamicKey);
-          if(dynamic == 'TesteTeste'){
-            console.log(DynamicFile)
+          if (dynamic == 'TesteTeste') {
+            console.log(DynamicFile);
           }
           if (!DynamicFile) {
             return {
-
               status: 404,
               message: 'Arquivo não encontrado',
             };
@@ -1913,61 +1913,63 @@ export class BucketService {
   async findServices(id: any, typeService: any, year: any, month: any) {
     const folderServiceTreated = [];
     const paste = await this.checkPaste(
-        `job/${id}/${typeService}/${year}/${month}`
+      `job/${id}/${typeService}/${year}/${month}`,
     );
-
+    console.log("rouli",`job/${id}/${typeService}/${year}/${month}`);
     // Mantém apenas entradas que são arquivos (valores começam com '/')
     const filterPaste = Object.fromEntries(
-        Object.entries(paste).filter(([key, value]) => value.startsWith('/'))
+      Object.entries(paste).filter(
+        ([key, value]) => value.startsWith('/') && key !== '0', // Adicione esta condição
+      ),
     );
-
+    console.log(filterPaste);
     // Itera sobre cada arquivo usando CHAVE + VALOR
     for (const [fileId, filePath] of Object.entries(filterPaste)) {
-        const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
-        const servicesFile = await this.getFileFromBucket(servicesKey);
+      const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
+      const servicesFile = await this.getFileFromBucket(servicesKey);
 
-        if (!servicesFile) {
-            folderServiceTreated.push({
-                status: 404,
-                message: `Arquivo ${filePath} não encontrado`,
-                service: typeService,
-                fileName: fileId
-            });
-            continue;
-        }
+      if (!servicesFile) {
+        folderServiceTreated.push({
+          status: 404,
+          message: `Arquivo ${filePath} não encontrado`,
+          service: typeService,
+          fileName: fileId,
+        });
+        continue;
+      }
 
-        // Processa PDF
-        if (servicesFile.ContentType === 'application/pdf') {
-            const url = await this.GenerateAccess(servicesKey);
-            folderServiceTreated.push({
-                status: 200,
-                type: 'pdf',
-                path: servicesFile.base64Data,
-                url: url,
-                service: typeService,
-                fileName: fileId
-            });
-        } else {
-            // Processa Imagem
-            folderServiceTreated.push({
-                status: 200,
-                type: 'picture',
-                path: servicesFile.base64Data,
-                service: typeService,
-                fileName: fileId
-            });
-        }
+      // Processa PDF
+      if (servicesFile.ContentType === 'application/pdf') {
+        const url = await this.GenerateAccess(servicesKey);
+        folderServiceTreated.push({
+          status: 200,
+          type: 'pdf',
+          path: servicesFile.base64Data,
+          url: url,
+          service: typeService,
+          fileName: fileId,
+        });
+      } else {
+        // Processa Imagem
+        folderServiceTreated.push({
+          status: 200,
+          type: 'picture',
+          path: servicesFile.base64Data,
+          service: typeService,
+          fileName: fileId,
+        });
+      }
     }
 
     if (folderServiceTreated.length === 0) {
-        return {
-            status: 404,
-            message: 'Nenhum arquivo encontrado'
-        };
+      return {
+        status: 404,
+        message: 'Nenhum arquivo encontrado',
+      };
     }
 
     return folderServiceTreated;
-}
+  }
 
   // async findServices(id: any, typeService: any, year: any, month: any) {
   //   const folderServiceTreated = [];
@@ -2014,7 +2016,6 @@ export class BucketService {
   // }
 
   // Company
-
 
   async findCompanyDocument(cnpj: string, name: string) {
     switch (name.toLowerCase()) {
