@@ -116,14 +116,12 @@ export class PictureService {
     return `This action returns all picture`;
   }
 
-  async findOne(CPF_collaborator: string, id_work: string) {
+  async findOne(CPF_collaborator: string,) {
     try {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({
         where: {
-          CPF_collaborator: CPF_collaborator,
-          delete_at: IsNull(),
-          id_work: id_work,
+          CPF_collaborator: CPF_collaborator
         },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
