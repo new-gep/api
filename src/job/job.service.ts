@@ -196,44 +196,80 @@ export class JobService {
   }
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
-  
     // Consulta todas as vagas abertas
     const openJobs = await this.jobRepository.find({
-      where: { 
+      where: {
         candidates: Not(IsNull()),
         delete_at: IsNull(),
         CPF_collaborator: IsNull(),
-       },
-       // Certifica-se de que há candidatos na vaga
+      },
     });
   
-    // Filtra as vagas onde o CPF aparece na lista de candidatos
-    const jobsWithCpf = openJobs.filter((job) => {
-      const candidates = JSON.parse(job.candidates); // Parse dos candidatos
+    // Filtra todas as vagas onde o candidato está aplicado (independente do step)
+    const jobsWithCpfAll = openJobs.filter((job) => {
+      const candidates = JSON.parse(job.candidates);
       return candidates.some(
-        (candidate) => String(candidate.cpf) === String(CPF_collaborator) && candidate.step > 0
-      ); // Retorna apenas jobs onde o candidato com CPF tem step > 0
+        (candidate) => String(candidate.cpf) === String(CPF_collaborator)
+      );
     });
-    
-    const processAdmission = jobsWithCpf.length > 0; // `true` se encontrou ao menos um job com `step > 0`, `false` caso contrário.
-    
-    if (jobsWithCpf.length > 0) {
+  
+    // Filtra as vagas onde o candidato possui step > 0
+    const jobsWithCpfStepGreaterThanZero = jobsWithCpfAll.filter((job) => {
+      let candidates = JSON.parse(job.candidates);
+      // console.log('Candidatos da vaga antes do filtro:', candidates);
+      
+      // Filtra apenas o candidato com o CPF específico
+      candidates = candidates.filter(candidate => String(candidate.cpf) === String(CPF_collaborator));
+      
+      // Atualiza a lista de candidatos na vaga para conter apenas o candidato específico
+      job.candidates = JSON.stringify(candidates);
+      
+      // console.log('Candidatos da vaga após filtro:', candidates);
+      
+      // Verifica se o candidato tem step > 0
+      return candidates.some(candidate => candidate.step > 0);
+    });
+  
+    // console.log('jobsWithCpfStepGreaterThanZero', jobsWithCpfStepGreaterThanZero.length);
+    // console.log('jobsWithCpfAll', jobsWithCpfAll.length);
+  
+
+    // Se existir ao menos uma vaga com step > 0, retorna apenas essas vagas
+    if (jobsWithCpfStepGreaterThanZero.length > 0) {
+      console.log('aq')
       return {
         status: 200,
-        message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpf.length} vaga(s) aberta(s).`,
-        jobs: jobsWithCpf, // Retorna todas as vagas onde o CPF foi encontrado
-        processAdmission:processAdmission
+        message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpfStepGreaterThanZero.length} vaga(s) com step maior que zero.`,
+        jobs: jobsWithCpfStepGreaterThanZero,
+        processAdmission: true,
       };
     }
-    
+  
+    // Caso não haja nenhuma vaga com step > 0, mas o candidato esteja aplicado em alguma vaga,
+    // retorna todas as vagas em que o candidato está
+    if (jobsWithCpfAll.length > 0) {
+      return {
+        status: 200,
+        message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpfAll.length} vaga(s), mas nenhuma com step maior que zero.`,
+        jobs: jobsWithCpfAll,
+        processAdmission: false,
+      };
+    }
+  
+    // Caso o candidato não esteja aplicado em nenhuma vaga aberta
     return {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
     };
   }
 
+  async jobServices(id: any, typeService: any, year: any, month: any) {
+    return await this.bucketService.findServices(id, typeService, year, month)
+  }
+
   async findAll() {
     try {
+
       const response = await this.jobRepository.find({
         where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
       });
