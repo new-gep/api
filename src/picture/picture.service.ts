@@ -18,8 +18,9 @@ export class PictureService {
       const picture = await this.pictureRepository.findOne({
         where: {
           CPF_collaborator: createPictureDto.CPF_collaborator,
+          id_work: createPictureDto.id_work,
           picture: createPictureDto.picture,
-          delete_at: IsNull()
+          delete_at: IsNull(),
         },
       });
 
@@ -49,12 +50,14 @@ export class PictureService {
     }
   }
 
-  async findSignatureAdmission(CPF_collaborator: string) {
+  async findSignatureAdmission(CPF_collaborator: string, id_work: string) {
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator,
-          delete_at: IsNull()
-         },
+        where: {
+          CPF_collaborator: CPF_collaborator,
+          id_work: id_work,
+          delete_at: IsNull(),
+        },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -81,10 +84,14 @@ export class PictureService {
     }
   }
 
-  async findSignatureDismissal(CPF_collaborator: string) {
+  async findSignatureDismissal(CPF_collaborator: string, id_work: string) {
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator },
+        where: {
+          CPF_collaborator: CPF_collaborator,
+          id_work: id_work,
+          delete_at: IsNull(),
+        },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -117,13 +124,14 @@ export class PictureService {
     return `This action returns all picture`;
   }
 
-  async findOne(CPF_collaborator: string) {
+  async findOne(CPF_collaborator: string, id_work: string) {
     try {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({
         where: {
           CPF_collaborator: CPF_collaborator,
-          delete_at: IsNull()
+          delete_at: IsNull(),
+          id_work: id_work,
         },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
@@ -158,13 +166,18 @@ export class PictureService {
     }
   }
 
-  async update(CPF: string, updatePictureDto: UpdatePictureDto) {
+  async update(CPF: string, id_work: string, updatePictureDto: UpdatePictureDto,) {
     try {
       const { status, id_user } = updatePictureDto; // Extrai o campo `status` do DTO
 
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
-        where: { CPF_collaborator: CPF, picture: updatePictureDto.picture },
+        where: {
+          CPF_collaborator: CPF,
+          picture: updatePictureDto.picture,
+          delete_at: IsNull(),
+          id_work: id_work,
+        },
       });
 
       if (!pictureRecord) {

@@ -17,6 +17,9 @@ export class Picture {
     @Column({length: 11,})
     CPF_collaborator: string;
 
+    @Column({length: 10,})
+    id_work: string;
+
     @Column({length: 50})
     create_at: string;
 

@@ -887,7 +887,7 @@ export class BucketService {
     id: number,
     dynamic?: string,
   ) {
-    console.log(name);
+    // console.log(name);
     let path: string;
     switch (name.toLowerCase()) {
       case 'registration':
@@ -980,7 +980,7 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(jobFile).promise();
-      console.log(s3Response);
+      // console.log(s3Response);
       return {
         status: 200,
         message: 'Upload realizado com sucesso',
@@ -1915,14 +1915,14 @@ export class BucketService {
     const paste = await this.checkPaste(
       `job/${id}/${typeService}/${year}/${month}`,
     );
-    console.log("rouli",`job/${id}/${typeService}/${year}/${month}`);
+    // console.log("rouli",`job/${id}/${typeService}/${year}/${month}`);
     // Mantém apenas entradas que são arquivos (valores começam com '/')
     const filterPaste = Object.fromEntries(
       Object.entries(paste).filter(
         ([key, value]) => value.startsWith('/') && key !== '0', // Adicione esta condição
       ),
     );
-    console.log(filterPaste);
+    // console.log(filterPaste);
     // Itera sobre cada arquivo usando CHAVE + VALOR
     for (const [fileId, filePath] of Object.entries(filterPaste)) {
       const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
