@@ -51,10 +51,10 @@ export class PictureService {
     }
   };
 
-  async findSignatureAdmission(CPF_collaborator: string){
+  async findSignatureAdmission(CPF_collaborator: string, id_work: number){
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator },
+        where: { CPF_collaborator: CPF_collaborator, id_work: id_work },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -80,10 +80,10 @@ export class PictureService {
     }
   };
 
-  async findSignatureDismissal(CPF_collaborator: string){
+  async findSignatureDismissal(CPF_collaborator: string, id_work: number){
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator },
+        where: { CPF_collaborator: CPF_collaborator, id_work: id_work },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -148,11 +148,11 @@ export class PictureService {
 
   async update(CPF: string, updatePictureDto: UpdatePictureDto) {
     try{
-      const { status, id_user } = updatePictureDto;  // Extrai o campo `status` do DTO
+      const { status, id_user, id_work } = updatePictureDto;  // Extrai o campo `status` do DTO
     
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
-        where: { CPF_collaborator: CPF, picture: updatePictureDto.picture },
+        where: { CPF_collaborator: CPF, picture: updatePictureDto.picture, id_work: id_work },
       });
     
       if (!pictureRecord) {
