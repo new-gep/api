@@ -17,14 +17,14 @@ export class PictureController {
     return this.pictureService.findAll();
   }
 
-  @Get('signature/admission/:CPF')
-  findSignatureAdmission(@Param('CPF') CPF_collaborator: string) {
-    return this.pictureService.findSignatureAdmission(CPF_collaborator);
+  @Get('signature/admission/:CPF/:id_work')
+  findSignatureAdmission(@Param('CPF') CPF_collaborator: string, @Param('id_work') id_work: number) {
+    return this.pictureService.findSignatureAdmission(CPF_collaborator, id_work);
   }
 
-  @Get('signature/dismissal/:CPF')
-  findSignatureDismissal(@Param('CPF') CPF_collaborator: string) {
-    return this.pictureService.findSignatureDismissal(CPF_collaborator);
+  @Get('signature/dismissal/:CPF/:id_work')
+  findSignatureDismissal(@Param('CPF') CPF_collaborator: string, @Param('id_work') id_work: number) {
+    return this.pictureService.findSignatureDismissal(CPF_collaborator, id_work);
   }
 
   @Get(':CPF')

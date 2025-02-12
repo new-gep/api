@@ -433,6 +433,10 @@ export class JobService {
           if (job.demission) {
             try {
               job.demission = JSON.parse(job.demission); // Converte demission para JSON
+              //@ts-ignore
+              if (job.demission.step == 4) {
+                return null; // Remove o job se o step for igual a 4
+              }
             } catch (error) {
               console.error('Erro ao fazer JSON.parse em demission:', error);
               job.demission = null; // Define como null em caso de erro
@@ -458,11 +462,12 @@ export class JobService {
           const demission = collaborator.demission;
       
           // Obter o step e criar a chave dinamicamente
-          //@ts-ignore
-          const step = `step${collaborator.demission.step}`;
-      
-          // Incrementar o contador para o step correspondente
-          acc[step] = (acc[step] || 0) + 1;
+          if (demission && typeof demission === 'object') {
+            //@ts-ignore
+            const step = `step${demission.step}`;
+            // Incrementar o contador para o step correspondente
+            acc[step] = (acc[step] || 0) + 1;
+          }
         } catch (error) {
           console.error("Erro ao processar demission:", collaborator.demission, error);
         }
