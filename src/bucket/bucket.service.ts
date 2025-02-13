@@ -961,6 +961,7 @@ export class BucketService {
       case 'dismissal_medical_examination':
         path = `job/${id}/Dismissal/Medical_Examination`;
         break;
+      
       default:
         return {
           status: 400,
@@ -1971,49 +1972,35 @@ export class BucketService {
     return folderServiceTreated;
   }
 
-  // async findServices(id: any, typeService: any, year: any, month: any) {
-  //   const folderServiceTreated = [];
-  //   const paste = await this.checkPaste(
-  //     `job/${id}/${typeService}/${year}/${month}`,
-  //   );
+  async uploadService(file: Express.Multer.File,id_work: any, typeService: any, year: any, month: any, name: string) {
+    const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
+   
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
 
-  //   const filterPaste = Object.fromEntries(Object.entries(paste).filter(([key, value]) => value !== '/'));
+    const jobFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body: file.buffer,
+      ContentType: mimeType,
+    };
 
-  //   // Use Object.keys para obter o número de chaves em filterPaste
-  //   for (let index = 0; index < Object.keys(filterPaste).length; index++) {
-  //      console.log(index)
-  //   }
-  //   console.log(filterPaste)
-
-  //   // return
-  //   const servicesKey = `job/${id}/${typeService}/${year}/${month}`;
-  //   const servicesFile = await this.getFileFromBucket(servicesKey);
-
-  //   if (!servicesFile) {
-  //     return {
-  //       status: 404,
-  //       message: 'Arquivo não encontrado',
-  //     };
-  //   }
-
-  //   if (servicesFile?.ContentType === 'application/pdf') {
-  //     const url = await this.GenerateAccess(servicesKey);
-  //     return {
-  //       status: 200,
-  //       type: 'pdf',
-  //       path: servicesFile.base64Data, // Retorna o PDF completo em base64
-  //       url: url,
-  //       service:typeService
-  //     }
-  //   }
-
-  //   return {
-  //     status: 200,
-  //     type: 'picture',
-  //     path: servicesFile.base64Data, // arquivo base64 de endereço
-  //     service:typeService
-  //   };
-  // }
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(jobFile).promise();
+      // console.log(s3Response);
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  }
 
   // Company
 
