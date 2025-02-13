@@ -27,6 +27,11 @@ export class UserController {
     return this.userService.findAll();
   };
 
+  @Get('allBy/:CNPJ')
+  findAllByCNPJ(@Param('CNPJ') CNPJ: string){
+    return this.userService.findAllByCNPJ(CNPJ);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(id);

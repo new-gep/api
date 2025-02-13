@@ -23,6 +23,9 @@ export class User {
     @Column({length: 11})
     phone: string;
 
+    @Column({length: 1})
+    hierarchy: string;
+
     @Column({length: 14})
     CNPJ_company: string;
 

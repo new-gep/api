@@ -34,6 +34,7 @@ export class CompanyService {
         password: createCompanyDto.password,
         email: createCompanyDto.email,
         phone: createCompanyDto.phone,
+        hierarchy: '0',
         CNPJ_company: createCompanyDto.CNPJ,
       };
 

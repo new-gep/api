@@ -11,33 +11,32 @@ import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UserService {
   constructor(
-    @Inject('USER_REPOSITORY') 
+    @Inject('USER_REPOSITORY')
     private userRepository: Repository<User>,
-  ){}
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const existingUser = await this.userRepository.findOne({
-      where:
-       { user: createUserDto.user }
+      where: { user: createUserDto.user },
     });
 
     const existingEmail = await this.userRepository.findOne({
-      where: { email: createUserDto.email }
+      where: { email: createUserDto.email },
     });
 
     if (existingUser) {
       return {
-        status:409,
-        message:'Usário já existe.',
-      }
-    };
+        status: 409,
+        message: 'Usário já existe.',
+      };
+    }
 
     if (existingEmail) {
       return {
-        status:409,
-        message:'Email já existe.',
-      }
-    };
+        status: 409,
+        message: 'Email já existe.',
+      };
+    }
 
     const time = FindTimeSP();
     createUserDto.create_at = time;
@@ -45,196 +44,239 @@ export class UserService {
     createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
     const newUser = await this.userRepository.save(createUserDto);
 
-
-    if(newUser){
-      const  token = await GenerateToken({id:newUser.id, user:newUser.user, name:newUser.name, email:newUser.email, phone:newUser.phone, cnpj:newUser.CNPJ_company})
+    if (newUser) {
+      const token = await GenerateToken({
+        id: newUser.id,
+        user: newUser.user,
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        cnpj: newUser.CNPJ_company,
+        hierarchy: newUser.hierarchy,
+      });
 
       return {
-        status : 201,
+        status: 201,
         message: 'Usário criado com sucesso! ',
-        token  : token
-      }
-    };
+        user: newUser,
+        token: token,
+      };
+    }
   }
 
-  async singUp(createUserDto: CreateUserDto){
+  async findAllByCNPJ(CNPJ: string) {
+    try {
+      const response = await this.userRepository.find({
+        where: { CNPJ_company: CNPJ },
+      });
+
+      if (response) {
+        return {
+          status: 200,
+          users: response,
+        };
+      } else {
+        return {
+          status: 404,
+          message: 'usuario não encontrado',
+        };
+      }
+    } catch (e) {
+      return {
+        status: 500,
+        message: 'Erro Interno.',
+      };
+    }
+  }
+
+  async singUp(createUserDto: CreateUserDto) {
     const existingUser = await this.userRepository.findOne({
-      where:
-       { user: createUserDto.user }
+      where: { user: createUserDto.user },
     });
 
     const existingEmail = await this.userRepository.findOne({
-      where: { email: createUserDto.email }
+      where: { email: createUserDto.email },
     });
 
     if (existingUser) {
       return {
-        status:409,
-        message:'Usário já existe.',
-      }
-    };
+        status: 409,
+        message: 'Usário já existe.',
+      };
+    }
 
     if (existingEmail) {
       return {
-        status:409,
-        message:'Email já existe.',
-      }
-    };
+        status: 409,
+        message: 'Email já existe.',
+      };
+    }
 
-    return null
-  };
-  
-  async singIn(singInUserDto:SingInUserDto){
-    
+    return null;
+  }
+
+  async singIn(singInUserDto: SingInUserDto) {
     const user = await this.userRepository.findOne({
-      where:
-       { user: singInUserDto.user }
+      where: { user: singInUserDto.user },
     });
 
     if (!user) {
       return {
-        status:409,
-        message:'Usário não existe.',
-      }
-    };
+        status: 409,
+        message: 'Usário não existe.',
+      };
+    }
 
-    if(!singInUserDto.password){
-      return  {
-        status:200,
+    if (!singInUserDto.password) {
+      return {
+        status: 200,
         name: user.name,
-        message:'Usúario existe'
-      }
-    };
+        message: 'Usúario existe',
+      };
+    }
 
     const auth = await bcrypt.compare(singInUserDto.password, user.password);
-    if(auth){
-      const  token = await GenerateToken({id:user.id, avatar:user.avatar ,user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company, lastUpdate:user.update_at})
+    if (auth) {
+      const token = await GenerateToken({
+        id: user.id,
+        avatar: user.avatar,
+        user: user.user,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        hierarchy: user.hierarchy,
+        cnpj: user.CNPJ_company,
+        lastUpdate: user.update_at,
+      });
       return {
-        status:200,
-        token:token
-      }
-    }else{
+        status: 200,
+        token: token,
+      };
+    } else {
       return {
-        status:409,
-        message:'Senha incorreta.',
-      }
-    };
+        status: 409,
+        message: 'Senha incorreta.',
+      };
+    }
+  }
 
-  };
-
-  verifyToken(token:string){
+  verifyToken(token: string) {
     const response = DecodeToken(token);
-    if(!response){
+    if (!response) {
       return {
         status: 400,
-        message: 'Token inválido'
-      }
+        message: 'Token inválido',
+      };
     }
     return {
       status: 200,
-      dates : response
-    }
-  };
+      dates: response,
+    };
+  }
 
   findAll() {
     return `This action returns all user`;
-  };
+  }
 
   async findOne(id: string) {
-    try{
+    try {
       const response = await this.userRepository.findOne({
-        where: { id: id }
+        where: { id: id },
       });
-  
-      if(response){
-        return{
-          status:200,
-          user:response,
-        }
-      }else{
-        return{
-          status:404,
-          message:'usuario não encontrado'
-        }
-      }
 
-    }catch(e){
-      return{
-        status: 500,
-        message:'Erro Interno.'
+      if (response) {
+        return {
+          status: 200,
+          user: response,
+        };
+      } else {
+        return {
+          status: 404,
+          message: 'usuario não encontrado',
+        };
       }
+    } catch (e) {
+      return {
+        status: 500,
+        message: 'Erro Interno.',
+      };
     }
-  };
+  }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    if (updateUserDto.confirmPassword.trim() === "") {
+    if (updateUserDto.confirmPassword.trim() === '') {
       // A string está em branco (apenas espaços, tabs, etc.)
       delete updateUserDto.confirmPassword;
       delete updateUserDto.password;
-    }else{
-      const response = await this.findOne(id)
-      const auth = await bcrypt.compare(updateUserDto.password, response.user.password);
-      if(!auth){
-        return{
-          status:404,
-          message:'Senha atual incorreta!'
-        }
-      };
-      updateUserDto.password = await bcrypt.hash(updateUserDto.confirmPassword, 10);
+    } else {
+      const response = await this.findOne(id);
+      const auth = await bcrypt.compare(
+        updateUserDto.password,
+        response.user.password,
+      );
+      if (!auth) {
+        return {
+          status: 404,
+          message: 'Senha atual incorreta!',
+        };
+      }
+      updateUserDto.password = await bcrypt.hash(
+        updateUserDto.confirmPassword,
+        10,
+      );
       delete updateUserDto.confirmPassword;
     }
     const time = FindTimeSP();
     updateUserDto.update_at = time;
-    try{
+    try {
       const response = await this.userRepository.update(id, updateUserDto);
-      if(response.affected === 1){
-        const user  = await this.findOne(id)
+      if (response.affected === 1) {
+        const user = await this.findOne(id);
         //@ts-ignore
-        const token = await GenerateToken({id:user.id, avatar:user.avatar ,user:user.user, name:user.name, email:user.email, phone:user.phone, cnpj:user.CNPJ_company, lastUpdate:user.update_at})
+        const token = await GenerateToken({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at,});
         return {
-          status : 200,
-          message: 'Usuário atualizado com sucesso!', 
-          token  : token,
-          update_at: time
-        }
+          status: 200,
+          message: 'Usuário atualizado com sucesso!',
+          token: token,
+          update_at: time,
+        };
       }
       return {
-        status:404,
-        message:'Não foi possivel atualizar o usuário, algo deu errado!'
-      }
-    }catch(e){
-      console.log(e)
+        status: 404,
+        message: 'Não foi possivel atualizar o usuário, algo deu errado!',
+      };
+    } catch (e) {
+      console.log(e);
       return {
-        status:500,
-        message:'Erro interno.'
-      }
+        status: 500,
+        message: 'Erro interno.',
+      };
     }
-  };
+  }
 
   remove(id: number) {
     return `This action removes a #${id} user`;
-  };
+  }
 
   private async generateRandomId(): Promise<string> {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let randomId = '';
     let existingId;
-  
+
     do {
       randomId = '#';
       for (let i = 0; i < 4; i++) {
-        randomId += characters.charAt(Math.floor(Math.random() * characters.length));
+        randomId += characters.charAt(
+          Math.floor(Math.random() * characters.length),
+        );
       }
-  
+
       // Verifica se o ID já existe no banco de dados
       existingId = await this.userRepository.findOne({
-        where: { id: randomId }
+        where: { id: randomId },
       });
     } while (existingId); // Continua gerando IDs até encontrar um único
-  
+
     return randomId;
-  };
-  
+  }
 }
-
-
