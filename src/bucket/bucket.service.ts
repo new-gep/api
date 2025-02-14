@@ -1230,13 +1230,10 @@ export class BucketService {
       case 'experience':
         if (signature == '1') {
           const experienceSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
-          const experienceSignatureFile = await this.getFileFromBucket(
-            experienceSignatureKey,
-          );
+          const experienceSignatureFile = await this.getFileFromBucket( experienceSignatureKey );
           const experienceSignatureCompletKey = `job/${id}/Admission/Complet/Experience_Contract`;
-          const experienceSignatureCompletFile = await this.getFileFromBucket(
-            experienceSignatureCompletKey,
-          );
+          const experienceSignatureCompletFile = await this.getFileFromBucket( experienceSignatureCompletKey );
+          console.log(experienceSignatureCompletFile);
           if (!experienceSignatureFile) {
             return {
               status: 404,
