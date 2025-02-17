@@ -142,55 +142,71 @@ export class JobService {
         update_at: 'DESC' // Caso queira priorizar o mais recente em termos de atualização, caso seja necessário
       }
     });
-    // console.log(response)
-    const seenCpfs = new Set();
-    const uniqueJobs = response.filter(job => {
-      // Se o CPF já foi visto, verifica se o registro atual tem prioridade
-      if (seenCpfs.has(job.CPF_collaborator)) {
-        // Encontra o registro existente com o mesmo CPF
-        const existingJob = response.find(j => j.CPF_collaborator === job.CPF_collaborator);
-        
-        // Se o registro atual tem `demission: null` e o existente não, substitui
-        if (job.demission === null && existingJob.demission !== null) {
-          // Remove o registro existente e adiciona o atual
-          const index = uniqueJobs.indexOf(existingJob);
-          uniqueJobs.splice(index, 1);
+   
+    if(response.length > 0){
+      let uniqueJobs = [] as any;
+      const seenCpfs = new Set();
+      uniqueJobs = response.filter(job => {
+        // Se o CPF já foi visto, verifica se o registro atual tem prioridade
+        if (seenCpfs.has(job.CPF_collaborator)) {
+          // Encontra o registro existente com o mesmo CPF
+          const existingJob = response.find(j => j.CPF_collaborator === job.CPF_collaborator);
+          
+          // Se o registro atual tem `demission: null` e o existente não, substitui
+          if (job.demission === null && existingJob.demission !== null) {
+            // Remove o registro existente e adiciona o atual
+            const index = uniqueJobs.indexOf(existingJob);
+            uniqueJobs.splice(index, 1);
+            return true;
+          }
+          // Caso contrário, descarta o registro atual
+          return false;
+        } else {
+          // Se o CPF não foi visto, adiciona ao Set e mantém o registro
+          seenCpfs.add(job.CPF_collaborator);
           return true;
         }
-        // Caso contrário, descarta o registro atual
-        return false;
-      } else {
-        // Se o CPF não foi visto, adiciona ao Set e mantém o registro
-        seenCpfs.add(job.CPF_collaborator);
-        return true;
+      });
+  
+      if (uniqueJobs.length > 0 && uniqueJobs.length > 0) {
+        await Promise.all(
+          uniqueJobs.map(async (job) => {
+            const CPF = job.CPF_collaborator;
+            const collaborator = await this.collaboratorService.findOne(CPF);
+            if (collaborator.status === 200) {
+              collaboratorCompany.push({
+                ...collaborator,
+                job: job,
+                isDeleted: job.delete_at ? true : false,
+              });
+            }
+          }),
+        );
+  
+        const uniqueCollaborators = collaboratorCompany.filter((value, index, self) => 
+          index === self.findIndex((t) => (
+            t.collaborator.CPF === value.collaborator.CPF
+          ))
+        );
+
+  
+  
+        return {
+          status: 200,
+          collaborator: uniqueCollaborators,
+          
+        };
       }
-    });
-
-    if (uniqueJobs) {
-      await Promise.all(
-        uniqueJobs.map(async (job) => {
-          const CPF = job.CPF_collaborator;
-          const collaborator = await this.collaboratorService.findOne(CPF);
-          if (collaborator.status === 200) {
-            collaboratorCompany.push({
-              ...collaborator,
-              isDeleted: job.delete_at ? true : false,
-            });
-          }
-        }),
-      );
-
-      
-
+  
       return {
-        status: 200,
-        collaborator: collaboratorCompany,
+        status: 409,
+        message: 'Registro não encontrado',
       };
     }
 
     return {
-      status: 409,
-      message: 'Registro não encontrado',
+      status: 500,
+      message: 'Erro ao buscar colaborador',
     };
 
   }
@@ -415,6 +431,7 @@ export class JobService {
 
   async findProcessDemissional(cnpj: string) {
     try {
+      let stepCounts = {} as any;
       const response = await this.jobRepository.find({
         where: {
           CPF_collaborator: Not(IsNull()),
@@ -424,17 +441,17 @@ export class JobService {
         },
       });
 
-      const collaboratorsInProcess = await Promise.all(
+      let collaboratorsInProcess = await Promise.all(
         response.flatMap(async (job) => {
           const response = await this.collaboratorService.findOne(
             job.CPF_collaborator,
           );
 
-          if (job.demission) {
+          if (job && job.demission) {
             try {
               job.demission = JSON.parse(job.demission); // Converte demission para JSON
               //@ts-ignore
-              if (job.demission.step == 4) {
+              if (job.demission && job.demission.step == 4) {
                 return null; // Remove o job se o step for igual a 4
               }
             } catch (error) {
@@ -443,7 +460,7 @@ export class JobService {
             }
           }
 
-          if (response.status === 200) {
+          if (response && response.status === 200) {
             delete response.collaborator.password;
             delete response.collaborator.CPF;
             //@ts-ignore
@@ -456,24 +473,29 @@ export class JobService {
         }),
       );
 
-      const stepCounts = collaboratorsInProcess.reduce((acc, collaborator) => {
-        try {
-          // Acessar o campo "demission" diretamente
-          const demission = collaborator.demission;
-      
-          // Obter o step e criar a chave dinamicamente
-          if (demission && typeof demission === 'object') {
-            //@ts-ignore
-            const step = `step${demission.step}`;
-            // Incrementar o contador para o step correspondente
-            acc[step] = (acc[step] || 0) + 1;
+      collaboratorsInProcess = collaboratorsInProcess.filter(collaborator => collaborator !== null);
+
+      if(collaboratorsInProcess.length > 0){
+        stepCounts = collaboratorsInProcess.reduce((acc, collaborator) => {
+          try {
+            // Acessar o campo "demission" diretamente
+            const demission = collaborator.demission;
+        
+            // Obter o step e criar a chave dinamicamente
+            if (demission && typeof demission === 'object') {
+              //@ts-ignore
+              const step = `step${demission.step}`;
+              // Incrementar o contador para o step correspondente
+              acc[step] = (acc[step] || 0) + 1;
+            }
+          } catch (error) {
+            console.error("Erro ao processar demission:", collaborator.demission, error);
           }
-        } catch (error) {
-          console.error("Erro ao processar demission:", collaborator.demission, error);
-        }
-      
-        return acc;
-      }, {});
+        
+          return acc;
+        }, {});
+      }
+
 
       return {
         status: 200,
