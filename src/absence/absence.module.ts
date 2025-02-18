@@ -8,5 +8,6 @@ import { BucketModule } from 'src/bucket/bucket.module';
   imports: [DatabaseModule, BucketModule],
   controllers: [AbsenceController],
   providers: [AbsenceService, ...absenceProviders],
+  exports: [AbsenceService],
 })
 export class AbsenceModule {}

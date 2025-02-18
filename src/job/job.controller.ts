@@ -20,6 +20,31 @@ export class JobController {
     return this.jobService.uploadFile(uploadCollaboratorDto,file)
   };
 
+  @Post('service/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFileSignature(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: {
+      year: string,
+      month: string,
+      id_work: string,
+      type: string,
+      name: string,
+      CPF_collaborator: string
+    }
+  ) {
+    console.log("body", body)
+    return this.jobService.UploadJobFileAbsence({
+      year: body.year,
+      month: body.month, 
+      id_work: body.id_work,
+      type: body.type,
+      name: body.name,
+      //@ts-ignore
+      CPF_collaborator: body.cpf
+    }, file);
+  };
+
   @Post('document/signature')
   @UseInterceptors(FileInterceptor('file'))
   async generateDocumentAsignature(@UploadedFile() file: Express.Multer.File, @Body() uploadCollaboratorDto:UpadteJobDto) {
@@ -90,12 +115,6 @@ export class JobController {
     
     return this.jobService.jobServices(id, typeService, year, month);
   };
-
-
-
-
-
-
 
 
 

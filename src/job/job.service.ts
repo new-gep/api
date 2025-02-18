@@ -9,7 +9,9 @@ import { BucketService } from 'src/bucket/bucket.service';
 import FindTimeSP from 'hooks/time';
 import { UpadteJobDto } from './dto/update.job.dto';
 import { CompanyService } from 'src/company/company.service';
-
+import { AbsenceService } from 'src/absence/absence.service';
+import { UploadAbsenceDto } from './dto/upload-absence.dto';
+import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
 @Injectable()
 export class JobService {
   constructor(
@@ -19,6 +21,7 @@ export class JobService {
     readonly collaboratorService: CollaboratorService,
     readonly bucketService: BucketService,
     readonly companyService: CompanyService,
+    readonly absenceService: AbsenceService,
   ) {}
 
   async create(createJobDto: CreateJobDto) {
@@ -68,6 +71,32 @@ export class JobService {
       upadteJobDto.idJob,
       upadteJobDto.dynamic,
     );
+  }
+
+  async UploadJobFileAbsence(uploadAbsenceDto: UploadAbsenceDto, file: Express.Multer.File) {
+    const createAbsenceDto: CreateAbsenceDto = {
+      id_work: Number(uploadAbsenceDto.id_work),
+      name: uploadAbsenceDto.name,
+      observation: null,
+      status: null,
+      CPF_collaborator: uploadAbsenceDto.CPF_collaborator,
+      create_at: null,
+    };
+
+    const response = await this.absenceService.create(createAbsenceDto);
+    console.log(response)
+    if (response.status === 201) {
+      uploadAbsenceDto.name = `${uploadAbsenceDto.name}_${response.absence.id}`;
+      const uploadResponse = await this.absenceService.UploadJobFileAbsence(
+        file,
+        uploadAbsenceDto.name,
+        uploadAbsenceDto.year,
+        uploadAbsenceDto.month,
+        uploadAbsenceDto.id_work,
+        uploadAbsenceDto.type
+      );
+      return uploadResponse;
+    }
   }
 
   async checkDocumentAdmissional(id: number) {
