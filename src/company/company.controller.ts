@@ -13,6 +13,7 @@ import { CompanyService } from './company.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadServiceDto } from './dto/upload-service.dto';
 
 @Controller('company')
 export class CompanyController {
@@ -31,6 +32,12 @@ export class CompanyController {
   ) {
     return this.companyService.uploadCompanyDocument(uploadCollaboratorDto.cnpj, uploadCollaboratorDto.document, file);
   }
+
+  @Post('service/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async departmentUpload(@UploadedFile() file: Express.Multer.File, @Body() upLoadServiceDto:UploadServiceDto) {
+    return this.companyService.uploadFileService(upLoadServiceDto,file)
+  };
 
   @Get()
   findAll() {

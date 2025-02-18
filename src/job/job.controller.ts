@@ -4,6 +4,7 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpadteJobDto } from './dto/update.job.dto';
+import { UploadServiceDto } from '../company/dto/upload-service.dto';
 
 @Controller('job')
 export class JobController {
@@ -33,7 +34,6 @@ export class JobController {
       CPF_collaborator: string
     }
   ) {
-    console.log("body", body)
     return this.jobService.UploadJobFileAbsence({
       year: body.year,
       month: body.month, 

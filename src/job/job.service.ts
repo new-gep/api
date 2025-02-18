@@ -12,6 +12,7 @@ import { CompanyService } from 'src/company/company.service';
 import { AbsenceService } from 'src/absence/absence.service';
 import { UploadAbsenceDto } from './dto/upload-absence.dto';
 import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
+
 @Injectable()
 export class JobService {
   constructor(
@@ -98,6 +99,7 @@ export class JobService {
       return uploadResponse;
     }
   }
+
 
   async checkDocumentAdmissional(id: number) {
     return this.bucketService.checkJobAdmissionBucketDocumentsObligation(id);
