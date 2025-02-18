@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SingInUserDto } from './dto/singIn.-user.dto';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import FindTimeSP from 'hooks/time';
 import GenerateToken from 'hooks/auth/generateToken';
@@ -67,7 +67,7 @@ export class UserService {
   async findAllByCNPJ(CNPJ: string) {
     try {
       const response = await this.userRepository.find({
-        where: { CNPJ_company: CNPJ },
+        where: { CNPJ_company: CNPJ, delete_at: IsNull() },
       });
 
       if (response) {
@@ -75,13 +75,15 @@ export class UserService {
           status: 200,
           users: response,
         };
-      } else {
+      } 
+      else {
         return {
           status: 404,
           message: 'usuario não encontrado',
         };
       }
     } catch (e) {
+
       return {
         status: 500,
         message: 'Erro Interno.',
@@ -204,6 +206,8 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    console.log(updateUserDto);
+    return;
     if (updateUserDto.confirmPassword.trim() === '') {
       // A string está em branco (apenas espaços, tabs, etc.)
       delete updateUserDto.confirmPassword;
@@ -233,7 +237,7 @@ export class UserService {
       if (response.affected === 1) {
         const user = await this.findOne(id);
         //@ts-ignore
-        const token = await GenerateToken({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at,});
+        const token = await GenerateToken({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         return {
           status: 200,
           message: 'Usuário atualizado com sucesso!',
@@ -254,8 +258,42 @@ export class UserService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async updateByAdmin(id: string, updateUserDto: UpdateUserDto) {
+    if(updateUserDto.password){
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }else{
+      delete updateUserDto.password;
+    }
+    const response = await this.userRepository.update(id, updateUserDto);
+    if (response.affected === 1) {
+      return {
+        status: 200,
+        message: 'Usuário atualizado com sucesso!',
+      };
+    }
+    return {
+      status: 404,
+      message: 'Usuário não encontrado!',
+    };
+  }
+
+  async remove(id: string) {
+    const date = FindTimeSP();
+    const response = await this.userRepository.update(id, {
+      delete_at: date,
+    });
+
+    if (response.affected === 1) {
+      return {
+        status: 200,
+        message: 'Usuário deletado com sucesso!',
+      };
+    }
+
+    return {
+      status: 404,
+      message: 'Usuário não encontrado!',
+    };
   }
 
   private async generateRandomId(): Promise<string> {
