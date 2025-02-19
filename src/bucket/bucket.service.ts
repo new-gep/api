@@ -1931,7 +1931,7 @@ export class BucketService {
           status: 404,
           message: `Arquivo ${filePath} não encontrado`,
           service: typeService,
-          fileName: fileId,
+          fileName: filePath.split('/').pop(), // Pega apenas o nome do arquivo do caminho completo
         });
         continue;
       }
@@ -1945,7 +1945,7 @@ export class BucketService {
           path: servicesFile.base64Data,
           url: url,
           service: typeService,
-          fileName: fileId,
+          fileName: filePath.split('/').pop(), // Pega apenas o nome do arquivo do caminho completo
         });
       } else {
         // Processa Imagem
@@ -1954,7 +1954,7 @@ export class BucketService {
           type: 'picture',
           path: servicesFile.base64Data,
           service: typeService,
-          fileName: fileId,
+          fileName: filePath.split('/').pop(), // Pega apenas o nome do arquivo do caminho completo
         });
       }
     }

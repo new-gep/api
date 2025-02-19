@@ -75,6 +75,7 @@ export class JobService {
   }
 
   async UploadJobFileAbsence(uploadAbsenceDto: UploadAbsenceDto, file: Express.Multer.File) {
+    
     const createAbsenceDto: CreateAbsenceDto = {
       id_work: Number(uploadAbsenceDto.id_work),
       name: uploadAbsenceDto.name,
@@ -311,7 +312,8 @@ export class JobService {
   }
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
-    return await this.bucketService.findServices(id, typeService, year, month)
+    const response = await this.bucketService.findServices(id, typeService, year, month)
+    console.log(response)
   }
 
   async findAll() {

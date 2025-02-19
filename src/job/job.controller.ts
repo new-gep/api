@@ -32,7 +32,7 @@ export class JobController {
       type: string,
       name: string,
       CPF_collaborator: string
-    }
+    } 
   ) {
     return this.jobService.UploadJobFileAbsence({
       year: body.year,
@@ -112,7 +112,7 @@ export class JobController {
    @Param('typeService') typeService: any,
     @Param('year') year: any,
      @Param('month') month: any) {
-    
+    console.log(id, typeService, year, month);
     return this.jobService.jobServices(id, typeService, year, month);
   };
 

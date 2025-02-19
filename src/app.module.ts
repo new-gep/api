@@ -11,8 +11,9 @@ import { PictureModule } from './picture/picture.module';
 import { JobModule } from './job/job.module';
 import { CardCompanyModule } from './card_company/card_company.module';
 import { AbsenceModule } from './absence/absence.module';
+import { ServiceModule } from './service/service.module';
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })
