@@ -88,9 +88,7 @@ export class CompanyService {
   };
 
   async uploadFileService(UploadServiceDto: UploadServiceDto, file: Express.Multer.File){
-    console.log(UploadServiceDto);
-    console.log('Chegou aqui');
-    
+
     switch(UploadServiceDto.type){
       case 'paystub':
         break;
@@ -281,8 +279,8 @@ export class CompanyService {
         const options = {
           lastPageToConvert: pages.length,
           pngFile: true,
-          resolutionXAxis: 500,
-          resolutionYAxis: 500,
+          resolutionXAxis: 300,
+          resolutionYAxis: 300,
         };
         const imagePaths: string[] = [];
   
