@@ -8,7 +8,6 @@ import { Service } from './entities/service.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 
-
 @Injectable()
 export class ServiceService {
   constructor(
@@ -16,7 +15,7 @@ export class ServiceService {
     private serviceRepository: Repository<Service>,
     private bucketService: BucketService,
   ) {}
-  
+
   async create(createServiceDto: CreateServiceDto) {
     try {
       const time = findTimeSP();
@@ -27,13 +26,13 @@ export class ServiceService {
       createServiceDto.status = 'Pending';
       createServiceDto.create_at = time;
 
-      console.log("createServiceDto após modificações:", createServiceDto);
+      console.log('createServiceDto após modificações:', createServiceDto);
 
       const newService = await this.serviceRepository.save(createServiceDto);
-      console.log("newService após save:", newService);
+      console.log('newService após save:', newService);
 
       if (newService) {
-        console.log("Retornando sucesso com:", {
+        console.log('Retornando sucesso com:', {
           status: 201,
           message: 'Justificativa criada.',
           service: newService,
@@ -44,14 +43,14 @@ export class ServiceService {
           service: newService,
         };
       } else {
-        console.log("newService é null/undefined");
+        console.log('newService é null/undefined');
         return {
           status: 500,
           message: 'Algo deu errado, tente mais tarde.',
         };
       }
     } catch (e) {
-      console.log("Erro capturado:", e);
+      console.log('Erro capturado:', e);
       return {
         status: 500,
         message: 'Erro Interno.',
@@ -76,6 +75,8 @@ export class ServiceService {
         where: { delete_at: IsNull() },
       });
 
+      // console.log(response);
+      // return;
       if (response) {
         return {
           status: 200,
@@ -95,11 +96,20 @@ export class ServiceService {
   }
 
   async findOne(id: number) {
+    // console.log(id);
+    // return;
+    if (id === null || id === undefined) {
+      return {
+        status: 400,
+        message: 'ID inválido',
+      };
+    }
+
     try {
       const response = await this.serviceRepository.findOne({
-        where: { id: id.toString() },
+        where: { id: String(id) }, // Conversão mais segura
       });
-      
+
       if (response) {
         return {
           status: 200,
@@ -119,11 +129,11 @@ export class ServiceService {
       };
     }
   }
-  
+
   async remove(id: number) {
     try {
       const time = findTimeSP();
-      
+
       const propsDelete = {
         delete_at: time,
       };
@@ -151,9 +161,12 @@ export class ServiceService {
   async update(id: number, updateServiceDto: UpdateServiceDto) {
     const time = findTimeSP();
     updateServiceDto.update_at = time;
-    
-    try {   
-      const response = await this.serviceRepository.update(id, updateServiceDto);
+
+    try {
+      const response = await this.serviceRepository.update(
+        id,
+        updateServiceDto,
+      );
       if (response.affected === 1) {
         return {
           status: 200,
@@ -172,8 +185,15 @@ export class ServiceService {
       };
     }
   }
-  
-  async UploadJobFileAbsence(file: Express.Multer.File, name: string, year: string, month: string, id_work: string, type: string) {
+
+  async UploadJobFileAbsence(
+    file: Express.Multer.File,
+    name: string,
+    year: string,
+    month: string,
+    id_work: string,
+    type: string,
+  ) {
     return await this.bucketService.uploadService(
       file,
       id_work,

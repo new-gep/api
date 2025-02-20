@@ -1233,7 +1233,7 @@ export class BucketService {
           const experienceSignatureFile = await this.getFileFromBucket( experienceSignatureKey );
           const experienceSignatureCompletKey = `job/${id}/Admission/Complet/Experience_Contract`;
           const experienceSignatureCompletFile = await this.getFileFromBucket( experienceSignatureCompletKey );
-          console.log(experienceSignatureCompletFile);
+          // console.log(experienceSignatureCompletFile);
           if (!experienceSignatureFile) {
             return {
               status: 404,
@@ -1945,7 +1945,8 @@ export class BucketService {
           path: servicesFile.base64Data,
           url: url,
           service: typeService,
-          fileName: filePath.split('/').pop(), // Pega apenas o nome do arquivo do caminho completo
+          id: filePath.split('/').pop().split('_').pop(),  // Pega o ID do arquivo que está após o último underscore
+          fileName: filePath.split('/').pop()
         });
       } else {
         // Processa Imagem

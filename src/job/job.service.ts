@@ -12,6 +12,7 @@ import { CompanyService } from 'src/company/company.service';
 import { AbsenceService } from 'src/absence/absence.service';
 import { UploadAbsenceDto } from './dto/upload-absence.dto';
 import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
+import { ServiceService } from 'src/service/service.service';
 
 @Injectable()
 export class JobService {
@@ -23,6 +24,7 @@ export class JobService {
     readonly bucketService: BucketService,
     readonly companyService: CompanyService,
     readonly absenceService: AbsenceService,
+    readonly serviceService: ServiceService,
   ) {}
 
   async create(createJobDto: CreateJobDto) {
@@ -86,7 +88,7 @@ export class JobService {
     };
 
     const response = await this.absenceService.create(createAbsenceDto);
-    console.log(response)
+    // console.log(response)
     if (response.status === 201) {
       uploadAbsenceDto.name = `${uploadAbsenceDto.name}_${response.absence.id}`;
       const uploadResponse = await this.absenceService.UploadJobFileAbsence(
@@ -100,7 +102,6 @@ export class JobService {
       return uploadResponse;
     }
   }
-
 
   async checkDocumentAdmissional(id: number) {
     return this.bucketService.checkJobAdmissionBucketDocumentsObligation(id);
@@ -312,8 +313,31 @@ export class JobService {
   }
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
-    const response = await this.bucketService.findServices(id, typeService, year, month)
-    console.log(response)
+    const response = await this.bucketService.findServices(id, typeService, year, month);
+    
+    if (response && Array.isArray(response)) {
+      const enrichedResponse = await Promise.all(
+        response.map(async (item) => {
+          try {
+            const service = await this.serviceService.findOne(item.id);
+            // Verifica se service existe e se o status é 200 (ajuste conforme sua API)
+            if (service?.status === 200) {
+              return {
+                ...item,
+                details: service.service // Ajuste conforme a estrutura real
+              };
+            }
+            return item;
+          } catch (error) {
+            console.error("Error fetching service details for item", item.id, error);
+            return item;
+          }
+        })
+      );
+      
+      // console.log("response", enrichedResponse);
+      return enrichedResponse;
+    }
   }
 
   async findAll() {

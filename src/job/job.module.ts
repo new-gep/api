@@ -8,8 +8,9 @@ import { CollaboratorModule } from 'src/collaborator/collaborator.module';
 import { BucketModule } from 'src/bucket/bucket.module';
 import { CompanyModule } from 'src/company/company.module';
 import { AbsenceModule } from 'src/absence/absence.module';
+import { ServiceModule } from 'src/service/service.module';
 @Module({
-  imports:[DatabaseModule, UserModule, CollaboratorModule, BucketModule, CompanyModule, AbsenceModule],
+  imports:[DatabaseModule, UserModule, CollaboratorModule, BucketModule, CompanyModule, AbsenceModule, ServiceModule],
   controllers: [JobController],
   providers: [JobService, ...jobProviders],
 })
