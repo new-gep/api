@@ -219,40 +219,6 @@ export class CompanyService {
     return `This action removes a #${id} company`;
   };
 
-  private async splitPdf(fileBuffer: Buffer): Promise<string[]> {
-    // Carrega o PDF
-    const pdfDoc = await PDFDocument.load(fileBuffer);
-    const totalPages = pdfDoc.getPageCount();
-    const outputPaths: string[] = [];
-    
-    // Define um diretório temporário fixo (por exemplo, na raiz do projeto)
-    const tempDir = path.join(process.cwd(), 'temp_pdf');
-    
-    // Cria o diretório se ele não existir
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }else {
-      // Limpa o diretório: apaga todos os arquivos existentes
-      const files = fs.readdirSync(tempDir);
-      for (const file of files) {
-        fs.unlinkSync(path.join(tempDir, file));
-      }
-    }
-    
-    // Itera em cada página
-    for (let i = 0; i < totalPages; i++) {
-      const newPdf = await PDFDocument.create();
-      const [copiedPage] = await newPdf.copyPages(pdfDoc, [i]);
-      newPdf.addPage(copiedPage);
-      const pdfBytes = await newPdf.save();
-      const outputPath = path.join(tempDir, `page_${i + 1}.pdf`);
-      fs.writeFileSync(outputPath, pdfBytes);
-      outputPaths.push(outputPath);
-    }
-    return outputPaths;
-  };
-
-
   private async convertPDFinImage(base64: string): Promise<string[]> {
     return new Promise(async (resolve, reject) => {
       try {

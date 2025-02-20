@@ -16,7 +16,7 @@ export class LeadService {
     try{
       const time = FindTimeSP();
       createLeadDto.create_at = time;
-      console.log(createLeadDto);
+        
       const lead = await this.leadRepository.save(createLeadDto);
 
       if(lead){
