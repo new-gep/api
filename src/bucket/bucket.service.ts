@@ -961,14 +961,21 @@ export class BucketService {
       case 'dismissal_medical_examination':
         path = `job/${id}/Dismissal/Medical_Examination`;
         break;
-      
+      case 'paystub_signature':
+        console.log("dynamic", dynamic);
+        const parts = dynamic.split('_');
+        const year = parts[2];
+        const month = parts[3];
+        path = `job/${id}/PayStub/${year}/${month}/${dynamic}`;
+        break;
       default:
         return {
           status: 400,
           message: `Tipo de documento não suportado: ${name}`,
         };
+        
     }
-
+ 
     const mimeType =
       file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
     const jobFile = {
