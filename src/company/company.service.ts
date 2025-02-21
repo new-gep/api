@@ -7,14 +7,12 @@ import { UserService } from 'src/user/user.service';
 import FindTimeSP from 'hooks/time';
 import { BucketService } from 'src/bucket/bucket.service';
 import { UploadServiceDto } from './dto/upload-service.dto';
-
 import { PDFDocument } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
-import { fromPath } from 'pdf2pic';
 import { createWorker, Worker } from 'tesseract.js';
 import Poppler from 'node-poppler';
-import ConvertImageToBase64 from 'hooks/covertImageToBase64';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class CompanyService {
@@ -23,6 +21,7 @@ export class CompanyService {
     private companyRepository: Repository<Company>,
     readonly userService: UserService,
     readonly bucketService: BucketService,
+    readonly redisService: RedisService,
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto) {
@@ -74,6 +73,17 @@ export class CompanyService {
     }
     // this.userService.create()
   };
+
+  async redisCache(action: string, key: string, value: any, ttl?: number){
+    switch(action){
+      case 'set':
+        return await this.redisService.set(key, value, ttl);
+      case 'get':
+        return await this.redisService.get(key);
+      default:
+        return 'Action not found';
+    }
+  }
 
   findAll() {
     return `This action returns all company`;

@@ -6,12 +6,15 @@ import { createClient, RedisClientType } from 'redis';
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private client: RedisClientType;
+
   constructor() {
     this.client = createClient({
       url: 'redis://localhost:6379', // ajuste a URL e a porta conforme sua configuração
     });
-    
-    this.client.connect().catch(console.error);
+
+    this.client.connect()
+      .then(() => console.log('✅ Conectado ao Redis!'))
+      .catch(console.error);
   }
 
   create(createRediDto: CreateRediDto) {
@@ -34,8 +37,27 @@ export class RedisService implements OnModuleDestroy {
     return `This action removes a #${id} redi`;
   }
 
+  async set(key: string, value: any, ttl?: number): Promise<string> {
+    const data = JSON.stringify(value);
+    if (ttl) {
+      await this.client.setEx(key, ttl, data);
+    } else {
+      await this.client.set(key, data);
+    }
+    return '✅ Valor salvo no Redis';
+  }
+
+  async get(key: string): Promise<any> {
+    const data = await this.client.get(key);
+    return JSON.parse(data);
+  }
+
   onModuleDestroy() {
     // Adicione aqui a lógica que você deseja executar quando o módulo for destruído
-    console.log('Redis service is being destroyed');
+    if (this.client) {
+      this.client.quit()
+        .then(() => console.log('Redis client disconnected'))
+        .catch(console.error);
+    }
   }
 }
