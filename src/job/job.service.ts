@@ -88,7 +88,7 @@ export class JobService {
     };
 
     const response = await this.absenceService.create(createAbsenceDto);
-    // console.log(response)
+    
     if (response.status === 201) {
       uploadAbsenceDto.name = `${uploadAbsenceDto.name}_${response.absence.id}`;
       const uploadResponse = await this.absenceService.UploadJobFileAbsence(

@@ -7,15 +7,15 @@ import { createClient, RedisClientType } from 'redis';
 export class RedisService implements OnModuleDestroy {
   private client: RedisClientType;
 
-  constructor() {
-    this.client = createClient({
-      url: 'redis://localhost:6379', // ajuste a URL e a porta conforme sua configuração
-    });
+  // constructor() {
+  //   this.client = createClient({
+  //     url: 'redis://localhost:6379', // ajuste a URL e a porta conforme sua configuração
+  //   });
 
-    this.client.connect()
-      .then(() => console.log('✅ Conectado ao Redis!'))
-      .catch(console.error);
-  }
+  //   this.client.connect()
+  //     .then(() => console.log('✅ Conectado ao Redis!'))
+  //     .catch(console.error);
+  // }
 
   create(createRediDto: CreateRediDto) {
     return 'This action adds a new redi';

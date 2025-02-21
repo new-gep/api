@@ -18,56 +18,51 @@ export class ServiceService {
 
   async create(createServiceDto: CreateServiceDto) {
     try {
+      // console.log("createServiceDto", createServiceDto);
       const time = findTimeSP();
 
-      createServiceDto.id_work = createServiceDto.id_work;
       createServiceDto.name = `${createServiceDto.name}`;
-      createServiceDto.type = null;
+      createServiceDto.type = 'Service';
       createServiceDto.status = 'Pending';
       createServiceDto.create_at = time;
 
-      console.log('createServiceDto após modificações:', createServiceDto);
 
+      // console.log('createServiceDto após modificações:', createServiceDto);
+      // return;
       const newService = await this.serviceRepository.save(createServiceDto);
       console.log('newService após save:', newService);
 
       if (newService) {
-        console.log('Retornando sucesso com:', {
-          status: 201,
-          message: 'Justificativa criada.',
-          service: newService,
-        });
         return {
           status: 201,
-          message: 'Justificativa criada.',
+          message: 'successfully created service',
           service: newService,
         };
       } else {
-        console.log('newService é null/undefined');
         return {
           status: 500,
-          message: 'Algo deu errado, tente mais tarde.',
+          message: 'something went wrong, please try again later.',
         };
       }
     } catch (e) {
       console.log('Erro capturado:', e);
       return {
         status: 500,
-        message: 'Erro Interno.',
+        message: 'internal error, please try again later.',
       };
     }
   }
 
-  // async uploadFile(upadteAbsenceDto: UploadAbsenceDto, file: Express.Multer.File) {
-  //   return await this.bucketService.uploadService(
-  //     file,
-  //     upadteAbsenceDto.id_work,
-  //     'Absence',
-  //     upadteAbsenceDto.year,
-  //     upadteAbsenceDto.month,
-  //     upadteAbsenceDto.name,
-  //   );
-  // }
+  async uploadFile(updateServiceDto: UpdateServiceDto, file: Express.Multer.File) {
+    return await this.bucketService.uploadService(
+      file,
+      updateServiceDto.name,
+      updateServiceDto.type,
+      updateServiceDto.status,
+      updateServiceDto.id_work,
+      updateServiceDto?.dynamic,
+    );
+  }
 
   async findAll() {
     try {
@@ -159,6 +154,7 @@ export class ServiceService {
   }
 
   async update(id: number, updateServiceDto: UpdateServiceDto) {
+    console.log("updateServiceDto", updateServiceDto);
     const time = findTimeSP();
     updateServiceDto.update_at = time;
 
