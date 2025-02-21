@@ -1,5 +1,5 @@
 export class UploadServiceDto {
     user: string;
-    id_work: string;
+    cnpj: string;
     type: string;
 }

@@ -52,6 +52,11 @@ export class RedisService implements OnModuleDestroy {
     return JSON.parse(data);
   }
 
+  async delete(key: string): Promise<string> {
+    await this.client.del(key);
+    return '✅ Valor deletado no Redis';
+  }
+
   onModuleDestroy() {
     // Adicione aqui a lógica que você deseja executar quando o módulo for destruído
     if (this.client) {

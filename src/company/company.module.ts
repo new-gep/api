@@ -6,8 +6,9 @@ import { companyProviders } from './company.provider';
 import { UserModule } from 'src/user/user.module';
 import { BucketModule } from 'src/bucket/bucket.module';
 import { RedisModule } from 'src/redis/redis.module';
+import { CollaboratorModule } from 'src/collaborator/collaborator.module';
 @Module({
-  imports:[DatabaseModule, UserModule, BucketModule, RedisModule],
+  imports:[DatabaseModule, UserModule, BucketModule, RedisModule, CollaboratorModule],
   controllers: [CompanyController],
   providers: [CompanyService, ...companyProviders],
   exports: [CompanyService]
