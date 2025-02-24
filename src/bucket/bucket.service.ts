@@ -1482,7 +1482,7 @@ export class BucketService {
         if (signature == '1') {
           const voucherSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const voucherSignatureFile =
-            await this.getFileFromBucket(voucherSignatureKey);
+          await this.getFileFromBucket(voucherSignatureKey);
           const voucherSignatureCompletKey = `job/${id}/Admission/Complet/Transport_Voucher`;
           const voucherSignatureCompletFile = await this.getFileFromBucket(
             voucherSignatureCompletKey,
@@ -2023,14 +2023,7 @@ export class BucketService {
     return folderServiceTreated;
   }
 
-  async uploadService(
-    file: Express.Multer.File,
-    id_work: any,
-    typeService: any,
-    year: any,
-    month: any,
-    name: string,
-  ) {
+  async uploadService(file: Express.Multer.File, id_work: any, typeService: any, year: any, month: any, name: string, buffer?: any) {
     const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
 
     const mimeType =
@@ -2039,8 +2032,8 @@ export class BucketService {
     const jobFile = {
       Bucket: this.bucketName,
       Key: path,
-      Body: file.buffer,
-      ContentType: mimeType,
+      Body: buffer ? buffer : file.buffer,
+      ContentType: mimeType || 'application/pdf',
     };
 
     try {

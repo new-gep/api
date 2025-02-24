@@ -20,9 +20,7 @@ export class ServiceService {
     try {
       // console.log("createServiceDto", createServiceDto);
       const time = findTimeSP();
-
       createServiceDto.name = `${createServiceDto.name}`;
-      createServiceDto.type = 'Service';
       createServiceDto.status = 'Pending';
       createServiceDto.create_at = time;
 
@@ -30,7 +28,6 @@ export class ServiceService {
       // console.log('createServiceDto após modificações:', createServiceDto);
       // return;
       const newService = await this.serviceRepository.save(createServiceDto);
-      console.log('newService após save:', newService);
 
       if (newService) {
         return {

@@ -7,15 +7,15 @@ import { createClient, RedisClientType } from 'redis';
 export class RedisService implements OnModuleDestroy {
   private client: RedisClientType;
 
-  // constructor() {
-  //   this.client = createClient({
-  //     url: 'redis://localhost:6379', // ajuste a URL e a porta conforme sua configuração
-  //   });
+  constructor() {
+    this.client = createClient({
+      url: 'redis://localhost:6379', // ajuste a URL e a porta conforme sua configuração
+    });
 
-  //   this.client.connect()
-  //     .then(() => console.log('✅ Conectado ao Redis!'))
-  //     .catch(console.error);
-  // }
+    this.client.connect()
+      .then(() => console.log('✅ Conectado ao Redis!'))
+      .catch(console.error);
+  }
 
   create(createRediDto: CreateRediDto) {
     return 'This action adds a new redi';
@@ -37,24 +37,56 @@ export class RedisService implements OnModuleDestroy {
     return `This action removes a #${id} redi`;
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<string> {
+  async set(key: string, value: any, ttl?: number):  Promise<{ status: number; message: string }> {
+    let response;
     const data = JSON.stringify(value);
     if (ttl) {
-      await this.client.setEx(key, ttl, data);
+      response = await this.client.setEx(key, ttl, data);
     } else {
-      await this.client.set(key, data);
+      response = await this.client.set(key, data);
     }
-    return '✅ Valor salvo no Redis';
+    if (response) {
+      return {
+        status: 200,
+        message: 'successfully',
+      };
+    } else {
+      return {
+        status: 404,
+        message: 'not found',
+      };
+    }
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<{ status: number; message: string; data?: any }> {
     const data = await this.client.get(key);
-    return JSON.parse(data);
+    if (data) {
+      return {
+        status: 200,
+        message: 'successfully',
+        data: JSON.parse(data),
+      };
+    } else {
+      return {
+        status: 404,
+        message: 'not found',
+      };
+    }
   }
 
-  async delete(key: string): Promise<string> {
-    await this.client.del(key);
-    return '✅ Valor deletado no Redis';
+  async delete(key: string): Promise<{ status: number; message: string }> {
+    const response = await this.client.del(key);
+    if (response) {
+      return {
+        status: 200,
+        message: 'successfully deleted',
+      };
+    } else {
+      return {
+        status: 404,
+        message: 'not found',
+      };
+    }
   }
 
   onModuleDestroy() {

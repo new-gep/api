@@ -37,6 +37,7 @@ export class CompanyController {
   @Post('service/upload')
   @UseInterceptors(FileInterceptor('file'))
   async departmentUpload(@UploadedFile() file: Express.Multer.File, @Body() upLoadServiceDto:UploadServiceDto) {
+    console.log('upLoadServiceDto',upLoadServiceDto);
     return this.companyService.uploadFileService(upLoadServiceDto,file)
   };
 

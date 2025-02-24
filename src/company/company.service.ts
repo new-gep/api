@@ -10,10 +10,16 @@ import { UploadServiceDto } from './dto/upload-service.dto';
 import { PDFDocument } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as ExcelJS from 'exceljs';
 import { createWorker, Worker } from 'tesseract.js';
 import Poppler from 'node-poppler';
 import { RedisService } from 'src/redis/redis.service';
 import { CollaboratorService } from 'src/collaborator/collaborator.service';
+import ConvertImageToBase64 from 'hooks/covertImageToBase64';
+import ConvertBase64ToPDF from 'hooks/convertBase64ToPDF';
+import { ServiceService } from 'src/service/service.service';
+import { EmailService } from 'src/email/email.service';
+import { Buffer as NodeBuffer } from 'buffer';
 @Injectable()
 export class CompanyService {
   constructor(
@@ -23,6 +29,8 @@ export class CompanyService {
     readonly bucketService: BucketService,
     readonly redisService: RedisService,
     readonly collaboratorService: CollaboratorService,
+    readonly serviceService: ServiceService,
+    readonly emailService: EmailService,
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto) {
@@ -76,15 +84,28 @@ export class CompanyService {
   }
 
   async redisCache(action: string, key: string, value?: any, ttl?: number) {
-    switch (action) {
-      case 'set':
-        return await this.redisService.set(key, value, ttl);
-      case 'get':
-        return await this.redisService.get(key);
-      case 'delete':
-        return await this.redisService.delete(key);
-      default:
-        return 'Ação não encontrada';
+    let response;
+    try {
+      switch (action) {
+        case 'set':
+          response = await this.redisService.set(key, value, ttl);
+          break;
+        case 'get':
+          response = await this.redisService.get(key);
+          break;
+        case 'delete':
+          response = await this.redisService.delete(key);
+          break;
+        default:
+          return 'action not found';
+      }
+      return response;
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'Error in redis cache',
+      };
     }
   }
 
@@ -111,6 +132,7 @@ export class CompanyService {
         UploadServiceDto,
         5000,
       );
+
       switch (UploadServiceDto.type) {
         case 'paystub':
           break;
@@ -154,13 +176,30 @@ export class CompanyService {
         }
       }
       await worker.terminate();
-      const report = await this.createReportService(allCpfs);
-      console.log(allCpfs);
+      
+      const report = await this.createReportService(
+        allCpfs,
+        UploadServiceDto.month,
+        UploadServiceDto.year,
+        UploadServiceDto.type,
+      );
+
+      console.log(report)
+
+      if(report.status === 200){
+        const user = await this.userService.findOne(UploadServiceDto.user);
+        console.log(user)
+        if(user.status === 200){
+          await this.emailService.sendReportEmail(user.user.email, report.buffer);
+        }
+      }
+
+      // console.log(allCpfs)
+      
       await this.redisCache(
         'delete',
         `Company_${UploadServiceDto.cnpj}_Import_Service`,
       );
-      return allCpfs;
     } catch (e) {
       console.log(e);
       return {
@@ -307,17 +346,132 @@ export class CompanyService {
     });
   }
 
-  private async createReportService(allCpfs: { cpf: string; image: string }[]) {
-    console.log(allCpfs);
-    const report = allCpfs.map(async ({ cpf, image }) => {
-      const cpfWithoutMask = cpf.replace(/\./g, '').replace(/-/g, '');
-      const response = await this.collaboratorService.findOne(cpfWithoutMask);
-      if (response && response.status == 200) {
-        console.log('Colaborador encontrado:', response.collaborator.name);
-      } else {
-        console.log('Colaborador não encontrado:', cpf);
+  private async createReportService(
+    allCpfs: { cpf: string; image: string }[],
+    month: string,
+    year: string,
+    type: string,
+  ) {
+    const uniqueCpfsByImage = new Map();
+   
+    // Remove os CPFs duplicados baseado na imagem
+    allCpfs.forEach(({ cpf, image }) => {
+      const key = `${cpf}-${image}`;
+      if (!uniqueCpfsByImage.has(key)) {
+        uniqueCpfsByImage.set(key, { cpf, image });
       }
     });
-    return report;
+
+    // Adiciona os CPFs únicos a um array
+    const uniqueCpfs = Array.from(uniqueCpfsByImage.values());
+
+    const report = await Promise.all(
+      // Para cada CPF, cria um novo serviço, faz o upload do arquivo para o bucket e atualiza o nome do serviço
+      uniqueCpfs.map(async ({ cpf, image }) => {
+        // Remove as máscaras do CPF
+        const cpfWithoutMask = cpf.replace(/\./g, '').replace(/-/g, '');
+        
+        // Busca o colaborador
+        const response = await this.collaboratorService.findOne(cpfWithoutMask);
+
+        // Verifica se o colaborador foi encontrado
+        if (response && response.status === 200 ) {
+
+          // Verifica se o colaborador possui um trabalho vinculado
+          if(!response.collaborator.id_work){
+            return {
+              cpf: cpfWithoutMask,
+              image,
+              status: 'Atualmente não possui um trabalho vinculo',
+            };
+          }
+
+          // Cria um novo serviço
+          const newService = await this.serviceService.create({
+            name: 'Service',
+            type: type,
+            status: 'Pending',
+            id_work: parseInt(response.collaborator.id_work),
+          });
+
+          // Verifica se o serviço foi criado com sucesso
+          if(newService.status !== 201){
+            return {
+              cpf: cpfWithoutMask,
+              image,
+              status: 'Erro ao criar o serviço, tente novamente mais tarde',
+            };
+          }
+
+          // Atualiza o nome do serviço
+          const fileName = `Service_${type == 'paystub' ? 'PayStub' : 'Point'}_${year}_${month}_${newService.service.id}`;
+          await this.serviceService.update(parseInt(newService.service.id), {
+            name: fileName,
+          });
+
+          // Converte a imagem para base64
+          const base64Image = ConvertImageToBase64(image);
+
+          // Converte a imagem para PDF
+          const pdfBuffer = await ConvertBase64ToPDF(base64Image);
+
+          // Faz o upload do arquivo para o bucket
+          //@ts-ignore
+          await this.bucketService.uploadService(pdfBuffer, response.collaborator.id_work, type == 'paystub' ? 'PayStub' : 'Point', year, month, fileName, pdfBuffer);
+
+          return {
+            cpf: cpfWithoutMask,
+            image,
+            status: 'Sucesso',
+            data: response.collaborator,
+          };
+        } else {
+          // console.log('Colaborador não encontrado:', cpf);
+          return { cpf: cpfWithoutMask, image, status: 'Colaborador não encontrado' };
+        }
+      }),
+    );
+
+    return this.createFileReport(report);
   }
+
+  private async createFileReport(report: any) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Relatório de Serviços');
+
+    // Adiciona cabeçalhos
+    worksheet.columns = [
+      { header: 'CPF', key: 'cpf', width: 20 },
+      { header: 'Status', key: 'status', width: 30 },
+      { header: 'Nome', key: 'nome', width: 30 },
+    ];
+
+    // Adiciona dados ao relatório
+    report.forEach((item: any) => {
+      worksheet.addRow({
+        status: item.status,
+        cpf: item.cpf,
+        nome: item.data ? item.data.name : 'N/A',
+      });
+    });
+
+    // Gera o buffer do arquivo
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+    const nodeBuffer = NodeBuffer.from(excelBuffer);
+
+    return {
+        status: 200,
+        message: 'report created successfully',
+        buffer: nodeBuffer,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'report error',
+      };
+    }
+  }
+
 }
