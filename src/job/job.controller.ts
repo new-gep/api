@@ -112,11 +112,11 @@ export class JobController {
    @Param('typeService') typeService: any,
     @Param('year') year: any,
      @Param('month') month: any) {
-    console.log(id, typeService, year, month);
+      // console.log("testando jobServices", id, typeService, year, month);
     return this.jobService.jobServices(id, typeService, year, month);
   };
 
-
+  
 
   @Get('process/demissional/:cnpj')
   jobProcessDemissional(@Param('cnpj') cnpj: string) {

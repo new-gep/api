@@ -117,6 +117,7 @@ export class BucketService {
         .getObject({ Bucket: this.bucketName, Key: key })
         .promise();
       const base64Data = fileData.Body.toString('base64');
+      // console.log("base64Data", base64Data);
       return {
         ContentType: fileData.ContentType, // Retorna o tipo do arquivo
         base64Data: `data:${fileData.ContentType};base64,${base64Data}`, // Retorna o arquivo em base64
@@ -194,6 +195,9 @@ export class BucketService {
     const result: { [key: number]: string } = {};
 
     try {
+      console.log('Iniciando checkPaste com folderPath:', folderPath);
+      console.log('bucketName:', bucketName);
+
       // Lista os objetos no bucket
       const data = await this.bucket
         .listObjectsV2({
@@ -202,27 +206,38 @@ export class BucketService {
         })
         .promise();
 
+      console.log('Dados retornados do bucket:', data);
+
       // Se os arquivos existirem, processa os nomes
       if (data.Contents) {
+        console.log('Quantidade de arquivos encontrados:', data.Contents.length);
+        
         let index = 0; // Inicializa o índice
         data.Contents.forEach((item) => {
+          console.log('Processando item:', item);
+          
           if (item.Key) {
             // Extrai o nome do arquivo removendo o caminho completo
             const fileName = item.Key.replace(folderPath, '');
+            console.log('Nome do arquivo extraído:', fileName);
+            
             if (fileName) {
               result[index] = fileName;
+              console.log(`Adicionando ao resultado - índice ${index}:`, fileName);
               index++;
             }
           }
         });
       }
 
+      console.log('Resultado final:', result);
       return result;
     } catch (error) {
       console.error(
         'Erro ao verificar os arquivos dinâmicos no bucket:',
         error.message,
       );
+      console.error('Stack trace completo:', error);
       throw new Error(
         'Não foi possível verificar os arquivos dinâmicos no bucket.',
       );
@@ -621,6 +636,7 @@ export class BucketService {
     if (rgDocumentMissing) {
       missingDocuments.push('RG');
     }
+    
     // Verifica a presença do documento de Work Card (se o PDF estiver presente, dispensa as imagens)
     const workCardPdfExists = await this.isDocumentPresent(
       `collaborator/${collaborator.CPF}/Work_Card/complet`,
@@ -889,6 +905,9 @@ export class BucketService {
   ) {
     // console.log(name);
     let path: string;
+    let parts: string[] = [];
+    let year: string;
+    let month: string;
     switch (name.toLowerCase()) {
       case 'registration':
         if (signature == '1') {
@@ -962,20 +981,27 @@ export class BucketService {
         path = `job/${id}/Dismissal/Medical_Examination`;
         break;
       case 'paystub_signature':
-        console.log("dynamic", dynamic);
-        const parts = dynamic.split('_');
-        const year = parts[2];
-        const month = parts[3];
+        // console.log('dynamic', dynamic);
+        parts = dynamic.split('_');
+        year = parts[2];
+        month = parts[3];
         path = `job/${id}/PayStub/${year}/${month}/${dynamic}`;
+        break;
+      case 'point_signature':
+        // console.log('dynamic', dynamic);
+        parts = dynamic.split('_');
+        year = parts[2];
+        month = parts[3];
+        path = `job/${id}/Point/${year}/${month}/${dynamic}`;
+        
         break;
       default:
         return {
           status: 400,
           message: `Tipo de documento não suportado: ${name}`,
         };
-        
     }
- 
+
     const mimeType =
       file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
     const jobFile = {
@@ -1237,9 +1263,13 @@ export class BucketService {
       case 'experience':
         if (signature == '1') {
           const experienceSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
-          const experienceSignatureFile = await this.getFileFromBucket( experienceSignatureKey );
+          const experienceSignatureFile = await this.getFileFromBucket(
+            experienceSignatureKey,
+          );
           const experienceSignatureCompletKey = `job/${id}/Admission/Complet/Experience_Contract`;
-          const experienceSignatureCompletFile = await this.getFileFromBucket( experienceSignatureCompletKey );
+          const experienceSignatureCompletFile = await this.getFileFromBucket(
+            experienceSignatureCompletKey,
+          );
           // console.log(experienceSignatureCompletFile);
           if (!experienceSignatureFile) {
             return {
@@ -1920,20 +1950,29 @@ export class BucketService {
     const paste = await this.checkPaste(
       `job/${id}/${typeService}/${year}/${month}`,
     );
-    // console.log("rouli",`job/${id}/${typeService}/${year}/${month}`);
+    console.log("Pasta encontrada:", paste);
+    console.log("Caminho da pasta:", `job/${id}/${typeService}/${year}/${month}`);
+
     // Mantém apenas entradas que são arquivos (valores começam com '/')
     const filterPaste = Object.fromEntries(
       Object.entries(paste).filter(
         ([key, value]) => value.startsWith('/') && key !== '0', // Adicione esta condição
       ),
     );
-    // console.log(filterPaste);
+    console.log("Arquivos filtrados:", filterPaste);
+
     // Itera sobre cada arquivo usando CHAVE + VALOR
     for (const [fileId, filePath] of Object.entries(filterPaste)) {
+      console.log("Processando arquivo:", {fileId, filePath});
+      
       const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
+      console.log("Chave do serviço:", servicesKey);
+      
       const servicesFile = await this.getFileFromBucket(servicesKey);
+      console.log("Arquivo encontrado:", servicesFile);
 
       if (!servicesFile) {
+        console.log("Arquivo não encontrado:", filePath);
         folderServiceTreated.push({
           status: 404,
           message: `Arquivo ${filePath} não encontrado`,
@@ -1945,17 +1984,21 @@ export class BucketService {
 
       // Processa PDF
       if (servicesFile.ContentType === 'application/pdf') {
+        console.log("Processando PDF:", filePath);
         const url = await this.GenerateAccess(servicesKey);
+        console.log("URL gerada:", url);
+        
         folderServiceTreated.push({
           status: 200,
           type: 'pdf',
           path: servicesFile.base64Data,
           url: url,
           service: typeService,
-          id: filePath.split('/').pop().split('_').pop(),  // Pega o ID do arquivo que está após o último underscore
-          fileName: filePath.split('/').pop()
+          id: filePath.split('/').pop().split('_').pop(), // Pega o ID do arquivo que está após o último underscore
+          fileName: filePath.split('/').pop(),
         });
       } else {
+        console.log("Processando imagem:", filePath);
         // Processa Imagem
         folderServiceTreated.push({
           status: 200,
@@ -1967,7 +2010,10 @@ export class BucketService {
       }
     }
 
+    console.log("Resultado final:", folderServiceTreated);
+
     if (folderServiceTreated.length === 0) {
+      console.log("Nenhum arquivo encontrado");
       return {
         status: 404,
         message: 'Nenhum arquivo encontrado',
@@ -1977,10 +2023,18 @@ export class BucketService {
     return folderServiceTreated;
   }
 
-  async uploadService(file: Express.Multer.File,id_work: any, typeService: any, year: any, month: any, name: string) {
+  async uploadService(
+    file: Express.Multer.File,
+    id_work: any,
+    typeService: any,
+    year: any,
+    month: any,
+    name: string,
+  ) {
     const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
-   
-    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
+
+    const mimeType =
+      file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
 
     const jobFile = {
       Bucket: this.bucketName,

@@ -31,6 +31,7 @@ export class Collaborator {
     @Column()
     birth: Date;
 
+
     @Column({length: 1   })
     terms: string;
 
@@ -44,6 +45,7 @@ export class Collaborator {
             birth: string;
         };
     } | 0;
+
 
     @Column({length: 8, default:null})
     zip_code: string;
