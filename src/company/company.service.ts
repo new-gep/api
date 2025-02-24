@@ -10,6 +10,7 @@ import { UploadServiceDto } from './dto/upload-service.dto';
 import { PDFDocument } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as ExcelJS from 'exceljs';
 import { createWorker, Worker } from 'tesseract.js';
 import Poppler from 'node-poppler';
 import { RedisService } from 'src/redis/redis.service';
@@ -17,6 +18,8 @@ import { CollaboratorService } from 'src/collaborator/collaborator.service';
 import ConvertImageToBase64 from 'hooks/covertImageToBase64';
 import ConvertBase64ToPDF from 'hooks/convertBase64ToPDF';
 import { ServiceService } from 'src/service/service.service';
+import { EmailService } from 'src/email/email.service';
+import { Buffer as NodeBuffer } from 'buffer';
 @Injectable()
 export class CompanyService {
   constructor(
@@ -27,6 +30,7 @@ export class CompanyService {
     readonly redisService: RedisService,
     readonly collaboratorService: CollaboratorService,
     readonly serviceService: ServiceService,
+    readonly emailService: EmailService,
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto) {
@@ -172,18 +176,30 @@ export class CompanyService {
         }
       }
       await worker.terminate();
+      
       const report = await this.createReportService(
         allCpfs,
         UploadServiceDto.month,
         UploadServiceDto.year,
         UploadServiceDto.type,
       );
-      // console.log(allCpfs);
+
+      console.log(report)
+
+      if(report.status === 200){
+        const user = await this.userService.findOne(UploadServiceDto.user);
+        console.log(user)
+        if(user.status === 200){
+          await this.emailService.sendReportEmail(user.user.email, report.buffer);
+        }
+      }
+
+      // console.log(allCpfs)
+      
       await this.redisCache(
         'delete',
         `Company_${UploadServiceDto.cnpj}_Import_Service`,
       );
-      return allCpfs;
     } catch (e) {
       console.log(e);
       return {
@@ -416,6 +432,46 @@ export class CompanyService {
       }),
     );
 
-    return report;
+    return this.createFileReport(report);
   }
+
+  private async createFileReport(report: any) {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Relatório de Serviços');
+
+    // Adiciona cabeçalhos
+    worksheet.columns = [
+      { header: 'CPF', key: 'cpf', width: 20 },
+      { header: 'Status', key: 'status', width: 30 },
+      { header: 'Nome', key: 'nome', width: 30 },
+    ];
+
+    // Adiciona dados ao relatório
+    report.forEach((item: any) => {
+      worksheet.addRow({
+        status: item.status,
+        cpf: item.cpf,
+        nome: item.data ? item.data.name : 'N/A',
+      });
+    });
+
+    // Gera o buffer do arquivo
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+    const nodeBuffer = NodeBuffer.from(excelBuffer);
+
+    return {
+        status: 200,
+        message: 'report created successfully',
+        buffer: nodeBuffer,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'report error',
+      };
+    }
+  }
+
 }
