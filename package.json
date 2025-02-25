@@ -31,7 +31,6 @@
     "cache-manager": "^6.4.0",
     "cache-manager-redis-store": "^3.0.1",
     "crypto-js": "^4.2.0",
-    "exceljs": "^4.4.0",
     "fs": "^0.0.1-security",
     "html2canvas": "^1.4.1",
     "jsdom": "^25.0.1",
