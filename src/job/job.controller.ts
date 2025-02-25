@@ -61,6 +61,11 @@ export class JobController {
     return this.jobService.findFile(+id, name, signature, dynamic);
   };
 
+  @Get('service/:type/:cnpj/:month/:year/')
+  findAllServiceByMonthAndYear(@Param('cnpj') cnpj: string, @Param('month') month: string, @Param('year') year: string, @Param('type') type: string) {
+    return this.jobService.FindAllServiceByMonthAndYear(cnpj, month, year, type);
+  };
+
   @Get('admissional/check/:id')
   checkDocumentAdmissional(@Param('id') id: string) {
     return this.jobService.checkDocumentAdmissional(+id);

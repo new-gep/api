@@ -1,9 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import findTimeSP from 'hooks/time';
 import { BucketService } from '../bucket/bucket.service';
 import { IsNull } from 'typeorm';
-import { Express } from 'express';
 import { Service } from './entities/service.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -14,6 +13,7 @@ export class ServiceService {
     @Inject('SERVICE_REPOSITORY')
     private serviceRepository: Repository<Service>,
     private bucketService: BucketService,
+  
   ) {}
 
   async create(createServiceDto: CreateServiceDto) {
@@ -84,6 +84,29 @@ export class ServiceService {
         status: 500,
         message: 'Erro no servidor',
       };
+    }
+  }
+
+  async FindAllByMonthAndYear(cnpj: string, month: string, year: string, type: string) {
+    try {
+      const response = await this.serviceRepository.find({
+        where: {type: type, delete_at: IsNull()},
+      });
+
+      if(response.length > 0){
+        return {
+          status: 200, 
+          services: response
+        };
+      }
+
+      return {
+        status: 404,
+        message: 'Nenhum registro encontrado',
+      };
+    } catch (error) {
+      console.log("error", error);
+      return;
     }
   }
 

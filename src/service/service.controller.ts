@@ -24,6 +24,11 @@ export class ServiceController {
     return this.serviceService.findAll();
   }
 
+  @Get(':type/:cnpj/:month/:year')
+  findAllByCnpjAndMonthAndYear(@Param('type') type: string, @Param('cnpj') cnpj: string, @Param('month') month: string, @Param('year') year: string) {
+    return this.serviceService.FindAllByMonthAndYear(cnpj, month, year, type);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.serviceService.findOne(+id);

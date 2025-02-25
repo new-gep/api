@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JobService } from './job.service';
 import { JobController } from './job.controller';
 import { DatabaseModule } from 'src/database/database.module';
@@ -13,5 +13,6 @@ import { ServiceModule } from 'src/service/service.module';
   imports:[DatabaseModule, UserModule, CollaboratorModule, BucketModule, CompanyModule, AbsenceModule, ServiceModule],
   controllers: [JobController],
   providers: [JobService, ...jobProviders],
+  exports: [JobService],
 })
 export class JobModule {}

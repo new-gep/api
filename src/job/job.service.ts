@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { IsNull, Not, Repository } from 'typeorm';
@@ -24,7 +24,9 @@ export class JobService {
     readonly bucketService: BucketService,
     readonly companyService: CompanyService,
     readonly absenceService: AbsenceService,
-    readonly serviceService: ServiceService,
+    readonly ServiceService: ServiceService,
+    
+    private serviceService: ServiceService,
   ) {}
 
   async create(createJobDto: CreateJobDto) {
@@ -114,6 +116,82 @@ export class JobService {
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
     return this.bucketService.findJob(id, name, signature, dynamic);
   }
+
+  async FindAllServiceByMonthAndYear(cnpj: string, month: string, year: string, type: string) {
+    try {
+      const uniqueJobs = [];
+      const uniqueSignature = [];
+
+      const response = await this.serviceService.FindAllByMonthAndYear(cnpj, month, year, type);
+      
+      if(response.status == 404){
+        return response;
+      }
+
+      for (const item of response.services) {
+        const [action, type, year_file, month_file, id_service] = item.name.split('_');
+
+        if (year === year_file && month === month_file && action.toLowerCase() !== 'signature') {
+
+          const responseJob = await this.findOne(item.id_work.toString());
+          
+          if(responseJob.status === 200){
+            const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator);
+            if(responseJob.job.CNPJ_company !== cnpj){
+              console.log("CNPJ diferente")
+              continue;
+            }
+            const ServiceComplet = { job: responseJob.job, service: item, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
+            uniqueJobs.push(ServiceComplet);
+          }
+        }
+        if(action.toLowerCase() === 'signature' && year === year_file && month === month_file){
+          const responseJob = await this.findOne(item.id_work.toString());
+  
+          if(responseJob.job.CNPJ_company !== cnpj){
+            console.log("CNPJ diferente")
+            continue;
+          }
+          uniqueSignature.push({true_id: id_service, service: item});
+          continue
+        }
+      };
+
+      if(uniqueJobs.length <= 0){
+        return {
+          status: 404,
+          message: 'service not found',
+        };
+      };
+
+      if(uniqueSignature.length > 0){
+        for (const item of uniqueSignature) {
+          for (const unique of uniqueJobs) {
+            if (String(unique.service.id_work) === String(item.service.id_work)) {
+              unique.signature = item;
+            }
+          }
+        }
+      };
+
+      const uniqueJobsArray = uniqueJobs.filter(
+        (job, index, self) =>
+          index === self.findIndex((c) => c.id === job.id)
+      );
+
+      return {
+        status: 200,
+        collaborators: uniqueJobsArray,
+      };
+    } catch (error) {
+      console.log("error", error);
+      return {
+        status: 500,
+        message: 'Error to find service',
+      };
+    }
+  }
+
 
   async findJobOpen(cnpj: string) {
     const response = await this.jobRepository.find({
@@ -223,7 +301,6 @@ export class JobService {
         );
 
   
-  
         return {
           status: 200,
           collaborator: uniqueCollaborators,
@@ -314,7 +391,7 @@ export class JobService {
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
     const response = await this.bucketService.findServices(id, typeService, year, month);
-    console.log("response jobServices", response);
+    
     if (response && Array.isArray(response)) {
       // console.log("Response inicial:", response);
       // return;
