@@ -314,26 +314,37 @@ export class JobService {
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
     const response = await this.bucketService.findServices(id, typeService, year, month);
-    
+    console.log("response jobServices", response);
     if (response && Array.isArray(response)) {
+      // console.log("Response inicial:", response);
+      // return;
       const enrichedResponse = await Promise.all(
         response.map(async (item) => {
           try {
+            // console.log("Item sendo processado:", item);
+            // return;
             const service = await this.serviceService.findOne(item.id);
-            // Verifica se service existe e se o status é 200 (ajuste conforme sua API)
+            console.log("Serviço encontrado:", service);
+            
             if (service?.status === 200) {
-              return {
+              const enrichedItem = {
                 ...item,
-                details: service.service // Ajuste conforme a estrutura real
+                details: service.service
               };
+              console.log("Item enriquecido:", enrichedItem);
+              return enrichedItem;
             }
+            
+            console.log("Item sem enriquecimento:", item);
             return item;
           } catch (error) {
-            console.error("Error fetching service details for item", item.id, error);
+            console.error("Erro ao buscar detalhes do serviço para o item", item.id, error);
             return item;
           }
         })
       );
+      
+      console.log("Response final enriquecido:", enrichedResponse);
       
       // console.log("response", enrichedResponse);
       return enrichedResponse;

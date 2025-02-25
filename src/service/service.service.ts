@@ -67,7 +67,7 @@ export class ServiceService {
         where: { delete_at: IsNull() },
       });
 
-      // console.log(response);
+      console.log("response findAll", response);
       // return;
       if (response) {
         return {
@@ -88,7 +88,7 @@ export class ServiceService {
   }
 
   async findOne(id: number) {
-    // console.log(id);
+    // console.log("id", id);
     // return;
     if (id === null || id === undefined) {
       return {
@@ -101,7 +101,8 @@ export class ServiceService {
       const response = await this.serviceRepository.findOne({
         where: { id: String(id) }, // Conversão mais segura
       });
-
+      console.log("response findOne", response);
+      return;
       if (response) {
         return {
           status: 200,

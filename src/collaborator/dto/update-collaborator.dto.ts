@@ -16,6 +16,7 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
             birth: string;
         };
     } | 0;
+    birth?:string;
     zip_code ?:string;
     street   ?:string;
     district ?:string;
