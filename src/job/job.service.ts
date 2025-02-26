@@ -123,8 +123,8 @@ export class JobService {
       const uniqueSignature = [];
 
       const response = await this.serviceService.FindAllByMonthAndYear(cnpj, month, year, type);
-      
-      if(response.status == 404){
+
+      if(!response || response.status == 404){
         return response;
       }
 
@@ -134,14 +134,23 @@ export class JobService {
         if (year === year_file && month === month_file && action.toLowerCase() !== 'signature') {
 
           const responseJob = await this.findOne(item.id_work.toString());
-          
-          if(responseJob.status === 200){
+          if(responseJob && responseJob.status === 200){
             const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator);
             if(responseJob.job.CNPJ_company !== cnpj){
               console.log("CNPJ diferente")
               continue;
             }
-            const ServiceComplet = { job: responseJob.job, service: item, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
+            
+            const ServiceComplet = { job: responseJob.job, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
+            const pictureService = await this.bucketService.findOneService(item.id_work, item.type, year, month, item.name);
+            if(pictureService.status === 200){
+              //@ts-ignore
+              ServiceComplet.service = [{ [item.name]: { item, pictureService } }];
+            }else{
+              //@ts-ignore
+              ServiceComplet.service = [{ [item.name]: { item } }];
+            }
+
             uniqueJobs.push(ServiceComplet);
           }
         }
@@ -167,22 +176,52 @@ export class JobService {
       if(uniqueSignature.length > 0){
         for (const item of uniqueSignature) {
           for (const unique of uniqueJobs) {
-            if (String(unique.service.id_work) === String(item.service.id_work)) {
+            if (String(unique.job.id) === String(item.service.id_work)) {
               unique.signature = item;
+              const response = await this.bucketService.findOneService(unique.job.id, type, year, month, item.service.name);
+              console.log(response)
+              if(response.status === 200){
+                unique.signature.picture = response;
+              }
             }
           }
         }
       };
 
-      const uniqueJobsArray = uniqueJobs.filter(
-        (job, index, self) =>
-          index === self.findIndex((c) => c.id === job.id)
-      );
+      // const uniqueJobsArray = uniqueJobs.filter((job, index, self) =>
+      //   index === self.findIndex((c) => c.collaborator.cpf === job.collaborator.cpf)
+      // );
 
+      const mergedJobs = uniqueJobs.reduce((acc, job) => {
+        const existing = acc.find((c) => c.collaborator.cpf === job.collaborator.cpf);
+      
+        if (existing) {
+          // Se já existe, adiciona diretamente o conteúdo de job.service
+          const newService = Array.isArray(job.service) ? job.service : [job.service];
+          existing.service.push(...newService);
+      
+          // Atualiza o signature, se existir
+          if (job.signature) {
+            existing.signature = job.signature;
+          }
+        } else {
+          // Se não existe, inicia um novo item com job.service como um array plano
+          acc.push({
+            ...job,
+            service: Array.isArray(job.service) ? job.service : [job.service],
+          });
+        }
+      
+        return acc;
+      }, []);
+      
+      
+    
       return {
         status: 200,
-        collaborators: uniqueJobsArray,
+        collaborators: mergedJobs,
       };
+
     } catch (error) {
       console.log("error", error);
       return {
@@ -191,7 +230,6 @@ export class JobService {
       };
     }
   }
-
 
   async findJobOpen(cnpj: string) {
     const response = await this.jobRepository.find({

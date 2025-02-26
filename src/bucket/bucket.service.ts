@@ -2023,6 +2023,26 @@ export class BucketService {
     return folderServiceTreated;
   }
 
+  async findOneService(id_work: any, typeService: any, year: any, month: any, name: string) {
+    const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
+    console.log(path);
+    const serviceFile = await this.getFileFromBucket(path);
+    
+    
+    if (!serviceFile) {
+      return {
+        status: 404,
+        message: 'File not found',
+      };
+    }
+
+    return {
+      status: 200,
+      type: serviceFile.ContentType === 'application/pdf' ? 'pdf' : 'picture',
+      path: serviceFile.base64Data,
+    };
+  }
+
   async uploadService(file: Express.Multer.File, id_work: any, typeService: any, year: any, month: any, name: string, buffer?: any) {
     const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
 
