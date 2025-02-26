@@ -366,7 +366,7 @@ export class JobService {
         candidates: Not(IsNull()),
         delete_at: IsNull(),
         CPF_collaborator: IsNull(),
-      },
+      }, 
     });
   
     // Filtra todas as vagas onde o candidato está aplicado (independente do step)
