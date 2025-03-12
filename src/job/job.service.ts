@@ -123,7 +123,6 @@ export class JobService {
       const uniqueSignature = [];
 
       const response = await this.serviceService.FindAllByMonthAndYear(cnpj, month, year, type);
-
       if(!response || response.status == 404){
         return response;
       }
@@ -132,18 +131,26 @@ export class JobService {
         const [action, type, year_file, month_file, id_service] = item.name.split('_');
 
         if (year === year_file && month === month_file && action.toLowerCase() !== 'signature') {
-
+          
           const responseJob = await this.findOne(item.id_work.toString());
           if(responseJob && responseJob.status === 200){
             const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator);
             if(responseJob.job.CNPJ_company !== cnpj){
-              console.log("CNPJ diferente")
               continue;
             }
             
             const ServiceComplet = { job: responseJob.job, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
             const pictureService = await this.bucketService.findOneService(item.id_work, item.type, year, month, item.name);
-            if(pictureService.status === 200){
+            const newName = item.name.replace(/^[^_]+/, 'Full');
+            const pictureFull = await this.bucketService.findOneService(item.id_work, type, year, month, newName);
+
+            console.log('New', newName)
+            console.log('Status', pictureFull.status)
+
+            if(pictureService.status === 200 && pictureFull.status === 200){
+              //@ts-ignore
+              ServiceComplet.service = [{ [item.name]: { item, pictureService, pictureFull } }];
+            }else if(pictureService.status === 200 && pictureFull.status !== 200){
               //@ts-ignore
               ServiceComplet.service = [{ [item.name]: { item, pictureService } }];
             }else{
@@ -151,20 +158,24 @@ export class JobService {
               ServiceComplet.service = [{ [item.name]: { item } }];
             }
 
+
             uniqueJobs.push(ServiceComplet);
           }
         }
+
         if(action.toLowerCase() === 'signature' && year === year_file && month === month_file){
           const responseJob = await this.findOne(item.id_work.toString());
   
           if(responseJob.job.CNPJ_company !== cnpj){
-            console.log("CNPJ diferente")
             continue;
           }
+
           uniqueSignature.push({true_id: id_service, service: item});
           continue
         }
+
       };
+      
 
       if(uniqueJobs.length <= 0){
         return {
@@ -179,10 +190,11 @@ export class JobService {
             if (String(unique.job.id) === String(item.service.id_work)) {
               unique.signature = item;
               const response = await this.bucketService.findOneService(unique.job.id, type, year, month, item.service.name);
-              console.log(response)
+              
               if(response.status === 200){
                 unique.signature.picture = response;
               }
+
             }
           }
         }

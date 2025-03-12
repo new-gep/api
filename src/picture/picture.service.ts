@@ -159,7 +159,6 @@ export class PictureService {
   async update(CPF: string, updatePictureDto: UpdatePictureDto) {
     try{
       const { status, id_user, id_work } = updatePictureDto;  // Extrai o campo `status` do DTO
-    
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
         where: { CPF_collaborator: CPF, picture: updatePictureDto.picture, id_work: id_work },
