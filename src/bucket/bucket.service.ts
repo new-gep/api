@@ -2025,7 +2025,6 @@ export class BucketService {
 
   async findOneService(id_work: any, typeService: any, year: any, month: any, name: string) {
     const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
-    console.log(path);
     const serviceFile = await this.getFileFromBucket(path);
     
     
@@ -2035,11 +2034,23 @@ export class BucketService {
         message: 'File not found',
       };
     }
+    if(serviceFile.ContentType === 'application/pdf'){
+      const imageBase64 = await this.convertPDFinImage(
+        serviceFile.base64Data,
+      );
+
+      return {
+        status: 200,
+        type: serviceFile.ContentType === 'application/pdf' ? 'pdf' : 'picture',
+        path: serviceFile.base64Data,
+        picture: imageBase64,
+      };
+    }
 
     return {
       status: 200,
       type: serviceFile.ContentType === 'application/pdf' ? 'pdf' : 'picture',
-      path: serviceFile.base64Data,
+      path: serviceFile.base64Data
     };
   }
 
@@ -2072,6 +2083,54 @@ export class BucketService {
         error: error.message,
       };
     }
+  }
+
+  async uploadJobFileSignature(
+    file: Express.Multer.File,
+    type: string,
+    name: string,
+    id: number
+  ){
+    let pathOrigin: string;
+    let path: string;
+    let response: any;
+    let newPDF: any;
+
+    pathOrigin = `job/${id}/${type}/Transport_Voucher`;
+    path = `job/${id}/${type}/Complet/Transport_Voucher`;
+
+    response = await this.getFileFromBucket(pathOrigin);
+    if (response && response.ContentType.includes('pdf')) {
+      newPDF = await this.replaceLastPage(response.base64Data, file);
+    }
+
+    const mimeType =
+      response && response.ContentType.includes('pdf')
+        ? 'application/pdf'
+        : file.mimetype;
+    const fileSignature = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body:
+        response && response.ContentType.includes('pdf') ? newPDF : file.buffer,
+      ContentType: mimeType,
+    };
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(fileSignature).promise();
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+
   }
 
   // Company

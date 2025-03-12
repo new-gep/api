@@ -144,8 +144,7 @@ export class JobService {
             const newName = item.name.replace(/^[^_]+/, 'Full');
             const pictureFull = await this.bucketService.findOneService(item.id_work, type, year, month, newName);
 
-            console.log('New', newName)
-            console.log('Status', pictureFull.status)
+        
 
             if(pictureService.status === 200 && pictureFull.status === 200){
               //@ts-ignore
