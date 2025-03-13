@@ -6,7 +6,7 @@ import { IsNull } from 'typeorm';
 import { Service } from './entities/service.entity';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
-
+import { SignatureServiceDto } from './dto/signature-service.dto';
 @Injectable()
 export class ServiceService {
   constructor(
@@ -48,6 +48,15 @@ export class ServiceService {
         message: 'internal error, please try again later.',
       };
     }
+  }
+
+  async UploadJobFileSignature(signatureServiceDto: SignatureServiceDto, file: Express.Multer.File) {
+    return this.bucketService.uploadServiceFileSignature(
+      file,
+      signatureServiceDto.name,
+      signatureServiceDto.type,
+      signatureServiceDto.id_work,
+    );
   }
 
   async uploadFile(updateServiceDto: UpdateServiceDto, file: Express.Multer.File) {

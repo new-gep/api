@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UploadedFile, UseInt
 import { ServiceService } from './service.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { SignatureServiceDto } from './dto/signature-service.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('service')
@@ -12,6 +13,12 @@ export class ServiceController {
   create(@Body() createServiceDto: CreateServiceDto) {
     return this.serviceService.create(createServiceDto);
   }
+
+  @Post('document/signature')
+  @UseInterceptors(FileInterceptor('file'))
+  async generateDocumentAsignature(@UploadedFile() file: Express.Multer.File, @Body() signatureServiceDto:SignatureServiceDto) {
+    return this.serviceService.UploadJobFileSignature(signatureServiceDto,file)
+  };
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))

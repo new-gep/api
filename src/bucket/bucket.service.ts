@@ -1911,7 +1911,7 @@ export class BucketService {
       case 'dismissal_medical':
         const dismissalMedicalKey = `job/${id}/Dismissal/Medical_Examination`;
         const dismissalMedicalFile =
-          await this.getFileFromBucket(dismissalMedicalKey);
+        await this.getFileFromBucket(dismissalMedicalKey);
 
         if (!dismissalMedicalFile) {
           return {
@@ -2085,19 +2085,25 @@ export class BucketService {
     }
   }
 
-  async uploadJobFileSignature(
+  async uploadServiceFileSignature(
     file: Express.Multer.File,
-    type: string,
     name: string,
-    id: number
+    type: string,
+    id_work: any
   ){
     let pathOrigin: string;
     let path: string;
     let response: any;
     let newPDF: any;
 
-    pathOrigin = `job/${id}/${type}/Transport_Voucher`;
-    path = `job/${id}/${type}/Complet/Transport_Voucher`;
+    const [action, type_service, year_file, month_file, id_service] = name.split('_');
+    const newName = name.replace(/^[^_]+/, 'Full');
+
+    pathOrigin = `job/${id_work}/${type}/${year_file}/${month_file}/${name}`;
+    path       = `job/${id_work}/${type}/${year_file}/${month_file}/${newName}`;
+
+    console.log("pathOrigin", pathOrigin);
+    console.log("path", path);
 
     response = await this.getFileFromBucket(pathOrigin);
     if (response && response.ContentType.includes('pdf')) {
@@ -2118,11 +2124,31 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(fileSignature).promise();
-      return {
-        status: 200,
-        message: 'Upload realizado com sucesso',
-        location: s3Response.Location, // Retorna a URL do arquivo no bucket
-      };
+
+      const fileSignatureFull = await this.getFileFromBucket(s3Response.Key);
+
+        if (!fileSignatureFull) {
+          return {
+            status: 404,
+            message: 'Arquivo não encontrado',
+          };
+        }
+
+        if (fileSignatureFull?.ContentType === 'application/pdf') {
+          return {
+            status: 200,
+            message: 'Upload realizado com sucesso',
+            type: 'pdf',
+            path: fileSignatureFull.base64Data, // Retorna o PDF completo em base64
+          };
+        }
+
+        return {
+          status: 200,
+          message: 'Upload realizado com sucesso',
+          type: 'picture',
+          path: fileSignatureFull.base64Data, // arquivo base64 de endereço
+        };
     } catch (error) {
       return {
         status: 500,
