@@ -2162,7 +2162,6 @@ export class BucketService {
   // Company
 
   async findCompanyDocument(cnpj: string, name: string) {
-    console.log("name", name);
     switch (name.toLowerCase()) {
       case 'signature':
         const signatureKey = `company/${cnpj}/Signature/Signature`;
