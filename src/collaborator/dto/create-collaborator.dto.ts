@@ -5,5 +5,6 @@ export class CreateCollaboratorDto {
     password: string;
     phone   : string;
     terms   : string;
+    birth   : string;
     create_at:string;
 }

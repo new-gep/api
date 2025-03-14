@@ -8,15 +8,15 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
     sex     ?: string;
     password?: string;
     phone   ?: string;
+    birth?:string;
     terms   ?: string;
     marriage?:string;
     children?: {
         [key: string]: {
-            name: string;
-            birth: string;
+            name?: string;
+            birth?: string;
         };
     } | 0;
-    birth?:string;
     zip_code ?:string;
     street   ?:string;
     district ?:string;

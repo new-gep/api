@@ -224,10 +224,12 @@ export class CollaboratorService {
       const response = await this.collaboratorRepository.update(CPF,updateCollaboratorDto);
       if(response.affected === 1){
         const collaborator = await this.findOne(CPF)
+        console.log(collaborator);
         return {
           status: 200,
           collaborator:collaborator,
           message:'Colaborador atualizado com sucesso!'
+          
         }
       }
       return {
