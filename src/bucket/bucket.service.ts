@@ -2162,6 +2162,7 @@ export class BucketService {
   // Company
 
   async findCompanyDocument(cnpj: string, name: string) {
+    console.log("name", name);
     switch (name.toLowerCase()) {
       case 'signature':
         const signatureKey = `company/${cnpj}/Signature/Signature`;
@@ -2195,6 +2196,28 @@ export class BucketService {
           status: 200,
           type: logoFile.ContentType === 'application/pdf' ? 'pdf' : 'picture',
           path: logoFile.base64Data,
+        };
+      case 'contractactive':
+
+        const contractActiveKey = `company/${cnpj}/Contract/active`;
+        const contractActiveFile = await this.getFileFromBucket(contractActiveKey);
+
+        if (!contractActiveFile) {
+          return {
+            status: 404,
+            message: 'Arquivo não encontrado',
+          };
+        }
+
+        return {
+          status: 200,
+          type: contractActiveFile.ContentType === 'application/pdf' ? 'pdf' : 'picture', 
+          path: contractActiveFile.base64Data,
+        };
+      default:
+        return {
+          status: 400,
+          message: `Type document not supported: ${name}`,
         };
     }
   }
