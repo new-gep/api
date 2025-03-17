@@ -195,9 +195,6 @@ export class BucketService {
     const result: { [key: number]: string } = {};
 
     try {
-      console.log('Iniciando checkPaste com folderPath:', folderPath);
-      console.log('bucketName:', bucketName);
-
       // Lista os objetos no bucket
       const data = await this.bucket
         .listObjectsV2({
@@ -2101,9 +2098,6 @@ export class BucketService {
 
     pathOrigin = `job/${id_work}/${type}/${year_file}/${month_file}/${name}`;
     path       = `job/${id_work}/${type}/${year_file}/${month_file}/${newName}`;
-
-    console.log("pathOrigin", pathOrigin);
-    console.log("path", path);
 
     response = await this.getFileFromBucket(pathOrigin);
     if (response && response.ContentType.includes('pdf')) {
