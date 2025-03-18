@@ -2,6 +2,7 @@ import { PartialType } from '@nestjs/swagger';
 import { CreatePictureDto } from './create-picture.dto';
 
 export class UpdatePictureDto extends PartialType(CreatePictureDto) {
+    CPF_collaborator?:string;
     id_work  ?:number;
     status   ?:string;
     picture  ?:string;

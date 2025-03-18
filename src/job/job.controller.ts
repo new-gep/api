@@ -130,7 +130,6 @@ export class JobController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
-    console.log("testando update", updateJobDto);
     return this.jobService.update(id, updateJobDto);
   };
 

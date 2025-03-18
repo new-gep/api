@@ -64,7 +64,7 @@ export class PictureService {
       }
 
       const filteredPictures = pictures.filter((item) =>
-        item.picture.includes('Admission_Signature'),
+        item.picture.includes('Signature_Admission'),
       );
 
       return {
@@ -163,6 +163,8 @@ export class PictureService {
       const pictureRecord = await this.pictureRepository.findOne({
         where: { CPF_collaborator: CPF, picture: updatePictureDto.picture, id_work: id_work },
       });
+
+      console.log('success?',pictureRecord, 'parametros', CPF, updatePictureDto.picture, id_work);
 
       if (!pictureRecord) {
         return {

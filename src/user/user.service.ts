@@ -162,6 +162,24 @@ export class UserService {
     }
   }
 
+  async masterAdmin(cnpj: string) {
+    const response = await this.userRepository.findOne({
+      where: { CNPJ_company: cnpj, hierarchy: '0' },
+    });
+
+    if (response) {
+      return {
+        status: 200,
+        user: response,
+      };
+    } else {
+      return {
+        status: 404,
+        message: 'user not found',
+      };
+    }
+  }
+
   verifyToken(token: string) {
     const response = DecodeToken(token);
     if (!response) {
@@ -206,8 +224,6 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    console.log(updateUserDto);
-    return;
     if (updateUserDto.confirmPassword.trim() === '') {
       // A string está em branco (apenas espaços, tabs, etc.)
       delete updateUserDto.confirmPassword;
@@ -236,6 +252,8 @@ export class UserService {
       const response = await this.userRepository.update(id, updateUserDto);
       if (response.affected === 1) {
         const user = await this.findOne(id);
+        //@ts-ignore
+        console.log({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         //@ts-ignore
         const token = await GenerateToken({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         return {
