@@ -203,31 +203,31 @@ export class BucketService {
         })
         .promise();
 
-      console.log('Dados retornados do bucket:', data);
+      
 
       // Se os arquivos existirem, processa os nomes
       if (data.Contents) {
-        console.log('Quantidade de arquivos encontrados:', data.Contents.length);
+
         
         let index = 0; // Inicializa o índice
         data.Contents.forEach((item) => {
-          console.log('Processando item:', item);
+
           
           if (item.Key) {
             // Extrai o nome do arquivo removendo o caminho completo
             const fileName = item.Key.replace(folderPath, '');
-            console.log('Nome do arquivo extraído:', fileName);
+          
             
             if (fileName) {
               result[index] = fileName;
-              console.log(`Adicionando ao resultado - índice ${index}:`, fileName);
+              // console.log(`Adicionando ao resultado - índice ${index}:`, fileName);
               index++;
             }
           }
         });
       }
 
-      console.log('Resultado final:', result);
+      
       return result;
     } catch (error) {
       console.error(
@@ -2007,7 +2007,7 @@ export class BucketService {
       }
     }
 
-    console.log("Resultado final:", folderServiceTreated);
+   
 
     if (folderServiceTreated.length === 0) {
       console.log("Nenhum arquivo encontrado");

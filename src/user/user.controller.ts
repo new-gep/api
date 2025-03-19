@@ -22,6 +22,11 @@ export class UserController {
     return this.userService.verifyToken(token);
   };
 
+  @Get('masterAdmin/:cnpj')
+  masterAdmin(@Param('cnpj') cnpj: string) {
+    return this.userService.masterAdmin(cnpj);
+  };
+
   @Get()
   findAll() {
     return this.userService.findAll();
