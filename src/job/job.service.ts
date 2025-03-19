@@ -381,12 +381,18 @@ export class JobService {
     });
   
     // Filtra todas as vagas onde o candidato está aplicado (independente do step)
-    const jobsWithCpfAll = openJobs.filter((job) => {
+    const jobsWithCpfAll = await Promise.all(openJobs.filter((job) => {
       const candidates = JSON.parse(job.candidates);
       return candidates.some(
         (candidate) => String(candidate.cpf) === String(CPF_collaborator)
       );
-    });
+    }).map(async (job) => {
+      const company = await this.companyService.findOne(job.CNPJ_company);
+      return {
+        ...job,
+        company: company.company
+      };
+    }));
   
     // Filtra as vagas onde o candidato possui step > 0
     const jobsWithCpfStepGreaterThanZero = jobsWithCpfAll.filter((job) => {
@@ -411,7 +417,6 @@ export class JobService {
 
     // Se existir ao menos uma vaga com step > 0, retorna apenas essas vagas
     if (jobsWithCpfStepGreaterThanZero.length > 0) {
-      console.log('aq')
       return {
         status: 200,
         message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpfStepGreaterThanZero.length} vaga(s) com step maior que zero.`,
@@ -427,6 +432,7 @@ export class JobService {
         status: 200,
         message: `O CPF ${CPF_collaborator} está aplicado em ${jobsWithCpfAll.length} vaga(s), mas nenhuma com step maior que zero.`,
         jobs: jobsWithCpfAll,
+
         processAdmission: false,
       };
     }
