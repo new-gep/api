@@ -1229,8 +1229,7 @@ export class BucketService {
           };
         } else {
           const registrationKey = `job/${id}/Admission/Registration_Form`;
-          const registrationFile =
-            await this.getFileFromBucket(registrationKey);
+          const registrationFile = await this.getFileFromBucket(registrationKey);
           if (!registrationFile) {
             return {
               status: 404,
@@ -2215,6 +2214,56 @@ export class BucketService {
     }
   }
 
+  async findCompanyContract(cnpj: string, plan: string) {
+    let contractKey;
+    let contractFile;
+
+    switch (plan.toLowerCase()) {
+      case '1':
+        contractKey = `newgep/Contract/Contrat_1`;
+        contractFile = await this.getFileFromBucket(contractKey);
+        break;
+      case '2':
+        contractKey = `newgep/Contract/Contrat_2`;
+        contractFile = await this.getFileFromBucket(contractKey);
+        break;
+      case '3':
+        contractKey = `newgep/Contract/Contrat_3`;
+        contractFile = await this.getFileFromBucket(contractKey);
+        break;
+      default:
+        return {
+          status: 400,
+          message: `Type document not supported: ${plan}`,
+        };
+    }
+
+    if (!contractFile) {
+      return {
+        status: 404,
+        message: 'File not found',
+      };
+    }
+
+    if (contractFile?.ContentType === 'application/pdf') {
+      const imageBase64 = await this.convertPDFinImage(
+        contractFile.base64Data,
+      );
+      return {
+        status: 200,
+        type: 'pdf',
+        path: contractFile.base64Data,
+        picture: imageBase64,
+      };
+    }
+
+    return {
+      status: 200,
+      type: 'picture',
+      path: contractFile.base64Data,
+    };
+  }
+
   async uploadCompany(
     file: Express.Multer.File,
     cnpj: string,
@@ -2228,10 +2277,14 @@ export class BucketService {
       case 'signature':
         path = `company/${cnpj}/Signature/Signature`;
         break;
+      case 'contract':
+        path = `company/${cnpj}/Contract/active`;
+
+        break;
       default:
         return {
           status: 400,
-          message: `Tipo de documento não suportado: ${name}`,
+          message: `Tipo de documento não suportado: ${document}`,
         };
     }
 
@@ -2261,6 +2314,54 @@ export class BucketService {
       };
     }
   }
+
+  async uploadContractCompany(
+    file: Express.Multer.File,
+    cnpj: string,
+  ){
+    let pathOrigin: string;
+    let path: string;
+    let response: any;
+    let newPDF: any;
+
+    pathOrigin = `newgep/Contract/Contrat_1`;
+    path = `company/${cnpj}/Contract/active`;
+
+    response = await this.getFileFromBucket(pathOrigin);
+    if (response && response.ContentType.includes('pdf')) {
+      newPDF = await this.replaceLastPage(response.base64Data, file);
+    }
+
+    const mimeType =
+      response && response.ContentType.includes('pdf')
+        ? 'application/pdf'
+        : file.mimetype;
+
+    const jobFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body:
+        response && response.ContentType.includes('pdf') ? newPDF : file.buffer,
+      ContentType: mimeType,
+    };
+
+    try {
+      const s3Response = await this.bucket.upload(jobFile).promise();
+
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  }
+  
 
   async findCompanySingnature(cnpj: string) {
     const signatureKey = `company/${cnpj}/Signature/Signature`;

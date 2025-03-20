@@ -37,8 +37,13 @@ export class CompanyController {
   @Post('service/upload')
   @UseInterceptors(FileInterceptor('file'))
   async departmentUpload(@UploadedFile() file: Express.Multer.File, @Body() upLoadServiceDto:UploadServiceDto) {
-    console.log('upLoadServiceDto',upLoadServiceDto);
     return this.companyService.uploadFileService(upLoadServiceDto,file)
+  };
+
+  @Post('contract/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async contractUpload(@UploadedFile() file: Express.Multer.File, @Body() upLoadServiceDto:any) {
+    return this.companyService.uploadFileContract(upLoadServiceDto.cnpj,file)
   };
 
   @Post('redis')
@@ -49,6 +54,11 @@ export class CompanyController {
   @Get()
   findAll() {
     return this.companyService.findAll();
+  }
+
+  @Get('contract/:cnpj/:plan')
+  findCompanyContract(@Param('cnpj') cnpj: string, @Param('plan') plan: string) {
+    return this.companyService.findCompanyContract(cnpj, plan);
   }
 
   @Get('document/:cnpj/:document')

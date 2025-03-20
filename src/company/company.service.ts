@@ -105,7 +105,11 @@ export class CompanyService {
     }
   }
 
-  findAll() {
+  findCompanyContract(cnpj: string, plan: string) {
+    return this.bucketService.findCompanyContract(cnpj, plan);
+  }
+
+  findAll() { 
     return `This action returns all company`;
   }
 
@@ -191,6 +195,13 @@ export class CompanyService {
         message: 'Erro ao processar o arquivo',
       };
     }
+  }
+
+  async uploadFileContract(
+    cnpj:string,
+    file: Express.Multer.File,
+  ) {
+    return this.bucketService.uploadContractCompany(file, cnpj);
   }
 
   async findOne(cnpj: string) {
