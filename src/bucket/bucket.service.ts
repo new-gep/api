@@ -1641,7 +1641,7 @@ export class BucketService {
           path: medicalFile.base64Data, // arquivo base64 de endereço
         };
       case 'dismissal_medical_examination':
-        const medicalDismissalKey = `job/${id}/Dismissal/Dismissal_Medical_Examination`;
+        const medicalDismissalKey = `job/${id}/Dismissal/Medical_Examination`;
         const medicalDismissalFile =
           await this.getFileFromBucket(medicalDismissalKey);
 
@@ -1838,7 +1838,7 @@ export class BucketService {
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Collaborator`;
           const dynamicSignatureFile =
-            await this.getFileFromBucket(dynamicSignatureKey);
+          await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
