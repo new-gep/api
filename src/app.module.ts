@@ -14,9 +14,10 @@ import { AbsenceModule } from './absence/absence.module';
 import { ServiceModule } from './service/service.module';
 import { LeadModule } from './lead/lead.module';
 import { RedisModule } from './redis/redis.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })
