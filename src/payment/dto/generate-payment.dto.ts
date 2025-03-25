@@ -1,4 +1,4 @@
-export class CreatePaymentDto {
+export class GeneratePaymentDto {
     CNPJ_Company: string;
     method: string;
     amount: number;

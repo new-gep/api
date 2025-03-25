@@ -1,17 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import axios from 'axios';
+import findTimeSP from 'hooks/time';
+import { Inject, Injectable } from '@nestjs/common';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
-import axios from 'axios';
-
+import { Payment } from './entities/payment.entity';
+import { Repository } from 'typeorm';
+import { GeneratePaymentDto } from './dto/generate-payment.dto';
 @Injectable()
 export class PaymentService {
+  
 
   private readonly galaxId = process.env.CEL_CASH_ID;
   private readonly galaxHash = process.env.CEL_CASH_HASH;
   private accessToken: string;
   private tokenExpiry: number;
 
-  constructor() {
+  constructor(
+    @Inject('PAYMENT_REPOSITORY')
+    private paymentRepository: Repository<Payment>,
+  ) {
     this.getTokenGlobal();
     // this.getToken();
     // setTimeout(() => {
@@ -109,88 +116,113 @@ export class PaymentService {
   //   // }
   // }
 
-  // async createPayment(createPaymentDto:CreatePaymentDto ){
-  //   const token = await this.getToken()
-  //   const currentDate = new Date();
-  //   const year = currentDate.getFullYear();
-  //   const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-  //   const day = String(currentDate.getDate()).padStart(2, '0');
-  //   const currence = `${year}-${month}-${day}`;
-  //   const race_params = {
-  //     type     :createPaymentDto.type,
-  //     id_client:createPaymentDto.idUser,
-  //     amount   :createPaymentDto.value,
-  //     status   :'open'
-  //   }
-  //   const racePayment = await this.paymentRaceService.create(race_params)
-  //   let payment_params = {
-  //     myId : racePayment.id,
-  //     value: createPaymentDto.value,
-  //     additionalInfo: createPaymentDto.additionalInfo,
-  //     payday:currence,
-  //     Customer:{
-  //       name:     createPaymentDto.name,
-  //       document: createPaymentDto.cpf,
-  //       emails:   [createPaymentDto.email],
-  //       phones:   [createPaymentDto.phone]
-  //     },
-  //     mainPaymentMethodId:createPaymentDto.type,
-  //     PaymentMethodPix:{},
-  //     PaymentMethodCreditCard:{}
-  //   }
-  //   switch (await createPaymentDto.type) {
-  //     case 'pix':
-  //       payment_params.mainPaymentMethodId = 'pix'
-  //       payment_params.PaymentMethodPix = {
-  //         instructions : 'Pagamento Mix Serviços Logísticos',
-  //         Deadline:{
-  //           type: 'minutes',
-  //           value: 15
-  //         }
-  //       }
-  //       break;
-  //     case 'creditcard':
-  //       payment_params.mainPaymentMethodId = 'creditcard'
-  //       payment_params.PaymentMethodCreditCard = {
-  //         Card:{
-  //           number:    createPaymentDto.numberCard,
-  //           holder:    createPaymentDto.nameCard,
-  //           expiresAt: createPaymentDto.expiresAtCard,
-  //           cvv:       createPaymentDto.cvvCard
-  //         },
-  //         qtdInstallments:1
-  //       }
-  //       break;
-  //     default:
-  //       return{
-  //         status:500,
-  //         message:'Type payment not defined'
-  //       }
-  //   }
-  //   try{
-  //     const response = await axios.post(`${process.env.GALAX_URL}/charges`, payment_params, {
-  //       headers: {
-  //         'Authorization': `Bearer ${token}`,
-  //       },
-  //     })
-  //     if(createPaymentDto.type == 'pix'){
-  //       return {
-  //         payment:response.data.Charge.Transactions[0].Pix,
-  //         idPayment:racePayment.id
-  //       }
-  //     }
-  //     return response.data;
-  //   }catch(error){
-  //     console.log('erro',error.response.data.error)
-  //     return{
-  //       status:500,
-  //       message:'Error cel_cash'
-  //     }
-  //   }
-  // }
+  async createPayment(generatePaymentDto:GeneratePaymentDto ){
+    const token = await this.getToken()
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    const currence = `${year}-${month}-${day}`;
+    const time = findTimeSP()
+    const CreatePaymentParams = {
+      //@ts-ignore
+      method   :generatePaymentDto.CreatePaymentDto.method,
+      //@ts-ignore
+      amount   :generatePaymentDto.CreatePaymentDto.amount,
+      //@ts-ignore
+      status   :generatePaymentDto.CreatePaymentDto.status,
+      //@ts-ignore
+      CNPJ_Company:generatePaymentDto.CreatePaymentDto.CNPJ_Company,
+      create_at:time
+    }
+    const payment = await this.create(CreatePaymentParams)
+    // console.log('payment', payment);
+    let payment_params = {
+      //@ts-ignore
+      myId : payment.id,
+      value: generatePaymentDto.amount,
+      additionalInfo: generatePaymentDto.additionalInfo,
+      payday:currence,
+      Customer:{
+        name:     generatePaymentDto.name,
+        document: generatePaymentDto.CNPJ_Company,
+        emails:   [generatePaymentDto.email],
+        phones:   [generatePaymentDto.phone]
+      },
+      mainPaymentMethodId:generatePaymentDto.method,
+      PaymentMethodPix:{},
+      PaymentMethodCreditCard:{}
+    }
+    //@ts-ignore
+    console.log('generatePaymentDto.CreatePaymentDto.method', generatePaymentDto.CreatePaymentDto.method);
+    //@ts-ignore
+    switch (generatePaymentDto.CreatePaymentDto.method.toLowerCase()) {
+      case 'pix':
+        payment_params.mainPaymentMethodId = 'pix'
+        payment_params.PaymentMethodPix = {
+          instructions : 'Pagamento New Gep LTDA',
+          Deadline:{
+            type: 'minutes',
+            value: 15
+          }
+        }
+        break;
+      case 'creditcard':
+        payment_params.mainPaymentMethodId = 'creditcard'
+        payment_params.PaymentMethodCreditCard = {
+          Card:{
+            number:    generatePaymentDto.numberCard,
+            holder:    generatePaymentDto.nameCard,
+            expiresAt: generatePaymentDto.expiresAtCard,
+            cvv:       generatePaymentDto.cvvCard
+          },
+          qtdInstallments:1
+        }
+        break;
+      default:
+        return{
+          status:500,
+          message:'Type payment not defined'
+      }
+    }
+    try{
+      const response = await axios.post(`${process.env.CEL_CASH_URL}/charges`, payment_params, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      console.log('response', response);
+      if(generatePaymentDto.method == 'pix'){
+        return {
+          payment:response.data.Charge.Transactions[0].Pix,
+          // idPayment:racePayment.id
+        }
+      }
+      return response.data;
+    }catch(error){
+      console.log('erro',error.response.data.error)
+      return{
+        status:500,
+        message:'Error cel_cash'
+      }
+    }
+  }
 
-  create(createPaymentDto: CreatePaymentDto) {
-    return 'This action adds a new payment';
+  async create(createPaymentDto: CreatePaymentDto) {
+    
+    const newPayment = await this.paymentRepository.save(createPaymentDto);
+    
+    if(newPayment){
+      return {
+        status:200,
+        message:'Payment created successfully',
+        payment:newPayment
+      }
+    }
+    return {
+      status:500,
+      message:'Error creating payment'
+    }
   }
 
   findAll() {
