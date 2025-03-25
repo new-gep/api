@@ -1764,7 +1764,8 @@ export class BucketService {
         break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
-          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication`;
+          console.log('signature', signature);
+          const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication/Collaborator`;
           const dynamicSignatureFile =
             await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
