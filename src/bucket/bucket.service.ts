@@ -957,6 +957,9 @@ export class BucketService {
       case 'dismissal_signature':
         path = `job/${id}/Dismissal/Signature/Collaborator`;
         break;
+      case 'dismissal_communication_signature':
+        path = `job/${id}/Dismissal/Signature/Communication/Collaborator`;
+        break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
           path = `job/${id}/Dismissal/Signature/Communication/Dynamic/Collaborator`;

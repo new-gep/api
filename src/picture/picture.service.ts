@@ -94,7 +94,7 @@ export class PictureService {
       }
 
       const filteredPictures = pictures.filter((item) =>
-        item.picture.includes('Dismissal_Signature'),
+        item.picture.includes('Signature_Dismissal'),
       );
 
       console.log(filteredPictures);
