@@ -45,8 +45,8 @@ export class PaymentService {
       // Renove o token 60 segundos antes de expirar
       setTimeout(() => this.getToken(), (response.data.expires_in - 60) * 1000);
     } catch (error) {
-      console.log(base64AuthString)
-      console.log('Error obtaining access token:', error.response);
+      // console.log(base64AuthString)
+      console.log('Error obtaining access token:', error);
     }
   }
 
@@ -58,16 +58,14 @@ export class PaymentService {
       scope: 'customers.read customers.write plans.read plans.write transactions.read transactions.write webhooks.write balance.read balance.write cards.read cards.write card-brands.read subscriptions.read subscriptions.write charges.read charges.write boletos.read'
     };
     try {
-      const response = await axios.post(`${process.env.GALAX_URL}/token`, body, {
+      const response = await axios.post(`${process.env.CEL_CASH_URL}/token`, body, {
         headers: {
           'Authorization': `Basic ${base64AuthString}`,
         },
       });
-      console.log(response.data.access_token)
       return response.data.access_token;
     } catch (error) {
-      console.log(base64AuthString)
-      console.log('Error obtaining access token:', error.response);
+      console.log('Error obtaining access token:', error);
     }
   }
 
@@ -140,21 +138,28 @@ export class PaymentService {
     let payment_params = {
       //@ts-ignore
       myId : payment.id,
-      value: generatePaymentDto.amount,
-      additionalInfo: generatePaymentDto.additionalInfo,
+      //@ts-ignore
+      value: generatePaymentDto.CreatePaymentDto.amount,
+      //@ts-ignore
+      additionalInfo: generatePaymentDto.CreatePaymentDto.additionalInfo,
       payday:currence,
       Customer:{
-        name:     generatePaymentDto.name,
-        document: generatePaymentDto.CNPJ_Company,
-        emails:   [generatePaymentDto.email],
-        phones:   [generatePaymentDto.phone]
+        //@ts-ignore
+        name:     generatePaymentDto.CreatePaymentDto.name,
+        //@ts-ignore
+        document: generatePaymentDto.CreatePaymentDto.CNPJ_Company,
+        //@ts-ignore
+        emails:   [generatePaymentDto.CreatePaymentDto.email],
+        //@ts-ignore
+        phones:   [generatePaymentDto.CreatePaymentDto.phone]
       },
-      mainPaymentMethodId:generatePaymentDto.method,
+      //@ts-ignore
+      mainPaymentMethodId:generatePaymentDto.CreatePaymentDto.method,
       PaymentMethodPix:{},
       PaymentMethodCreditCard:{}
     }
     //@ts-ignore
-    console.log('generatePaymentDto.CreatePaymentDto.method', generatePaymentDto.CreatePaymentDto.method);
+    // console.log('generatePaymentDto.CreatePaymentDto.method', generatePaymentDto.CreatePaymentDto.method);
     //@ts-ignore
     switch (generatePaymentDto.CreatePaymentDto.method.toLowerCase()) {
       case 'pix':
@@ -168,13 +173,19 @@ export class PaymentService {
         }
         break;
       case 'creditcard':
+        //@ts-ignore
+        console.log('generatePaymentDto.CreatePaymentDto.numberCard', generatePaymentDto.CreatePaymentDto.expiresAtCard);
         payment_params.mainPaymentMethodId = 'creditcard'
         payment_params.PaymentMethodCreditCard = {
           Card:{
-            number:    generatePaymentDto.numberCard,
-            holder:    generatePaymentDto.nameCard,
-            expiresAt: generatePaymentDto.expiresAtCard,
-            cvv:       generatePaymentDto.cvvCard
+            //@ts-ignore
+            number:    generatePaymentDto.CreatePaymentDto.numberCard,
+            //@ts-ignore
+            holder:    generatePaymentDto.CreatePaymentDto.nameCard,
+            //@ts-ignore
+            expiresAt: generatePaymentDto.CreatePaymentDto.expiresAtCard,
+            //@ts-ignore
+            cvv:       generatePaymentDto.CreatePaymentDto.cvvCard
           },
           qtdInstallments:1
         }
@@ -192,9 +203,20 @@ export class PaymentService {
         },
       })
       console.log('response', response);
-      if(generatePaymentDto.method == 'pix'){
+      //@ts-ignore
+      if(generatePaymentDto.CreatePaymentDto.method.toLowerCase() == 'pix'){
+
         return {
+          status:200,
           payment:response.data.Charge.Transactions[0].Pix,
+          // idPayment:racePayment.id
+        }
+      }
+      //@ts-ignore
+      if(generatePaymentDto.CreatePaymentDto.method.toLowerCase() == 'creditcard'){
+        return {
+          status:200,
+          payment:response.data.Charge.Transactions[0].status,
           // idPayment:racePayment.id
         }
       }
