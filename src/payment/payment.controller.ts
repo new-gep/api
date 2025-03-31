@@ -17,6 +17,11 @@ export class PaymentController {
     return this.paymentService.findAll();
   }
 
+  @Post('webhook')
+  webhook(@Body() payload: any) {
+    return this.paymentService.webhook(payload);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.paymentService.findOne(+id);

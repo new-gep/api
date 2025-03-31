@@ -6,6 +6,9 @@ export class Payment {
     @PrimaryGeneratedColumn()
     id: string;
 
+    @Column({length: 200})
+    cel_cash_id: string;
+
     @Column({length: 14})
     CNPJ_Company: string;
 

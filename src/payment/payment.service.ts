@@ -69,50 +69,48 @@ export class PaymentService {
     }
   }
 
-  // async webhook( payload: any){
-  //   if(payload.event == 'transaction.updateStatus' ){
-  //     switch (payload.Charge.mainPaymentMethodId) {
-  //       case 'pix':
-  //         if(payload.Transaction.status == 'payedPix'){
-  //           const params_payment = {
-  //             status:"paid"
-  //           }
-  //           const response = await this.paymentRaceService.update(payload.Charge.myId, params_payment)
-  //           if(response.status == 200){
-  //             return true
-  //           }
-  //           return{
-  //             status: 500,
-  //             message:'Payment internal incomplet'
-  //           }
-  //         }else{
-  //           console.log(payload.Transaction.status)
-  //         }
-  //       break;
-  //     }
-  //   }
-  //   // if(payload.event == 'company.cashOut' ){
-  //   //   const webhookId = payload.webhookId;
-  //   //   const idPayment = payload.Cashout.Pix.description.split(':');
-  //   //   console.log(idPayment)
-  //   //   const option = idPayment[1].split('-');
-  //   //   switch (option[0]) {
-  //   //     case 'raceRetrieve':
-  //   //       if(payload.Cashout.Pix.status == 'efectivated'){
-  //   //         const response = await this.paymentRaceRetrieveService.update(idPayment[1],{webhookId:webhookId.toString()})
-  //   //         if(response.status == 200){
-  //   //           return 'ação'
-  //   //         }
-  //   //         console.log(response)
-  //   //       }
-  //   //       break;
-      
-  //   //     case '':
-
-  //   //       break;
-  //   //   }
-  //   // }
-  // }
+  async webhook( payload: any){
+    if(payload.event == 'transaction.updateStatus' ){
+      switch (payload.Charge.mainPaymentMethodId) {
+        case 'pix':
+          if(payload.Transaction.status == 'payedPix'){
+            const params_payment = {
+              status:"paid"
+            }
+            // const response = await this.paymentRaceService.update(payload.Charge.myId, params_payment)
+            // if(response.status == 200){
+            //   return true
+            // }
+            // return{
+            //   status: 500,
+            //   message:'Payment internal incomplet'
+            // }
+          }else{
+            console.log(payload.Transaction.status)
+          }
+        break;
+        case 'creditcard':
+          if(payload.Transaction.status == 'captured'){
+            const params_payment = {
+              status:"paid"
+            }
+          }else{
+            console.log(payload.Transaction.status)
+          }
+        break;
+        case 'boleto':
+          if(payload.Transaction.status == 'payedBoleto'){
+            const params_payment = {
+              status:"paid"
+            }
+          }else{
+            console.log(payload.Transaction.status)
+          }
+          break;
+      }
+    }
+    
+  }
 
   async createPayment(generatePaymentDto:GeneratePaymentDto ){
     const token = await this.getToken()
@@ -121,23 +119,8 @@ export class PaymentService {
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const day = String(currentDate.getDate()).padStart(2, '0');
     const currence = `${year}-${month}-${day}`;
-    const time = findTimeSP()
-    const CreatePaymentParams = {
-      //@ts-ignore
-      method   :generatePaymentDto.CreatePaymentDto.method,
-      //@ts-ignore
-      amount   :generatePaymentDto.CreatePaymentDto.amount,
-      //@ts-ignore
-      status   :generatePaymentDto.CreatePaymentDto.status,
-      //@ts-ignore
-      CNPJ_Company:generatePaymentDto.CreatePaymentDto.CNPJ_Company,
-      create_at:time
-    }
-    const payment = await this.create(CreatePaymentParams)
     // console.log('payment', payment);
     let payment_params = {
-      //@ts-ignore
-      myId : payment.id,
       //@ts-ignore
       value: generatePaymentDto.CreatePaymentDto.amount,
       //@ts-ignore
@@ -158,8 +141,6 @@ export class PaymentService {
       PaymentMethodPix:{},
       PaymentMethodCreditCard:{}
     }
-    //@ts-ignore
-    // console.log('generatePaymentDto.CreatePaymentDto.method', generatePaymentDto.CreatePaymentDto.method);
     //@ts-ignore
     switch (generatePaymentDto.CreatePaymentDto.method.toLowerCase()) {
       case 'pix':
@@ -202,7 +183,22 @@ export class PaymentService {
           'Authorization': `Bearer ${token}`,
         },
       })
-      console.log('response', response);
+      console.log('response', response.data);
+      const time = findTimeSP()
+      const CreatePaymentParams = {
+        cel_cash_id:response.data.Charge.galaxPayId,
+        //@ts-ignore
+        method   :generatePaymentDto.CreatePaymentDto.method,
+        //@ts-ignore
+        amount   :generatePaymentDto.CreatePaymentDto.amount,
+        //@ts-ignore
+        status   :generatePaymentDto.CreatePaymentDto.status,
+        //@ts-ignore
+        CNPJ_Company:generatePaymentDto.CreatePaymentDto.CNPJ_Company,
+        create_at:time
+      }
+      await this.create(CreatePaymentParams)
+      
       //@ts-ignore
       if(generatePaymentDto.CreatePaymentDto.method.toLowerCase() == 'pix'){
 
@@ -220,7 +216,12 @@ export class PaymentService {
           // idPayment:racePayment.id
         }
       }
-      return response.data;
+      
+
+      return {
+        status:500,
+        message:'Error creating payment'
+      }
     }catch(error){
       console.log('erro',error.response.data.error)
       return{
