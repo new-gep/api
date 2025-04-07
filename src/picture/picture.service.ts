@@ -53,7 +53,7 @@ export class PictureService {
   async findSignatureAdmission(CPF_collaborator: string, id_work: number){
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator, id_work: id_work },
+        where: { CPF_collaborator: { CPF: CPF_collaborator}, id_work: { id: id_work } },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -161,10 +161,9 @@ export class PictureService {
       const { status, id_user, id_work } = updatePictureDto;  // Extrai o campo `status` do DTO
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
-        where: { CPF_collaborator: CPF, picture: updatePictureDto.picture, id_work: id_work },
+        where: { CPF_collaborator: { CPF: CPF}, picture: updatePictureDto.picture, id_work: { id: id_work } },
       });
 
-      console.log('success?',pictureRecord, 'parametros', CPF, updatePictureDto.picture, id_work);
 
       if (!pictureRecord) {
         return {

@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Company } from 'src/company/entities/company.entity';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class User {
-    @PrimaryGeneratedColumn()
+    @Column({length: 5, primary: true})
     id: string;
 
     @Column({length: 50, default:null })
@@ -11,7 +12,7 @@ export class User {
     @Column({length: 50})
     user: string;
 
-    @Column({length: 50})
+    @Column({length: 200})
     password: string;
 
     @Column({length: 150})
@@ -26,8 +27,9 @@ export class User {
     @Column({length: 1})
     hierarchy: string;
 
-    @Column({length: 14})
-    CNPJ_company: string;
+    @ManyToOne(() => Company, company => company.CNPJ)
+    @JoinColumn({ name: 'CNPJ_company' })
+    CNPJ_company: Company;
 
     @Column({length: 50})
     create_at: string;

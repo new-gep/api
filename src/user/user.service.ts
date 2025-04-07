@@ -55,6 +55,7 @@ export class UserService {
         hierarchy: newUser.hierarchy,
       });
 
+
       return {
         status: 201,
         message: 'Usário criado com sucesso! ',
@@ -67,7 +68,7 @@ export class UserService {
   async findAllByCNPJ(CNPJ: string) {
     try {
       const response = await this.userRepository.find({
-        where: { CNPJ_company: CNPJ, delete_at: IsNull() },
+        where: { CNPJ_company: { CNPJ: CNPJ}, delete_at: IsNull() },
       });
 
       if (response) {
@@ -164,8 +165,13 @@ export class UserService {
 
   async masterAdmin(cnpj: string) {
     const response = await this.userRepository.findOne({
-      where: { CNPJ_company: cnpj, hierarchy: '0' },
+      where: {
+        CNPJ_company: { CNPJ: cnpj },
+        hierarchy: '0',
+      },
     });
+
+    console.log(response);
 
     if (response) {
       return {

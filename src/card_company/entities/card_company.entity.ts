@@ -1,4 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Company } from 'src/company/entities/company.entity';
+import { User } from 'src/user/entities/user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class CardCompany {
@@ -17,14 +19,17 @@ export class CardCompany {
     @Column({length: 5,})
     expiry: string;
 
-    @Column({length: 14,})
-    CNPJ: string;
+    @ManyToOne(() => Company, company => company.CNPJ)
+    @JoinColumn({ name: 'CNPJ_company' })
+    CNPJ: Company;
 
-    @Column({length: 50,})
-    user_create: string;
+    @ManyToOne(() => User, user => user.id)
+    @JoinColumn({ name: 'user_create' })
+    user_create: User;
 
-    @Column({length: 50,})
-    user_update: string;
+    @ManyToOne(() => User, user => user.id)
+    @JoinColumn({ name: 'user_update' })
+    user_update: User;
 
     @Column({length: 50,})
     created_at: string;

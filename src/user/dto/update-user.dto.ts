@@ -10,8 +10,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
     name?:string
     email?:string
     phone?:string
-    CNPJ_client ?:string
-    CNPJ_company?:string
+    CNPJ_client ?:any
+    CNPJ_company?:any
     update_at?:string
   
 }

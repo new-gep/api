@@ -6,7 +6,7 @@ export class UpdatePictureDto extends PartialType(CreatePictureDto) {
     id_work  ?:number;
     status   ?:string;
     picture  ?:string;
-    id_user  ?:number;
+    id_user  ?:string;
     update_at?:string;
     delete_at?:string;
 }

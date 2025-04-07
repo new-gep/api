@@ -1,5 +1,7 @@
 import { Json } from 'aws-sdk/clients/robomaker';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Job } from 'src/job/entities/job.entity';
+import { Collaborator } from 'src/collaborator/entities/collaborator.entity';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Absence {
@@ -15,11 +17,14 @@ export class Absence {
     @Column({length: 120})
     observation: string;
 
-    @Column({length: 11})
-    CPF_collaborator: string;
+    @ManyToOne(() => Collaborator, collaborator => collaborator.CPF)
+    @JoinColumn({ name: 'CPF_collaborator' })
+    CPF_collaborator: Collaborator;
 
     @Column()
-    id_work: number;
+    @ManyToOne(() => Job, job => job.id)
+    @JoinColumn({ name: 'id_work' })
+    id_work: Job;
 
     @Column({length: 50})
     create_at: string;

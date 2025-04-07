@@ -1,5 +1,6 @@
 import { Json } from 'aws-sdk/clients/robomaker';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Company } from 'src/company/entities/company.entity';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Payment {
@@ -9,8 +10,9 @@ export class Payment {
     @Column({length: 200})
     cel_cash_id: string;
 
-    @Column({length: 14})
-    CNPJ_Company: string;
+    @ManyToOne(() => Company, company => company.CNPJ)
+    @JoinColumn({ name: 'CNPJ_company' })
+    CNPJ_Company: Company;
 
     @Column({length: 50})
     method: string;

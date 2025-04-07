@@ -1,21 +1,23 @@
 import { Year } from 'aws-sdk/clients/groundstation';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Job } from 'src/job/entities/job.entity';
+import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity()
 export class Collaborator {
-    @PrimaryGeneratedColumn()
+    @Column({length: 11, primary: true})
     CPF: string;
 
     @Column({length: 150,})
     name: string;
 
-    @Column({length: 150,})
-    id_work: string;
+    @ManyToOne(() => Job, job => job.id)
+    @JoinColumn({ name: 'id_work' })
+    id_work: Job;
 
-    @Column({length: 1,})
+    @Column({length: 1, default: null})
     sex: string;
 
-    @Column({length: 1,})
+    @Column({length: 1, default: null})
     PCD: string;
 
     @Column({length: 200, })
@@ -24,18 +26,16 @@ export class Collaborator {
     @Column({length: 200,})
     email: string;
 
-
     @Column({length: 11,})
     phone: string;
 
-    @Column()
+    @Column({default: null})
     birth: Date;
 
-
-    @Column({length: 1   })
+    @Column({length: 1 })
     terms: string;
 
-    @Column({length: 1   })
+    @Column({length: 1, default: null})
     marriage: string;
 
     @Column({ type: 'json', nullable: true }) 
@@ -45,7 +45,6 @@ export class Collaborator {
             birth: string;
         };
     } | 0;
-
 
     @Column({length: 8, default:null})
     zip_code: string;

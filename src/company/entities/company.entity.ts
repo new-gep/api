@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Company {
-    @PrimaryGeneratedColumn()
+    @Column({length: 14, primary: true})
     CNPJ: string;
 
     @Column({length: 150})
@@ -10,7 +10,6 @@ export class Company {
 
     @Column({length: 1, default : '0'})
     isVisible: string;
-
 
     @Column({length: 200})
     email: string;
@@ -45,7 +44,7 @@ export class Company {
     @Column({length: 2})
     uf: string;
 
-    @Column({length: 50})
+    @Column({length: 50, default: null})
     state: string;
 
     @Column()

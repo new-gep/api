@@ -5,7 +5,7 @@ export class UpdateServiceDto extends PartialType(CreateServiceDto) {
     name?: string;
     type?: string;
     status ?: string;
-    id_work?: number;
+    id_work?: any;
     update_at?: string;
     dynamic?: string;
 }

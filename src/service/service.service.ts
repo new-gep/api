@@ -61,6 +61,7 @@ export class ServiceService {
   }
 
   async uploadFile(updateServiceDto: UpdateServiceDto, file: Express.Multer.File) {
+    console.log("updateServiceDto", updateServiceDto);
     return await this.bucketService.uploadService(
       file,
       updateServiceDto.name,

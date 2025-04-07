@@ -22,6 +22,7 @@ export class CompanyController {
 
   @Post()
   create(@Body() createCompanyDto: CreateCompanyDto) {
+    console.log(createCompanyDto);
     return this.companyService.create(createCompanyDto);
   }
 

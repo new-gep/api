@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Job } from 'src/job/entities/job.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Service {
@@ -14,8 +15,9 @@ export class Service {
     @Column({length: 50})
     status: string;
 
-    @Column()
-    id_work: number;
+    @ManyToOne(() => Job, job => job.id)
+    @JoinColumn({ name: 'id_work' })
+    id_work: Job;
 
     @Column({length: 50})
     create_at: string;

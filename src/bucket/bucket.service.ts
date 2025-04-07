@@ -2366,7 +2366,6 @@ export class BucketService {
     }
   }
   
-
   async findCompanySingnature(cnpj: string) {
     const signatureKey = `company/${cnpj}/Signature/Signature`;
     const signatureFile = await this.getFileFromBucket(signatureKey);

@@ -1,10 +1,13 @@
 import { Json } from 'aws-sdk/clients/robomaker';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Collaborator } from 'src/collaborator/entities/collaborator.entity';
+import { Company } from 'src/company/entities/company.entity';
+import { User } from 'src/user/entities/user.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity()
 export class Job {
     @PrimaryGeneratedColumn()
-    id: string;
+    id: number;
 
     @Column({length: 1})
     PCD: string;
@@ -45,17 +48,22 @@ export class Job {
     @Column({length: 255})
     benefits: string;
 
-    @Column({length: 14})
+    @ManyToOne(() => Company, company => company.CNPJ)
+    @JoinColumn({ name: 'CNPJ_company' })
     CNPJ_company: string;
 
-    @Column({length: 11})
-    CPF_collaborator: string;
+    @ManyToOne(() => Collaborator, collaborator => collaborator.CPF)
+    @JoinColumn({ name: 'CPF_collaborator' })
+    CPF_collaborator: Collaborator;
 
-    @Column({length: 5})
-    user_create: string;
+   
+    @ManyToOne(() => User, user => user.id)
+    @JoinColumn({ name: 'user_create' })
+    user_create: User;
 
-    @Column({length: 5})
-    user_edit: string;
+    @ManyToOne(() => User, user => user.id)
+    @JoinColumn({ name: 'user_edit' })
+    user_edit: User;
 
     @Column({length: 50})
     create_at: string;

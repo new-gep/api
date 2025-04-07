@@ -40,7 +40,7 @@ export class CompanyService {
           status: 409,
           message: 'CNPJ já cadastrado.',
         };
-      }
+      };
 
       const ParamsNewUser = {
         user: createCompanyDto.user,
@@ -56,7 +56,7 @@ export class CompanyService {
 
       if (checkUp) {
         return checkUp;
-      }
+      };
 
       const time = await FindTimeSP();
       createCompanyDto.create_at = time;
@@ -211,10 +211,10 @@ export class CompanyService {
         cnpj,
         'signature',
       );
-
       const response = await this.companyRepository.findOne({
         where: { CNPJ: cnpj },
       });
+
 
       if (response) {
         return {
@@ -386,7 +386,7 @@ export class CompanyService {
             name: 'Service',
             type: type,
             status: 'Pending',
-            id_work: parseInt(response.collaborator.id_work),
+            id_work: response.collaborator.id_work
           });
 
           // Verifica se o serviço foi criado com sucesso
