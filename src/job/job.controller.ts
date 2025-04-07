@@ -122,7 +122,6 @@ export class JobController {
   };
 
   
-
   @Get('process/demissional/:cnpj')
   jobProcessDemissional(@Param('cnpj') cnpj: string) {
     return this.jobService.findProcessDemissional(cnpj);

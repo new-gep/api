@@ -150,11 +150,6 @@ export class AbsenceService {
   }
 
   async update(id: number, updateAbsenceDto: UpdateAbsenceDto) {
-    Object.keys(updateAbsenceDto).forEach((key) => {
-      if (updateAbsenceDto[key] === undefined || updateAbsenceDto[key] === null) {
-        delete updateAbsenceDto[key];
-      }
-    });
     const time = findTimeSP();
     updateAbsenceDto.update_at = time;
     

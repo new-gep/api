@@ -50,7 +50,6 @@ export class CardCompanyService {
       };
 
     }catch(error){
-      console.log(error);
       return {
         status: 500,
         message: 'Error server internal',
@@ -117,11 +116,6 @@ export class CardCompanyService {
   }
 
   async update(id: number, updateCardCompanyDto: UpdateCardCompanyDto) {
-    Object.keys(updateCardCompanyDto).forEach((key) => {
-      if (updateCardCompanyDto[key] === undefined || updateCardCompanyDto[key] === null) {
-        delete updateCardCompanyDto[key];
-      }
-    });
     try{
       const time = findTimeSP();  
       updateCardCompanyDto.updated_at = time;

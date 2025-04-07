@@ -132,13 +132,18 @@ export class JobService {
 
         if (year === year_file && month === month_file && action.toLowerCase() !== 'signature') {
           
-          const responseJob = await this.findOne(item.id_work.toString());
+          const responseJob = await this.jobRepository.findOne({
+             //@ts-ignore
+            where: { id: item.id_work },
+            relations: ['CNPJ_company'],
+          });
+          //@ts-ignore
           if(responseJob && responseJob.status === 200){
-            const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator);
-            if(responseJob.job.CNPJ_company !== cnpj){
+            const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator.CPF);
+            if(responseJob.CNPJ_company.CNPJ !== cnpj){
               continue;
             }
-            
+               //@ts-ignore
             const ServiceComplet = { job: responseJob.job, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
             const pictureService = await this.bucketService.findOneService(item.id_work, item.type, year, month, item.name);
             const newName = item.name.replace(/^[^_]+/, 'Full');
@@ -246,7 +251,7 @@ export class JobService {
     const response = await this.jobRepository.find({
       where: {
         CPF_collaborator: IsNull(),
-        CNPJ_company: cnpj,
+        CNPJ_company: {CNPJ: cnpj},
         delete_at: IsNull(),
       },
     });
@@ -274,7 +279,7 @@ export class JobService {
   async findAllJobsCollaborator(cpf: string) {
     const response = await this.jobRepository.find({
       where: {
-        CPF_collaborator: cpf,
+        CPF_collaborator: {CPF: cpf},
         delete_at: IsNull(),
       },
     });
@@ -295,7 +300,7 @@ export class JobService {
     const collaboratorCompany = [] as any;
     const response = await this.jobRepository.find({
       where: [
-        { CNPJ_company: cnpj, CPF_collaborator: Not(IsNull()) }, 
+        { CNPJ_company: {CNPJ: cnpj}, CPF_collaborator: Not(IsNull()) }, 
       ],
       order: {
         delete_at: 'DESC', // Para garantir que, entre os deletados, o mais recente seja priorizado
@@ -378,6 +383,7 @@ export class JobService {
         delete_at: IsNull(),
         CPF_collaborator: IsNull(),
       }, 
+      relations: ['CNPJ_company'],  
     });
   
     // Filtra todas as vagas onde o candidato está aplicado (independente do step)
@@ -387,7 +393,7 @@ export class JobService {
         (candidate) => String(candidate.cpf) === String(CPF_collaborator)
       );
     }).map(async (job) => {
-      const company = await this.companyService.findOne(job.CNPJ_company);
+      const company = await this.companyService.findOne(job.CNPJ_company.CNPJ);
       return {
         ...job,
         company: company.company
@@ -488,12 +494,13 @@ export class JobService {
 
       const response = await this.jobRepository.find({
         where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
+        relations: ['CNPJ_company'],
       });
 
       const enrichedJobs = await Promise.all(
         response.map(async (job) => {
           const companyResponse = await this.companyService.findOne(
-            job.CNPJ_company,
+            job.CNPJ_company.CNPJ,
           );
           if (companyResponse.status === 200) {
             //@ts-ignore
@@ -527,7 +534,7 @@ export class JobService {
       const response = await this.jobRepository.find({
         where: {
           CPF_collaborator: IsNull(),
-          CNPJ_company: cnpj,
+          CNPJ_company: {CNPJ: cnpj},
           delete_at: IsNull(),
         },
       });
@@ -635,17 +642,15 @@ export class JobService {
       const response = await this.jobRepository.find({
         where: {
           CPF_collaborator: Not(IsNull()),
-          CNPJ_company: cnpj,
+          CNPJ_company: {CNPJ: cnpj},
           delete_at: IsNull(),
           motion_demission: Not(IsNull()),
         },
+        relations: ['CPF_collaborator'],
       });
 
       let collaboratorsInProcess = await Promise.all(
         response.flatMap(async (job) => {
-          const response = await this.collaboratorService.findOne(
-            job.CPF_collaborator,
-          );
 
           if (job && job.demission) {
             try {
@@ -660,14 +665,14 @@ export class JobService {
             }
           }
 
-          if (response && response.status === 200) {
-            delete response.collaborator.password;
-            delete response.collaborator.CPF;
+          if (job.CPF_collaborator) {
+            delete job.CPF_collaborator.password;
+            delete job.CPF_collaborator.CPF;
             //@ts-ignore
-            response.collaborator.picture = response.picture;
+            job.CPF_collaborator.picture = job.CPF_collaborator.picture;
             return {
               ...job,
-              collaborator: response.collaborator,
+              collaborator: job.CPF_collaborator,
             };
           }
         }),
@@ -711,13 +716,14 @@ export class JobService {
     }
   }
 
-  async findOne(id: string) {
+  async findOne(id: number) {
     try {
-      const response = await this.jobRepository.findOne({
-        where: { id: id },
-      });
-      if (response) {
-        const user = await this.userService.findOne(response.user_create);
+        const response = await this.jobRepository.findOne({
+          where: { id: id },
+          relations: ['user_create'],
+        });
+      if (response.user_create) {
+        // const user = await this.userService.findOne(response.user_create);
         response.candidates = JSON.parse(response.candidates);
         if (response.candidates) {
           for (let index = 0; index < response.candidates.length; index++) {
@@ -741,7 +747,7 @@ export class JobService {
         return {
           status: 200,
           job: response,
-          userCreate: user.user,
+          userCreate: response.user_create,
         };
       } else {
         return {

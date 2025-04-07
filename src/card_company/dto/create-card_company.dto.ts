@@ -3,7 +3,7 @@ export class CreateCardCompanyDto {
     number: string;
     cvc: string;
     expiry: string;
-    CNPJ: string;
-    user_create: string;
+    CNPJ: any;
+    user_create: any;
     created_at?: string;
 }

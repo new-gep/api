@@ -9,7 +9,7 @@ export class Job {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({length: 1})
+    @Column({length: 1, default:'0' })
     PCD: string;
 
     @Column({length: 50})
@@ -30,7 +30,7 @@ export class Job {
     @Column()
     time: Json;
 
-    @Column()
+    @Column({ type: 'longtext', nullable: true })
     candidates: string;
 
     @Column({length: 1})
@@ -50,12 +50,11 @@ export class Job {
 
     @ManyToOne(() => Company, company => company.CNPJ)
     @JoinColumn({ name: 'CNPJ_company' })
-    CNPJ_company: string;
+    CNPJ_company: Company;
 
     @ManyToOne(() => Collaborator, collaborator => collaborator.CPF)
     @JoinColumn({ name: 'CPF_collaborator' })
     CPF_collaborator: Collaborator;
-
    
     @ManyToOne(() => User, user => user.id)
     @JoinColumn({ name: 'user_create' })

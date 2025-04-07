@@ -6,7 +6,7 @@ export class UpdateAbsenceDto  extends PartialType(CreateAbsenceDto) {
     observation?: string;
     status ?: string;
     time  ?: string;
-    CPF_collaborator?:string;
-    id_work?: number;
+    CPF_collaborator?:any;
+    id_work?: any;
     update_at?: string;
 }

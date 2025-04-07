@@ -7,16 +7,16 @@ export class CardCompany {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({length: 150,})
+    @Column({length: 200,})
     name: string;
 
-    @Column({length: 16,})
+    @Column({length: 200,})
     number: string;
 
-    @Column({length: 3,})
+    @Column({length: 200,})
     cvc: string;
 
-    @Column({length: 5,})
+    @Column({length: 200,})
     expiry: string;
 
     @ManyToOne(() => Company, company => company.CNPJ)
@@ -34,9 +34,9 @@ export class CardCompany {
     @Column({length: 50,})
     created_at: string;
 
-    @Column({length: 50,})
+    @Column({length: 50, default:null })
     updated_at: string;
 
-    @Column({length: 50,})
+    @Column({length: 50, default:null })
     deleted_at: string;
 }
