@@ -1,10 +1,10 @@
 export class CreatePaymentDto {
-    CNPJ_Company: string;
+    CNPJ_Company: any;
     method: string;
     amount: number;
     status?: string;
     name?: string;
-    cpf?: string;
+    cpf?: any;
     email?: string;
     phone?: string;
     additionalInfo?: string;

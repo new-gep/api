@@ -6,6 +6,6 @@ export class UpdateCardCompanyDto extends PartialType(CreateCardCompanyDto) {
     expiry: string;
     number: string;
     name: string;
-    user_update: string;
+    user_update: any;
     updated_at: string;
 }

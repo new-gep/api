@@ -11,8 +11,8 @@ export class UpdateJobDto {
     motion_demission?:string;
     demission?:string;
     candidates?:any
-    user_edit ?:string;
+    user_edit ?:any;
     update_at ?:string;
-    CPF_collaborator?:string;
+    CPF_collaborator?:any;
     transportation_voucher?:string;
 }

@@ -83,7 +83,7 @@ export class PictureService {
   async findSignatureDismissal(CPF_collaborator: string, id_work: number){
     try {
       const pictures = await this.pictureRepository.find({
-        where: { CPF_collaborator: CPF_collaborator, id_work: id_work },
+        where: { CPF_collaborator: {CPF: CPF_collaborator}, id_work: {id: id_work} },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico
       if (!pictures || pictures.length === 0) {
@@ -121,7 +121,7 @@ export class PictureService {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({
         where: {
-          CPF_collaborator: CPF_collaborator
+          CPF_collaborator: {CPF: CPF_collaborator}
         },
       });
       // Se o array estiver vazio ou indefinido, logue o resultado para diagnóstico

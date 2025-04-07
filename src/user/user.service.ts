@@ -120,8 +120,9 @@ export class UserService {
 
   async singIn(singInUserDto: SingInUserDto) {
     const user = await this.userRepository.findOne({
-      where: { user: singInUserDto.user },
+      where: { user: singInUserDto.user, delete_at: IsNull() },
     });
+    console.log(user);
 
     if (!user) {
       return {
@@ -150,7 +151,8 @@ export class UserService {
         hierarchy: user.hierarchy,
         cnpj: user.CNPJ_company,
         lastUpdate: user.update_at,
-      });
+      })
+
       return {
         status: 200,
         token: token,
@@ -169,9 +171,9 @@ export class UserService {
         CNPJ_company: { CNPJ: cnpj },
         hierarchy: '0',
       },
+      relations: ['CNPJ_company'],
     });
 
-    console.log(response);
 
     if (response) {
       return {
@@ -230,6 +232,13 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    // Remove chaves com undefined ou null
+    Object.keys(updateUserDto).forEach((key) => {
+      if (updateUserDto[key] === undefined || updateUserDto[key] === null) {
+        delete updateUserDto[key];
+      }
+    });
+
     if (updateUserDto.confirmPassword.trim() === '') {
       // A string está em branco (apenas espaços, tabs, etc.)
       delete updateUserDto.confirmPassword;
@@ -240,12 +249,14 @@ export class UserService {
         updateUserDto.password,
         response.user.password,
       );
+
       if (!auth) {
         return {
           status: 404,
           message: 'Senha atual incorreta!',
         };
       }
+
       updateUserDto.password = await bcrypt.hash(
         updateUserDto.confirmPassword,
         10,
@@ -254,14 +265,20 @@ export class UserService {
     }
     const time = FindTimeSP();
     updateUserDto.update_at = time;
+
     try {
       const response = await this.userRepository.update(id, updateUserDto);
+      console.log('response update',response.affected);
       if (response.affected === 1) {
-        const user = await this.findOne(id);
+        const user = await this.userRepository.findOne({
+          where: { id },
+          relations: ['CNPJ_company'], // <- aqui você traz a empresa!
+        });
+        console.log('user',user.CNPJ_company.CNPJ);
         //@ts-ignore
-        console.log({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
+        // console.log({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         //@ts-ignore
-        const token = await GenerateToken({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
+        const token = await GenerateToken({id: user.id, avatar: user.avatar, user: user.user, name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company.CNPJ,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         return {
           status: 200,
           message: 'Usuário atualizado com sucesso!',
@@ -274,7 +291,7 @@ export class UserService {
         message: 'Não foi possivel atualizar o usuário, algo deu errado!',
       };
     } catch (e) {
-      console.log(e);
+      console.log('error update',e);
       return {
         status: 500,
         message: 'Erro interno.',

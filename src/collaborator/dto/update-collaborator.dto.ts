@@ -2,7 +2,7 @@ import { PartialType } from '@nestjs/swagger';
 import { CreateCollaboratorDto } from './create-collaborator.dto';
 
 export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
-    cpf     ?: string;
+    cpf     ?: any;
     email   ?: string;
     name    ?: string;
     sex     ?: string;
@@ -24,7 +24,7 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
     uf       ?:string;
     complement?:string;
     number   ?:string;
-    id_work  ?:number | null;
+    id_work  ?:any;
     PCD  ?:string;
     update_at?:string;
 };

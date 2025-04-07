@@ -46,7 +46,6 @@ export class CollaboratorService {
           status : 409,
           message: 'Algo deu errado, tente mais tarde'
         }
-      break
     }
   };
   
@@ -215,6 +214,7 @@ export class CollaboratorService {
   };
 
   async update(CPF: string, updateCollaboratorDto: UpdateCollaboratorDto) {
+    
     const time = FindTimeSP();
     updateCollaboratorDto.update_at = time;
     if(updateCollaboratorDto.password){

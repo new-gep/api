@@ -186,6 +186,11 @@ export class ServiceService {
   }
 
   async update(id: number, updateServiceDto: UpdateServiceDto) {
+    Object.keys(updateServiceDto).forEach((key) => {
+      if (updateServiceDto[key] === undefined || updateServiceDto[key] === null) {
+        delete updateServiceDto[key];
+      }
+    });
     console.log("updateServiceDto", updateServiceDto);
     const time = findTimeSP();
     updateServiceDto.update_at = time;

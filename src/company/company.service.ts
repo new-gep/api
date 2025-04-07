@@ -238,6 +238,11 @@ export class CompanyService {
   }
 
   async update(CNPJ: string, updateCompanyDto: UpdateCompanyDto) {
+    Object.keys(updateCompanyDto).forEach((key) => {
+      if (updateCompanyDto[key] === undefined || updateCompanyDto[key] === null) {
+        delete updateCompanyDto[key];
+      }
+    });
     const time = FindTimeSP();
     updateCompanyDto.update_at = time;
     try {
