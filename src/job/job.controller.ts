@@ -94,6 +94,7 @@ export class JobController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
+    //@ts-ignore
     return this.jobService.findOne(id);
   };
 

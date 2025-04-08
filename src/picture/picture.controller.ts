@@ -32,6 +32,11 @@ export class PictureController {
     return this.pictureService.findOne(CPF_collaborator);
   }
 
+  @Get('findOnePicture/:document/:cpf/:jobId')
+  findOnePicture(@Param('document') document: string, @Param('cpf') CPF_collaborator: string, @Param('jobId') jobId: number) {
+    return this.pictureService.findOnePicture(document, CPF_collaborator, jobId);
+  }
+
   @Patch(':cpf')
   update(@Param('cpf') CPF: string, @Body() updatePictureDto: UpdatePictureDto) {
     return this.pictureService.update(CPF, updatePictureDto);

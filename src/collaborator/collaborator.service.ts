@@ -9,6 +9,7 @@ import { BucketService } from 'src/bucket/bucket.service';
 import * as bcrypt from 'bcrypt';
 import FindTimeSP from 'hooks/time';
 import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
+import { UpdateIdWorkCollaboratorDto } from './dto/updateIdWork-collaborator.dto';
 @Injectable()
 export class CollaboratorService {
   constructor(
@@ -147,8 +148,9 @@ export class CollaboratorService {
   };
 
   async findOne(CPF: string) {
-    const response = await this.collaboratorRepository.findOne({ where: { CPF } });
-    const picture = await this.findFile(CPF, 'picture')
+    let response = await this.collaboratorRepository.findOne({ where: { CPF }, relations: ['id_work'] });
+    response.id_work.time = JSON.parse(response.id_work.time);
+    const picture  = await this.findFile(CPF, 'picture')
     if(response){
       return {
         status:200,
@@ -244,6 +246,22 @@ export class CollaboratorService {
       }
     }
   };  
+
+  async updateIdWork(CPF: string, updateCollaboratorDto: UpdateIdWorkCollaboratorDto) {
+    const time = FindTimeSP();
+    updateCollaboratorDto.update_at = time;
+    const response = await this.collaboratorRepository.update(CPF, updateCollaboratorDto);
+    if(response.affected === 1){
+      return {
+        status: 200,
+        message:'Id updated successfully'
+      }
+    }
+    return {
+      status:404,
+      message:'Error updating id work'
+    }
+  };
 
   remove(id: number) {
     return `This action removes a #${id} collaborator`;

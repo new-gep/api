@@ -17,8 +17,8 @@ export class PictureService {
     try {
       const picture = await this.pictureRepository.findOne({
         where: {
-          CPF_collaborator: createPictureDto.CPF_collaborator,
-          id_work: createPictureDto.id_work,
+          CPF_collaborator: {CPF: createPictureDto.CPF_collaborator},
+          id_work: {id: createPictureDto.id_work},
           picture: createPictureDto.picture,
           delete_at: IsNull(),
         },
@@ -146,6 +146,25 @@ export class PictureService {
       return {
         status: 200,
         pictures: pictures,
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'Erro interno',
+      };
+    }
+  }
+
+  async findOnePicture(document: string, CPF_collaborator: string, jobId: number) {
+    try {
+      const picture = await this.pictureRepository.findOne({
+        where: { CPF_collaborator: { CPF: CPF_collaborator }, id_work: { id: jobId } , picture: document },
+      });
+
+      return {
+        status: 200,
+        pictures: picture,
       };
     } catch (e) {
       console.log(e);

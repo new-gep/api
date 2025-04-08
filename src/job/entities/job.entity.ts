@@ -33,7 +33,7 @@ export class Job {
     @Column({ type: 'longtext', nullable: true })
     candidates: string;
 
-    @Column({length: 1})
+    @Column({length: 1, nullable: true})
     transportation_voucher: string;
 
     @Column({length: 20})

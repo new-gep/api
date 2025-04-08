@@ -121,8 +121,8 @@ export class UserService {
   async singIn(singInUserDto: SingInUserDto) {
     const user = await this.userRepository.findOne({
       where: { user: singInUserDto.user, delete_at: IsNull() },
+      relations: ['CNPJ_company'],
     });
-    console.log(user);
 
     if (!user) {
       return {
@@ -149,7 +149,7 @@ export class UserService {
         email: user.email,
         phone: user.phone,
         hierarchy: user.hierarchy,
-        cnpj: user.CNPJ_company,
+        cnpj: user.CNPJ_company.CNPJ,
         lastUpdate: user.update_at,
       })
 
@@ -173,7 +173,6 @@ export class UserService {
       },
       relations: ['CNPJ_company'],
     });
-
 
     if (response) {
       return {
@@ -274,9 +273,9 @@ export class UserService {
           where: { id },
           relations: ['CNPJ_company'], // <- aqui você traz a empresa!
         });
-        console.log('user',user.CNPJ_company.CNPJ);
+        // console.log('user',user.CNPJ_company.CNPJ);
         //@ts-ignore
-        // console.log({id: user.id,avatar: user.avatar,user: user.user,name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company,lastUpdate: user.update_at, hierarchy: user.hierarchy});
+        console.log({id: user.id, avatar: user.avatar, user: user.user, name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company.CNPJ,lastUpdate: user.update_at, hierarchy: user.hierarchy})
         //@ts-ignore
         const token = await GenerateToken({id: user.id, avatar: user.avatar, user: user.user, name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company.CNPJ,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         return {

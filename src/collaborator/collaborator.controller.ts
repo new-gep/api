@@ -5,6 +5,7 @@ import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
 import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
+import { UpdateIdWorkCollaboratorDto } from './dto/updateIdWork-collaborator.dto';
 @Controller('collaborator')
 export class CollaboratorController {
   constructor(private readonly collaboratorService: CollaboratorService) {}
@@ -61,6 +62,11 @@ export class CollaboratorController {
   @Patch(':CPF')
   update(@Param('CPF') CPF: string, @Body() updateCollaboratorDto: UpdateCollaboratorDto) {
     return this.collaboratorService.update(CPF, updateCollaboratorDto);
+  };
+
+  @Patch('idWork/:CPF')
+  updateIdWork(@Param('CPF') CPF: string, @Body() updateCollaboratorDto: UpdateIdWorkCollaboratorDto) {
+    return this.collaboratorService.updateIdWork(CPF, updateCollaboratorDto);
   };
 
   @Delete(':id')

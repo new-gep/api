@@ -29,7 +29,7 @@ export class AbsenceService {
       createAbsenceDto.CPF_collaborator = createAbsenceDto.CPF_collaborator;
 
       console.log("createAbsenceDto após modificações:", createAbsenceDto);
-
+      //@ts-ignore
       const newAbsence = await this.absenceRepository.save(createAbsenceDto);
       console.log("newAbsence após save:", newAbsence);
 

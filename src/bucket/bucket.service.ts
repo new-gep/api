@@ -571,7 +571,6 @@ export class BucketService {
           case 'picture':
             const pictureKey = `collaborator/${cpf}/Picture`;
             const pictureFile = await this.getFileFromBucket(pictureKey);
-
             return {
               status: 200,
               type: 'picture',
@@ -1014,7 +1013,6 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(jobFile).promise();
-      // console.log(s3Response);
       return {
         status: 200,
         message: 'Upload realizado com sucesso',
@@ -1767,7 +1765,7 @@ export class BucketService {
         break;
       case 'dismissal_communication_dynamic':
         if (signature == '1') {
-          console.log('signature', signature);
+          // console.log('signature', signature);
           const dynamicSignatureKey = `job/${id}/Dismissal/Signature/Communication/Collaborator`;
           const dynamicSignatureFile =
             await this.getFileFromBucket(dynamicSignatureKey);

@@ -31,9 +31,10 @@ export class JobService {
 
   async create(createJobDto: CreateJobDto) {
     try {
+      console.log('createJobDto',createJobDto);
       const time = FindTimeSP();
       createJobDto.create_at = time;
-
+      //@ts-ignore
       const newJob = await this.jobRepository.save(createJobDto);
 
       if (newJob) {
@@ -92,6 +93,7 @@ export class JobService {
     const response = await this.absenceService.create(createAbsenceDto);
     
     if (response.status === 201) {
+      //@ts-ignore
       uploadAbsenceDto.name = `${uploadAbsenceDto.name}_${response.absence.id}`;
       const uploadResponse = await this.absenceService.UploadJobFileAbsence(
         file,
@@ -139,6 +141,7 @@ export class JobService {
           });
           //@ts-ignore
           if(responseJob && responseJob.status === 200){
+            //@ts-ignore
             const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator.CPF);
             if(responseJob.CNPJ_company.CNPJ !== cnpj){
               continue;
@@ -168,8 +171,9 @@ export class JobService {
         }
 
         if(action.toLowerCase() === 'signature' && year === year_file && month === month_file){
+          //@ts-ignore
           const responseJob = await this.findOne(item.id_work.toString());
-  
+          //@ts-ignore
           if(responseJob.job.CNPJ_company !== cnpj){
             continue;
           }
@@ -302,6 +306,7 @@ export class JobService {
       where: [
         { CNPJ_company: {CNPJ: cnpj}, CPF_collaborator: Not(IsNull()) }, 
       ],
+      relations: ['CPF_collaborator'],
       order: {
         delete_at: 'DESC', // Para garantir que, entre os deletados, o mais recente seja priorizado
         update_at: 'DESC' // Caso queira priorizar o mais recente em termos de atualização, caso seja necessário
@@ -313,9 +318,9 @@ export class JobService {
       const seenCpfs = new Set();
       uniqueJobs = response.filter(job => {
         // Se o CPF já foi visto, verifica se o registro atual tem prioridade
-        if (seenCpfs.has(job.CPF_collaborator)) {
+        if (seenCpfs.has(job.CPF_collaborator.CPF)) {
           // Encontra o registro existente com o mesmo CPF
-          const existingJob = response.find(j => j.CPF_collaborator === job.CPF_collaborator);
+          const existingJob = response.find(j => j.CPF_collaborator.CPF === job.CPF_collaborator.CPF);
           
           // Se o registro atual tem `demission: null` e o existente não, substitui
           if (job.demission === null && existingJob.demission !== null) {
@@ -328,7 +333,7 @@ export class JobService {
           return false;
         } else {
           // Se o CPF não foi visto, adiciona ao Set e mantém o registro
-          seenCpfs.add(job.CPF_collaborator);
+          seenCpfs.add(job.CPF_collaborator.CPF);
           return true;
         }
       });
@@ -336,7 +341,7 @@ export class JobService {
       if (uniqueJobs.length > 0 && uniqueJobs.length > 0) {
         await Promise.all(
           uniqueJobs.map(async (job) => {
-            const CPF = job.CPF_collaborator;
+            const CPF = job.CPF_collaborator.CPF;
             const collaborator = await this.collaboratorService.findOne(CPF);
             if (collaborator.status === 200) {
               collaboratorCompany.push({
@@ -492,11 +497,10 @@ export class JobService {
   async findAll() {
     try {
 
-      const response = await this.jobRepository.find({
+      let response = await this.jobRepository.find({
         where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
         relations: ['CNPJ_company'],
       });
-
       const enrichedJobs = await Promise.all(
         response.map(async (job) => {
           const companyResponse = await this.companyService.findOne(
@@ -718,10 +722,11 @@ export class JobService {
 
   async findOne(id: number) {
     try {
-        const response = await this.jobRepository.findOne({
+        let response = await this.jobRepository.findOne({
           where: { id: id },
           relations: ['user_create'],
         });
+        response.time = JSON.parse(response.time);
       if (response.user_create) {
         // const user = await this.userService.findOne(response.user_create);
         response.candidates = JSON.parse(response.candidates);
