@@ -80,7 +80,6 @@ export class JobService {
   }
 
   async UploadJobFileAbsence(uploadAbsenceDto: UploadAbsenceDto, file: Express.Multer.File) {
-    
     const createAbsenceDto: CreateAbsenceDto = {
       id_work: Number(uploadAbsenceDto.id_work),
       name: uploadAbsenceDto.name,
@@ -88,10 +87,10 @@ export class JobService {
       status: null,
       CPF_collaborator: uploadAbsenceDto.CPF_collaborator,
       create_at: null,
+      date: uploadAbsenceDto.date
     };
-
+    console.log("createAbsenceDto", createAbsenceDto);
     const response = await this.absenceService.create(createAbsenceDto);
-    
     if (response.status === 201) {
       //@ts-ignore
       uploadAbsenceDto.name = `${uploadAbsenceDto.name}_${response.absence.id}`;
@@ -457,28 +456,30 @@ export class JobService {
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
     const response = await this.bucketService.findServices(id, typeService, year, month);
-    
     if (response && Array.isArray(response)) {
       // console.log("Response inicial:", response);
       // return;
       const enrichedResponse = await Promise.all(
         response.map(async (item) => {
           try {
-            // console.log("Item sendo processado:", item);
-            // return;
-            const service = await this.serviceService.findOne(item.id);
-            console.log("Serviço encontrado:", service);
+            let service
+            if(typeService.toLowerCase() == 'absence'){
+              const number = parseInt(item.fileName.split("_")[1]);
+              service = await this.absenceService.findOne(number);
+            }else{
+              service = await this.serviceService.findOne(item.id);
+            }
+            // console.log("Serviço encontrado:", service);
             
             if (service?.status === 200) {
               const enrichedItem = {
                 ...item,
-                details: service.service
+                details: typeService.toLowerCase() == 'absence' ? service.absence : service.service
               };
-              console.log("Item enriquecido:", enrichedItem);
+              // console.log("enrichedItem", enrichedItem.length);
               return enrichedItem;
             }
             
-            console.log("Item sem enriquecimento:", item);
             return item;
           } catch (error) {
             console.error("Erro ao buscar detalhes do serviço para o item", item.id, error);
@@ -487,9 +488,7 @@ export class JobService {
         })
       );
       
-      console.log("Response final enriquecido:", enrichedResponse);
-      
-      // console.log("response", enrichedResponse);
+      // console.log("contagem", enrichedResponse.length);
       return enrichedResponse;
     }
   }

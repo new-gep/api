@@ -5,4 +5,5 @@ export class UploadAbsenceDto {
     type: string;
     name: string;
     CPF_collaborator: string;
+    date: any;
 }

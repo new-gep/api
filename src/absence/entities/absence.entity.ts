@@ -6,7 +6,7 @@ import { Entity, Column, PrimaryGeneratedColumn, JoinColumn, ManyToOne } from 't
 @Entity()
 export class Absence {
     @PrimaryGeneratedColumn()
-    id: string;
+    id: number;
 
     @Column({length: 50})
     name: string;
@@ -14,8 +14,8 @@ export class Absence {
     @Column({length: 50})
     status: string;
 
-    @Column({length: 120})
-    observation: string;
+    @Column({length: 50})
+    date: string;
 
     @ManyToOne(() => Collaborator, collaborator => collaborator.CPF)
     @JoinColumn({ name: 'CPF_collaborator' })

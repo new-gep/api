@@ -1,7 +1,4 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateAbsenceDto } from './create-absence.dto';
-
-export class UpdateAbsenceDto  extends PartialType(CreateAbsenceDto) {
+export class UpdateAbsenceDto {
     name?: string;
     observation?: string;
     status ?: string;

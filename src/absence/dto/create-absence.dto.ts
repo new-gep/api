@@ -5,4 +5,5 @@ export class CreateAbsenceDto {
     CPF_collaborator:string;
     id_work: number;
     create_at:string;
+    date?: Date;
 }

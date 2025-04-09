@@ -1948,17 +1948,17 @@ export class BucketService {
     const paste = await this.checkPaste(
       `job/${id}/${typeService}/${year}/${month}`,
     );
+    
     console.log("Pasta encontrada:", paste);
     console.log("Caminho da pasta:", `job/${id}/${typeService}/${year}/${month}`);
+   
 
     // Mantém apenas entradas que são arquivos (valores começam com '/')
     const filterPaste = Object.fromEntries(
       Object.entries(paste).filter(
-        ([key, value]) => value.startsWith('/') && key !== '0', // Adicione esta condição
+        ([key, value]) => value.startsWith('/') && key, // Adicione esta condição
       ),
     );
-    console.log("Arquivos filtrados:", filterPaste);
-
     // Itera sobre cada arquivo usando CHAVE + VALOR
     for (const [fileId, filePath] of Object.entries(filterPaste)) {
       console.log("Processando arquivo:", {fileId, filePath});
@@ -2008,8 +2008,6 @@ export class BucketService {
       }
     }
 
-   
-
     if (folderServiceTreated.length === 0) {
       console.log("Nenhum arquivo encontrado");
       return {
@@ -2054,6 +2052,7 @@ export class BucketService {
 
   async uploadService(file: Express.Multer.File, id_work: any, typeService: any, year: any, month: any, name: string, buffer?: any) {
     const path = `job/${id_work}/${typeService}/${year}/${month}/${name}`;
+    // console.log("path", path);
 
     const mimeType =
       file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;

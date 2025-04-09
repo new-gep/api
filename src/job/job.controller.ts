@@ -31,7 +31,8 @@ export class JobController {
       id_work: string,
       type: string,
       name: string,
-      CPF_collaborator: string
+      CPF_collaborator: string,
+      date: Date
     } 
   ) {
     return this.jobService.UploadJobFileAbsence({
@@ -41,7 +42,8 @@ export class JobController {
       type: body.type,
       name: body.name,
       //@ts-ignore
-      CPF_collaborator: body.cpf
+      CPF_collaborator: body.cpf,
+      date: body.date
     }, file);
   };
 
@@ -93,8 +95,7 @@ export class JobController {
   };
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    //@ts-ignore
+  findOne(@Param('id') id: number) {
     return this.jobService.findOne(id);
   };
 

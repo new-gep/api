@@ -20,32 +20,18 @@ export class AbsenceService {
   async create(createAbsenceDto: CreateAbsenceDto) {
     try {
       const time = findTimeSP();
-
-      createAbsenceDto.id_work = createAbsenceDto.id_work;
-      createAbsenceDto.name = `${createAbsenceDto.name}`;
-      createAbsenceDto.observation = null;
-      createAbsenceDto.status = 'Pending';
       createAbsenceDto.create_at = time;
       createAbsenceDto.CPF_collaborator = createAbsenceDto.CPF_collaborator;
-
-      console.log("createAbsenceDto após modificações:", createAbsenceDto);
+      createAbsenceDto.status = 'pending';
       //@ts-ignore
       const newAbsence = await this.absenceRepository.save(createAbsenceDto);
-      console.log("newAbsence após save:", newAbsence);
-
       if (newAbsence) {
-        console.log("Retornando sucesso com:", {
-          status: 201,
-          message: 'Justificativa criada.',
-          absence: newAbsence,
-        });
         return {
           status: 201,
           message: 'Justificativa criada.',
           absence: newAbsence,
         };
       } else {
-        console.log("newAbsence é null/undefined");
         return {
           status: 500,
           message: 'Algo deu errado, tente mais tarde.',
@@ -97,9 +83,7 @@ export class AbsenceService {
 
   async findOne(id: number) {
     try {
-      const response = await this.absenceRepository.findOne({
-        where: { id: id.toString() },
-      });
+      const response = await this.absenceRepository.findOne({ where: { id } });
       
       if (response) {
         return {
