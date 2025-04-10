@@ -151,7 +151,9 @@ export class CollaboratorService {
     let response = await this.collaboratorRepository.findOne({ where: { CPF }, relations: ['id_work'] });
     const picture  = await this.findFile(CPF, 'picture')
     if(response){
-      response.id_work.time = JSON.parse(response.id_work.time);
+      if(response.id_work){
+        response.id_work.time = JSON.parse(response.id_work.time);
+      }
       return {
         status:200,
         collaborator:response,
@@ -226,7 +228,6 @@ export class CollaboratorService {
       const response = await this.collaboratorRepository.update(CPF,updateCollaboratorDto);
       if(response.affected === 1){
         const collaborator = await this.findOne(CPF)
-        console.log(collaborator);
         return {
           status: 200,
           collaborator:collaborator,
@@ -248,7 +249,9 @@ export class CollaboratorService {
   };  
 
   async updateIdWork(CPF: string, updateCollaboratorDto: UpdateIdWorkCollaboratorDto) {
+    console.log(updateCollaboratorDto);
     const time = FindTimeSP();
+    console.log(time);
     updateCollaboratorDto.update_at = time;
     const response = await this.collaboratorRepository.update(CPF, updateCollaboratorDto);
     if(response.affected === 1){
