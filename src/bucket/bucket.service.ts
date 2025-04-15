@@ -1807,9 +1807,6 @@ export class BucketService {
         } else {
           const DynamicKey = `job/${id}/Dismissal/Dynamic/Communication/${dynamic}`;
           const DynamicFile = await this.getFileFromBucket(DynamicKey);
-          if (dynamic == 'TesteTeste') {
-            console.log(DynamicFile);
-          }
           if (!DynamicFile) {
             return {
               status: 404,
@@ -1949,8 +1946,7 @@ export class BucketService {
       `job/${id}/${typeService}/${year}/${month}`,
     );
     
-    console.log("Pasta encontrada:", paste);
-    console.log("Caminho da pasta:", `job/${id}/${typeService}/${year}/${month}`);
+
    
 
     // Mantém apenas entradas que são arquivos (valores começam com '/')
@@ -1961,16 +1957,16 @@ export class BucketService {
     );
     // Itera sobre cada arquivo usando CHAVE + VALOR
     for (const [fileId, filePath] of Object.entries(filterPaste)) {
-      console.log("Processando arquivo:", {fileId, filePath});
+  
       
       const servicesKey = `job/${id}/${typeService}/${year}/${month}${filePath}`;
-      console.log("Chave do serviço:", servicesKey);
+
       
       const servicesFile = await this.getFileFromBucket(servicesKey);
-      console.log("Arquivo encontrado:", servicesFile);
+  
 
       if (!servicesFile) {
-        console.log("Arquivo não encontrado:", filePath);
+      
         folderServiceTreated.push({
           status: 404,
           message: `Arquivo ${filePath} não encontrado`,
@@ -1982,9 +1978,9 @@ export class BucketService {
 
       // Processa PDF
       if (servicesFile.ContentType === 'application/pdf') {
-        console.log("Processando PDF:", filePath);
+    
         const url = await this.GenerateAccess(servicesKey);
-        console.log("URL gerada:", url);
+      
         
         folderServiceTreated.push({
           status: 200,
@@ -1996,7 +1992,7 @@ export class BucketService {
           fileName: filePath.split('/').pop(),
         });
       } else {
-        console.log("Processando imagem:", filePath);
+       
         // Processa Imagem
         folderServiceTreated.push({
           status: 200,
@@ -2009,7 +2005,6 @@ export class BucketService {
     }
 
     if (folderServiceTreated.length === 0) {
-      console.log("Nenhum arquivo encontrado");
       return {
         status: 404,
         message: 'Nenhum arquivo encontrado',

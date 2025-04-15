@@ -155,7 +155,6 @@ export class PaymentService {
         break;
       case 'creditcard':
         //@ts-ignore
-        console.log('generatePaymentDto.CreatePaymentDto.numberCard', generatePaymentDto.CreatePaymentDto.expiresAtCard);
         payment_params.mainPaymentMethodId = 'creditcard'
         payment_params.PaymentMethodCreditCard = {
           Card:{

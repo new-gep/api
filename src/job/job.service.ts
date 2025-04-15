@@ -31,7 +31,6 @@ export class JobService {
 
   async create(createJobDto: CreateJobDto) {
     try {
-      console.log('createJobDto',createJobDto);
       const time = FindTimeSP();
       createJobDto.create_at = time;
       //@ts-ignore
@@ -89,7 +88,6 @@ export class JobService {
       create_at: null,
       date: uploadAbsenceDto.date
     };
-    console.log("createAbsenceDto", createAbsenceDto);
     const response = await this.absenceService.create(createAbsenceDto);
     if (response.status === 201) {
       //@ts-ignore
@@ -624,8 +622,6 @@ export class JobService {
         return acc;
       }, {});
     
-
-
       return {
         status: 200,
         candidates: filteredCandidates,
@@ -670,12 +666,12 @@ export class JobService {
 
           if (job.CPF_collaborator) {
             delete job.CPF_collaborator.password;
-            delete job.CPF_collaborator.CPF;
-            //@ts-ignore
-            job.CPF_collaborator.picture = job.CPF_collaborator.picture;
+            console.log()
+            const picture = await this.collaboratorService.findFile(job.CPF_collaborator.CPF, 'picture') 
             return {
               ...job,
               collaborator: job.CPF_collaborator,
+              picture: picture
             };
           }
         }),
@@ -684,10 +680,11 @@ export class JobService {
       collaboratorsInProcess = collaboratorsInProcess.filter(collaborator => collaborator !== null);
 
       if(collaboratorsInProcess.length > 0){
-        stepCounts = collaboratorsInProcess.reduce((acc, collaborator) => {
+        stepCounts = collaboratorsInProcess.reduce(async (acc, collaborator) => {
           try {
             // Acessar o campo "demission" diretamente
             const demission = collaborator.demission;
+
         
             // Obter o step e criar a chave dinamicamente
             if (demission && typeof demission === 'object') {
@@ -695,7 +692,7 @@ export class JobService {
               const step = `step${demission.step}`;
               // Incrementar o contador para o step correspondente
               acc[step] = (acc[step] || 0) + 1;
-            }
+            };
           } catch (error) {
             console.error("Erro ao processar demission:", collaborator.demission, error);
           }
@@ -703,7 +700,6 @@ export class JobService {
           return acc;
         }, {});
       }
-
 
       return {
         status: 200,
@@ -723,12 +719,14 @@ export class JobService {
     try {
         let response = await this.jobRepository.findOne({
           where: { id: id },
-          relations: ['user_create'],
+          relations: ['user_create', 'CPF_collaborator'],
         });
-        response.time = JSON.parse(response.time);
       if (response.user_create) {
-        // const user = await this.userService.findOne(response.user_create);
-        response.candidates = JSON.parse(response.candidates);
+          if(response?.time){
+            response.time = JSON.parse(response.time);
+          }
+          // const user = await this.userService.findOne(response.user_create);
+          response.candidates = JSON.parse(response.candidates);
         if (response.candidates) {
           for (let index = 0; index < response.candidates.length; index++) {
             const candidate: any = response.candidates[index];
@@ -771,6 +769,7 @@ export class JobService {
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
     updateJobDto.update_at = time;
+    
     try {
       const response = await this.jobRepository.update(id, updateJobDto);
       if (response.affected === 1) {

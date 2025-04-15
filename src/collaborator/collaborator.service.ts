@@ -249,9 +249,7 @@ export class CollaboratorService {
   };  
 
   async updateIdWork(CPF: string, updateCollaboratorDto: UpdateIdWorkCollaboratorDto) {
-    console.log(updateCollaboratorDto);
     const time = FindTimeSP();
-    console.log(time);
     updateCollaboratorDto.update_at = time;
     const response = await this.collaboratorRepository.update(CPF, updateCollaboratorDto);
     if(response.affected === 1){

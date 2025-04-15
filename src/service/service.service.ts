@@ -61,7 +61,6 @@ export class ServiceService {
   }
 
   async uploadFile(updateServiceDto: UpdateServiceDto, file: Express.Multer.File) {
-    console.log("updateServiceDto", updateServiceDto);
     return await this.bucketService.uploadService(
       file,
       updateServiceDto.name,
@@ -78,7 +77,6 @@ export class ServiceService {
         where: { delete_at: IsNull() },
       });
 
-      console.log("response findAll", response);
       // return;
       if (response) {
         return {
@@ -191,7 +189,6 @@ export class ServiceService {
         delete updateServiceDto[key];
       }
     });
-    console.log("updateServiceDto", updateServiceDto);
     const time = findTimeSP();
     updateServiceDto.update_at = time;
 

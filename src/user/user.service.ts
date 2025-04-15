@@ -267,15 +267,11 @@ export class UserService {
 
     try {
       const response = await this.userRepository.update(id, updateUserDto);
-      console.log('response update',response.affected);
       if (response.affected === 1) {
         const user = await this.userRepository.findOne({
           where: { id },
           relations: ['CNPJ_company'], // <- aqui você traz a empresa!
         });
-        // console.log('user',user.CNPJ_company.CNPJ);
-        //@ts-ignore
-        console.log({id: user.id, avatar: user.avatar, user: user.user, name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company.CNPJ,lastUpdate: user.update_at, hierarchy: user.hierarchy})
         //@ts-ignore
         const token = await GenerateToken({id: user.id, avatar: user.avatar, user: user.user, name: user.name,email: user.email, phone: user.phone,cnpj: user.CNPJ_company.CNPJ,lastUpdate: user.update_at, hierarchy: user.hierarchy});
         return {

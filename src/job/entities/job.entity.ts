@@ -21,10 +21,10 @@ export class Job {
     @Column({length: 50})
     salary: string;
 
-    @Column({length: 1, default:null })
+    @Column({ type: 'longtext', nullable: true })
     demission: string;
 
-    @Column({length: 50, default:null })
+    @Column({length: 200, default:null })
     motion_demission: string;
 
     @Column()

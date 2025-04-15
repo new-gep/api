@@ -9,7 +9,6 @@ export class LeadController {
 
   @Post()
   create(@Body() createLeadDto: CreateLeadDto) {
-    console.log(createLeadDto);
     return this.leadService.create(createLeadDto);
   }
 
