@@ -143,6 +143,23 @@ export class CollaboratorService {
     return this.bucketService.findCollaborator(cpf, file)
   };
 
+  async findDossie(cpf:string,){
+    const collaborator = await this.collaboratorRepository.findOne({
+      where: { CPF: cpf }, 
+      relations: ['id_work']
+    }
+  );
+
+    if(!collaborator){
+      return {
+        status: 404,
+        message: 'collaborator does not exist'
+      }
+    }
+
+    return this.bucketService.findDossieCollaborator(cpf, collaborator.id_work.id)
+  };
+
   findAll() {
     return `This action returns all collaborator`;
   };

@@ -36,6 +36,11 @@ export class CollaboratorController {
     return this.collaboratorService.findAll();
   };
 
+  @Get('dossie/:cpf')
+  findDossie(@Param('cpf') cpf: string,) {
+    return this.collaboratorService.findDossie(cpf);
+  };
+
   @Get('/file/:cpf/:file')
   findFile(
     @Param('cpf') cpf: string,

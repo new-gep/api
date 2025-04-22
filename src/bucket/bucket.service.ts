@@ -2375,4 +2375,118 @@ export class BucketService {
       path: signatureFile.base64Data,
     };
   }
+
+  // collaborator
+
+  async findDossieCollaborator(cpf:string, id_work:number){
+    const admission = `job/${4}/Admission/Complet`
+    const dismissal_communication = `job/${4}/Dismissal/Complet/Communication`
+    const dismissal = `job/${4}/Dismissal/Complet`
+    const document  = `collaborator/${cpf}`
+
+    const documentFiles = await this.findFileCollaborator(cpf);
+    const dismissalFiles = await this.listarArquivosComConteudo(dismissal)
+    const admissionFiles = await this.listarArquivosComConteudo(admission)
+    
+    return {
+      status:200,
+      document:documentFiles,
+      dismissal:dismissalFiles,
+      admissionFiles:admissionFiles
+    } 
+  }
+
+  async findFileCollaborator( cpf: string) {
+    const prefix = `collaborator/${cpf}/`;
+    const arquivosBase64 = [];
+  
+    const lista = await this.bucket
+      .listObjectsV2({ Bucket: this.bucketName, Prefix: prefix })
+      .promise();
+  
+    const arquivos = lista.Contents || [];
+    console.log(arquivos)
+    for (const obj of arquivos) {
+      const key = obj.Key;
+      if (!key) continue;
+  
+      // Pegamos apenas os arquivos que terminam com nomes desejados
+      const match = key.match(/\/(School_History|Military_Certificate|Marriage_Certificate|Address|complet|front|back|)(\.(pdf|jpg|jpeg|png))?$/i);
+
+  
+      if (match) {
+        const parts = key.split('/');
+        const tipoDocumento = parts[2]; // CNH, RG, etc
+  
+        const arquivo = await this.getFileFromBucket(key);
+        if (arquivo) {
+          arquivosBase64.push({
+            key,
+            documento: tipoDocumento,
+            tipo: match[1], // complet, front, back
+            // base64: arquivo.base64Data,
+            // contentType: arquivo.ContentType,
+          });
+        }
+      }
+    }
+
+    const childrens = this.getAllFilesChildrenFromBucket(cpf)
+  
+    return {
+      files:arquivosBase64,
+      childrens:childrens
+    };
+  }
+
+  async listarArquivosComConteudo(prefix: any) {
+    let arquivos = [];
+    let continuationToken;
+
+    try {
+        do {
+            // Parâmetros para listar os objetos no bucket
+            const params = {
+                Bucket: this.bucketName,
+                Prefix: prefix,
+                ContinuationToken: continuationToken,
+            };
+
+            const data = await this.bucket.listObjectsV2(params).promise();
+
+            // Para cada objeto listado, pegar os dados e converter para base64
+            for (let obj of data.Contents) {
+                const fileData = await this.bucket.getObject({
+                    Bucket: this.bucketName,
+                    Key: obj.Key,
+                }).promise();
+
+                // Converte o arquivo para base64
+                const base64Data = fileData.Body.toString('base64');
+
+                // Nome do documento pode ser extraído do Key
+                const nomeDocumento = obj.Key.split('/').pop();
+
+                // Adiciona os dados na lista de arquivos
+                arquivos.push({
+                    key: obj.Key,
+                    documento: nomeDocumento,
+                    // base64: base64Data,
+                    contentType: fileData.ContentType,
+                });
+            }
+
+            // Continuar listando se houver mais objetos
+            continuationToken = data.IsTruncated ? data.NextContinuationToken : null;
+
+        } while (continuationToken);
+
+        return arquivos;
+
+    } catch (error) {
+        console.error('Erro ao listar arquivos:', error);
+        throw error;
+    }
+  }
+  
 }
