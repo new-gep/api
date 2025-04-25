@@ -1,15 +1,24 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { AssistantService } from './assistant.service';
-import { CreateAssistantDto } from './dto/create-assistant.dto';
+import { RecruitProps } from './dto/recruit-assistant.dto';
 import { UpdateAssistantDto } from './dto/update-assistant.dto';
 
 @Controller('assistant')
 export class AssistantController {
   constructor(private readonly assistantService: AssistantService) {}
 
-  @Post()
-  create(@Body() createAssistantDto: CreateAssistantDto) {
-    return this.assistantService.create(createAssistantDto);
+  @Post('recruit/autocomplet')
+  sendMessageRecruitAutoComplet(@Body() RecruitProps: RecruitProps) {
+    // console.log('complet')
+    RecruitProps.assistant = process.env.RECRUIT_AUTOCOMPLET;
+    return this.assistantService.sendMessageRecruit(RecruitProps);
+  }
+
+  @Post('recruit/chat')
+  sendMessageRecruitChat(@Body() RecruitProps: RecruitProps) {
+    // console.log('chat')
+    RecruitProps.assistant = process.env.RECRUIT_CHAT;
+    return this.assistantService.sendMessageRecruit(RecruitProps);
   }
 
   @Get()
