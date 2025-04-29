@@ -60,14 +60,13 @@ export class CardCompanyService {
 
   async findAllCardOneCompany(CNPJ: string) {
     if(!CNPJ || CNPJ === 'undefined'){
-      console.log('CNPJ is required');
       return {
         status: 400,
         message: 'CNPJ is required',
         data: null
       };
     }
-    console.log('CNPJ',CNPJ);
+
     return;
     try{
       const response = await this.cardCompanyRepository.find({  

@@ -33,20 +33,60 @@ export class JobService {
     try {
       const time = FindTimeSP();
       createJobDto.create_at = time;
-      //@ts-ignore
-      const newJob = await this.jobRepository.save(createJobDto);
-
-      if (newJob) {
-        return {
-          status: 201,
-          message: 'Vaga criada.',
-        };
-      } else {
-        return {
-          status: 500,
-          message: 'Algo deu errado, tente mais tarde.',
-        };
-      }
+      const {
+        default: defaultJob,
+        benefits,
+        skills,
+        localities,
+        ...rest
+      } = createJobDto;
+  
+      // Limpa salário e CEP
+      const cleanedSalary = defaultJob.salary.replace(/[^\d]/g, '');
+      const cleanedCep = defaultJob.cep.replace('-', '');
+  
+      // Filtra somente os benefits ativos
+      const activeBenefits = benefits
+        ?.filter(b => b.active)
+        .map(b => b.name) || [];
+  
+      // Extrai só os nomes das skills
+      const skillNames = skills?.map(s => s.name) || [];
+  
+      // Base da vaga tratada
+      const baseJob = {
+        ...defaultJob,
+        salary: cleanedSalary,
+        cep: cleanedCep,
+        benefits: JSON.stringify(activeBenefits),
+        skills: JSON.stringify(skillNames),
+        create_at: time,
+        user_create: createJobDto.user_create,
+        CNPJ_company: createJobDto.CNPJ_company,
+      };
+  
+      // Verifica localities para duplicar ou não
+      const jobsToCreate = [
+        baseJob, // sempre inclui o job padrão
+        ...(localities && localities.length > 0
+          ? localities
+              .filter(l => l?.locality && l?.cep)
+              .map(l => ({
+                ...baseJob,
+                locality: l.locality,
+                cep: l.cep.replace('-', ''),
+              }))
+          : []),
+      ]; // só 1 se não tiver localities
+        
+      // Salva todas as vagas
+      const savedJobs = await this.jobRepository.save(jobsToCreate);
+  
+      return {
+        status: 201,
+        message: `${savedJobs.length} vaga(s) criada(s).`,
+      };
+  
     } catch (e) {
       console.log(e);
       return {
@@ -55,7 +95,7 @@ export class JobService {
       };
     }
   }
-
+  
   async uploadFile(upadteJobDto: UpadteJobDto, file: Express.Multer.File) {
     return await this.bucketService.UploadJob(
       file,
@@ -106,15 +146,15 @@ export class JobService {
 
   async checkDocumentAdmissional(id: number) {
     return this.bucketService.checkJobAdmissionBucketDocumentsObligation(id);
-  }
+  };
 
   async checkDocumentDismissal(id: number) {
     return this.bucketService.checkJobDismissalBucketDocumentsObligation(id);
-  }
+  };
 
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
     return this.bucketService.findJob(id, name, signature, dynamic);
-  }
+  };
 
   async FindAllServiceByMonthAndYear(cnpj: string, month: string, year: string, type: string) {
     try {
@@ -246,7 +286,7 @@ export class JobService {
         message: 'Error to find service',
       };
     }
-  }
+  };
 
   async findJobOpen(cnpj: string) {
     const response = await this.jobRepository.find({
@@ -275,7 +315,7 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  }
+  };
 
   async findAllJobsCollaborator(cpf: string) {
     const response = await this.jobRepository.find({
@@ -295,7 +335,7 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  }
+  };
 
   async findCollaboratorCompany(cnpj: string) {
     const collaboratorCompany = [] as any;
@@ -375,7 +415,7 @@ export class JobService {
       message: 'Erro ao buscar colaborador',
     };
 
-  }
+  };
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
     // Consulta todas as vagas abertas
@@ -450,7 +490,7 @@ export class JobService {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
     };
-  }
+  };
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
     const response = await this.bucketService.findServices(id, typeService, year, month);
@@ -489,7 +529,7 @@ export class JobService {
       // console.log("contagem", enrichedResponse.length);
       return enrichedResponse;
     }
-  }
+  };
 
   async findAll() {
     try {
@@ -528,7 +568,7 @@ export class JobService {
         message: 'Erro no servidor',
       };
     }
-  }
+  };
 
   async findProcessAdmissional(cnpj: string) {
     try {
@@ -558,7 +598,7 @@ export class JobService {
 
           // Processa os candidatos
           await Promise.all(
-            candidates.map(async (candidate) => {
+            candidates.map(async (candidate:any) => {
               try {
                 const collaboratorResponse =
                   await this.collaboratorService.findOne(candidate.cpf);
@@ -633,7 +673,7 @@ export class JobService {
         message: 'Unexpected Error',
       };
     }
-  }
+  };
 
   async findProcessDemissional(cnpj: string) {
     try {
@@ -713,7 +753,7 @@ export class JobService {
         message: 'Unexpected Error',
       };
     }
-  }
+  };
 
   async findOne(id: number) {
     try {
@@ -722,10 +762,12 @@ export class JobService {
           relations: ['user_create', 'CPF_collaborator'],
         });
       if (response.user_create) {
-          if(response?.time){
-            response.time = JSON.parse(response.time);
+          if(response?.benefits){
+            response.benefits = JSON.parse(response.benefits);
           }
-          // const user = await this.userService.findOne(response.user_create);
+          if(response?.skills){
+            response.skills = JSON.parse(response.skills);
+          }
           response.candidates = JSON.parse(response.candidates);
         if (response.candidates) {
           for (let index = 0; index < response.candidates.length; index++) {
@@ -764,7 +806,7 @@ export class JobService {
         message: 'Erro Interno.',
       };
     }
-  }
+  };
 
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
@@ -789,11 +831,11 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  }
+  };
 
   async removeDocumentDynamic(id: number, name: string, where?:string) {
     return this.bucketService.DeleteDocumentDynamic(id, name, where);
-  }
+  };
 
   async remove(id: string) {
     try {
@@ -821,5 +863,5 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  }
+  };
 }

@@ -12,8 +12,23 @@ export class Job {
     @Column({length: 1, default:'0' })
     PCD: string;
 
+    @Column({length: 1, default:'0' })
+    DEI: string;
+
+    @Column({length: 8})
+    cep: string;
+
     @Column({length: 50})
     image: string;
+
+    @Column({length: 200})
+    locality: string;
+
+    @Column({length: 20})
+    contract: string;
+
+    @Column({length: 50})
+    model: string;
 
     @Column({length: 50})
     function: string;
@@ -27,26 +42,20 @@ export class Job {
     @Column({length: 200, default:null })
     motion_demission: string;
 
-    @Column()
-    time: Json;
-
     @Column({ type: 'longtext', nullable: true })
     candidates: string;
 
-    @Column({length: 1, nullable: true})
-    transportation_voucher: string;
+    @Column({type: 'longtext'})
+    requirements: string;
 
-    @Column({length: 20})
-    contract: string;
+    @Column({type: 'longtext'})
+    responsibility: string;
 
-    @Column({length: 255})
-    details: string;
-
-    @Column({length: 255})
-    obligations: string;
-
-    @Column({length: 255})
+    @Column({ type: 'longtext', nullable: true })
     benefits: string;
+
+    @Column({ type: 'longtext', nullable: true })
+    skills: string;
 
     @ManyToOne(() => Company, company => company.CNPJ)
     @JoinColumn({ name: 'CNPJ_company' })

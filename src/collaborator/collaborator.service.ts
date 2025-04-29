@@ -168,9 +168,9 @@ export class CollaboratorService {
     let response = await this.collaboratorRepository.findOne({ where: { CPF }, relations: ['id_work'] });
     const picture  = await this.findFile(CPF, 'picture')
     if(response){
-      if(response.id_work){
-        response.id_work.time = JSON.parse(response.id_work.time);
-      }
+      // if(response.id_work){
+      //   response.id_work.time = JSON.parse(response.id_work.time);
+      // }
       return {
         status:200,
         collaborator:response,

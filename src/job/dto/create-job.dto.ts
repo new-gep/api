@@ -1,14 +1,8 @@
 export class CreateJobDto {
-    obligations?: string;
-    benefits?: string;
-    details ?: string;
-    PCD     : string;
-    image   : string;
-    function: string;
-    journey : string;
-    contract: string;
-    salary: string;
-    time  : string;
+    default: any;
+	benefits: any;
+	skills: any;
+	localities: any;
     CNPJ_company:string;
     user_create: string;
     create_at:string;
