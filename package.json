@@ -20,6 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.6.0",
+    "@imgly/background-removal-node": "^1.4.5",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^10.0.0",
@@ -41,6 +43,7 @@
     "mysql2": "^3.11.0",
     "node-poppler": "^7.2.2",
     "nodemailer": "^6.9.14",
+    "onnxruntime-web": "^1.21.0-dev.20250206-d981b153d3",
     "openai": "^4.96.0",
     "path": "^0.12.7",
     "pdf-img-convert": "^2.0.0",
