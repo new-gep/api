@@ -3,4 +3,5 @@ export class UpadteJobDto {
     name: string;
     signature:Boolean;
     dynamic?:string;
+    pages?:any
 }

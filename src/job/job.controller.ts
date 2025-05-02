@@ -48,9 +48,8 @@ export class JobController {
   };
 
   @Post('document/signature')
-  @UseInterceptors(FileInterceptor('file'))
-  async generateDocumentAsignature(@UploadedFile() file: Express.Multer.File, @Body() uploadCollaboratorDto:UpadteJobDto) {
-    return this.jobService.UploadJobFileSignature(uploadCollaboratorDto,file)
+  async generateDocumentAsignature(@Body() uploadCollaboratorDto:UpadteJobDto) {
+    return this.jobService.UploadJobFileSignature(uploadCollaboratorDto)
   };
 
   @Get('file/:id/:name/:signature/:dynamic/')

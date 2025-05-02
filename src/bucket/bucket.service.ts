@@ -26,92 +26,200 @@ export class BucketService {
     });
   }
 
-  async replaceLastPage(
-    pdfBase64: string,
-    imageFileSignature: Express.Multer.File,
-  ) {
+  // async replaceLastPage(
+  //   pdfBase64: string,
+  //   pagesPicture: any,
+  // ) {
+  //   pdfBase64 = pdfBase64.replace('data:application/pdf;base64,', '');
+  //   console.log(pagesPicture[0])
+  //   return
+  //   const pdfBytes = Buffer.from(pdfBase64, 'base64');
+
+  //   const pdfDoc = await PDFDocument.load(pdfBytes);
+  //   const pages = pdfDoc.getPages();
+  //   const numPages = pages.length;
+
+  //   // Remove a última página
+  //   pdfDoc.removePage(numPages - 1);
+
+  //   // Adiciona uma nova página
+  //   const novaPagina = pdfDoc.addPage();
+
+  //   // Embutir a imagem na nova página (usando o buffer do Multer)
+  //   // const imagemPdf = await pdfDoc.embedPng(imageFileSignature.buffer);
+
+  //   const paginaLargura = novaPagina.getWidth();
+  //   const paginaAltura = novaPagina.getHeight();
+  //   // const imagemLargura = imagemPdf.width;
+  //   // const imagemAltura = imagemPdf.height;
+
+  //   let escala = 1; // Começa com escala 1:1 (tamanho original)
+
+  //   // Se a imagem for maior que a página em alguma dimensão, calcula a escala
+  //   // if (imagemLargura > paginaLargura || imagemAltura > paginaAltura) {
+  //   //   escala = Math.min(
+  //   //     paginaLargura / imagemLargura,
+  //   //     paginaAltura / imagemAltura,
+  //   //   );
+  //   // }
+
+  //   // const { width, height } = imagemPdf.scale(escala); // Aplica a escala, se necessário
+
+  //   // --- Fim dos ajustes ---
+
+  //   // novaPagina.drawImage(imagemPdf, {
+  //   //   x: novaPagina.getWidth() / 2 - width / 2,
+  //   //   y: novaPagina.getHeight() / 2 - height / 2,
+  //   //   width: width,
+  //   //   height: height,
+  //   // });
+
+  //   // Salva o PDF modificado
+  //   const pdfModificado = await pdfDoc.save();
+
+  //   // --- Ajustar o retorno da função ---
+  //   return Buffer.from(pdfModificado);
+  // }
+
+  async replaceLastPage(pdfBase64: string, pagesPicture: any[]): Promise<Buffer> {
+    // Remove o prefixo 'data:application/pdf;base64,' se presente
     pdfBase64 = pdfBase64.replace('data:application/pdf;base64,', '');
-
+  
+    // Converte a string base64 em bytes
     const pdfBytes = Buffer.from(pdfBase64, 'base64');
-
+  
+    // Carrega o documento PDF
     const pdfDoc = await PDFDocument.load(pdfBytes);
-    const pages = pdfDoc.getPages();
-    const numPages = pages.length;
-
-    // Remove a última página
-    pdfDoc.removePage(numPages - 1);
-
-    // Adiciona uma nova página
-    const novaPagina = pdfDoc.addPage();
-
-    // Embutir a imagem na nova página (usando o buffer do Multer)
-    const imagemPdf = await pdfDoc.embedPng(imageFileSignature.buffer);
-
-    const paginaLargura = novaPagina.getWidth();
-    const paginaAltura = novaPagina.getHeight();
-    const imagemLargura = imagemPdf.width;
-    const imagemAltura = imagemPdf.height;
-
-    let escala = 1; // Começa com escala 1:1 (tamanho original)
-
-    // Se a imagem for maior que a página em alguma dimensão, calcula a escala
-    if (imagemLargura > paginaLargura || imagemAltura > paginaAltura) {
-      escala = Math.min(
-        paginaLargura / imagemLargura,
-        paginaAltura / imagemAltura,
-      );
+  
+    // Remove todas as páginas existentes
+    const numPages = pdfDoc.getPageCount();
+    for (let i = numPages - 1; i >= 0; i--) {
+      pdfDoc.removePage(i);
     }
-
-    const { width, height } = imagemPdf.scale(escala); // Aplica a escala, se necessário
-
-    // --- Fim dos ajustes ---
-
-    novaPagina.drawImage(imagemPdf, {
-      x: novaPagina.getWidth() / 2 - width / 2,
-      y: novaPagina.getHeight() / 2 - height / 2,
-      width: width,
-      height: height,
-    });
-
+  
+    // Itera sobre o array de imagens e adiciona cada uma como uma nova página
+    for (const page of pagesPicture) {
+      // Verifica se a imagem existe e tem a propriedade base64
+      if (!page?.base64) {
+        console.warn('Imagem inválida encontrada em pagesPicture:', page);
+        continue;
+      }
+  
+      // Remove o prefixo 'data:image/png;base64,' se presente
+      const imageBase64 = page.base64.replace(/^data:image\/[a-z]+;base64,/, '');
+  
+      // Converte a imagem base64 em bytes
+      const imageBytes = Buffer.from(imageBase64, 'base64');
+  
+      // Embutir a imagem no PDF (assumindo que é PNG, ajuste se necessário)
+      const image = await pdfDoc.embedPng(imageBytes);
+  
+      // Adiciona uma nova página
+      const newPage = pdfDoc.addPage();
+  
+      // Obtém as dimensões da página e da imagem
+      const pageWidth = newPage.getWidth();
+      const pageHeight = newPage.getHeight();
+      const imageWidth = image.width;
+      const imageHeight = image.height;
+  
+      // Calcula a escala para ajustar a imagem à página, mantendo a proporção
+      let scale = 1;
+      if (imageWidth > pageWidth || imageHeight > pageHeight) {
+        scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+      }
+  
+      // Aplica a escala à imagem
+      const scaledWidth = imageWidth * scale;
+      const scaledHeight = imageHeight * scale;
+  
+      // Desenha a imagem no centro da página
+      newPage.drawImage(image, {
+        x: (pageWidth - scaledWidth) / 2,
+        y: (pageHeight - scaledHeight) / 2,
+        width: scaledWidth,
+        height: scaledHeight,
+      });
+    }
+  
     // Salva o PDF modificado
     const pdfModificado = await pdfDoc.save();
-
-    // --- Ajustar o retorno da função ---
+  
+    // Retorna o Buffer do PDF modificado
     return Buffer.from(pdfModificado);
   }
+
+  // async convertPDFinImage(base64) {
+  //   return new Promise(async (resolve, reject) => {
+  //     try {
+  //       base64 = base64.replace('data:application/pdf;base64,', '');
+  //       const buffer = await Buffer.from(base64, 'base64');
+  //       const poppler = new Poppler();
+  //       const pdfDoc = await PDFDocument.load(buffer);
+  //       const pages = pdfDoc.getPages();
+
+  //       const options = {
+  //         lastPageToConvert: pages.length,
+  //         pngFile: true,
+  //       };
+
+  //       poppler
+  //         .pdfToCairo(buffer, './temp/example.png', options)
+  //         .then(async (res) => {
+  //           const response = await ConvertImageToBase64(
+  //             `./temp/example.png-${pages.length}.png`,
+  //           );
+  //           resolve(`data:image/png;base64,${response}`);
+  //         })
+  //         .catch((err) => {
+  //           console.error(err);
+  //           reject(err); // Rejeita a promise com o erro
+  //         });
+  //     } catch (error) {
+  //       console.error('Erro ao converter PDF para imagem:', error);
+  //       reject(error); // Rejeita a promise com o erro
+  //     }
+  //   });
+  // }
 
   async convertPDFinImage(base64) {
     return new Promise(async (resolve, reject) => {
       try {
         base64 = base64.replace('data:application/pdf;base64,', '');
-        const buffer = await Buffer.from(base64, 'base64');
+        const buffer = Buffer.from(base64, 'base64');
         const poppler = new Poppler();
         const pdfDoc = await PDFDocument.load(buffer);
         const pages = pdfDoc.getPages();
-
+  
         const options = {
+          firstPageToConvert: 1,
           lastPageToConvert: pages.length,
           pngFile: true,
         };
-
-        poppler
-          .pdfToCairo(buffer, './temp/example.png', options)
-          .then(async (res) => {
-            const response = await ConvertImageToBase64(
-              `./temp/example.png-${pages.length}.png`,
-            );
-            resolve(`data:image/png;base64,${response}`);
-          })
-          .catch((err) => {
-            console.error(err);
-            reject(err); // Rejeita a promise com o erro
+  
+        await poppler.pdfToCairo(buffer, './temp/page', options);
+  
+        const results = [];
+  
+        for (let i = 1; i <= pages.length; i++) {
+          const pageStr = String(i).padStart(2, '0');
+          const imagePath = `./temp/page-${pageStr}.png`;
+          const base64Image = await ConvertImageToBase64(imagePath);
+          results.push({
+            page: i,
+            base64: `data:image/png;base64,${base64Image}`,
+            change: false,
           });
+        }
+  
+        resolve(results);
       } catch (error) {
         console.error('Erro ao converter PDF para imagem:', error);
-        reject(error); // Rejeita a promise com o erro
+        reject(error);
       }
     });
   }
+  
 
   async getFileFromBucket(key: string): Promise<any> {
     try {
@@ -1022,22 +1130,32 @@ export class BucketService {
   }
 
   async UploadJobFileSignature(
-    file: Express.Multer.File,
     name: string,
     id: number,
     dynamic?: string,
+    pages?:any
   ) {
     let pathOrigin: string;
     let path: string;
     let response: any;
     let newPDF: any;
+
+
     switch (name.toLowerCase()) {
       case 'registration_form':
         pathOrigin = `job/${id}/Admission/Registration_Form`;
         path = `job/${id}/Admission/Complet/Registration_Form`;
         response = await this.getFileFromBucket(pathOrigin);
+        console.log(response)
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          console.log('caiu aqui')
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
+        }else{
+          console.log(`Origin Não encontrado: ${pathOrigin}`)
+          return {
+            status: 400,
+            message: `Origin Não encontrado: ${pathOrigin}`,
+          };
         }
 
         break;
@@ -1046,7 +1164,7 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Experience_Contract`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'hours_extension':
@@ -1054,7 +1172,7 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Hours_Extension`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'hours_compensation':
@@ -1062,7 +1180,7 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Hours_Compensation`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'transport_voucher':
@@ -1070,7 +1188,7 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Transport_Voucher`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'dynamic':
@@ -1078,7 +1196,7 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'dismissal_dynamic':
@@ -1086,7 +1204,7 @@ export class BucketService {
         path = `job/${id}/Dismissal/Complet/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       case 'dismissal_communication_dynamic':
@@ -1094,7 +1212,7 @@ export class BucketService {
         path = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, file);
+          newPDF = await this.replaceLastPage(response.base64Data, pages);
         }
         break;
       default:
@@ -1103,15 +1221,11 @@ export class BucketService {
           message: `Tipo de documento não suportado: ${name}`,
         };
     }
-    const mimeType =
-      response && response.ContentType.includes('pdf')
-        ? 'application/pdf'
-        : file.mimetype;
+    const mimeType = 'application/pdf'
     const fileSignature = {
       Bucket: this.bucketName,
       Key: path,
-      Body:
-        response && response.ContentType.includes('pdf') ? newPDF : file.buffer,
+      Body: newPDF,
       ContentType: mimeType,
     };
     try {
@@ -1123,6 +1237,7 @@ export class BucketService {
         location: s3Response.Location, // Retorna a URL do arquivo no bucket
       };
     } catch (error) {
+      console.log(error)
       return {
         status: 500,
         message: 'Erro no upload do arquivo',
@@ -2092,6 +2207,7 @@ export class BucketService {
 
     response = await this.getFileFromBucket(pathOrigin);
     if (response && response.ContentType.includes('pdf')) {
+      //@ts-ignore
       newPDF = await this.replaceLastPage(response.base64Data, file);
     }
 
@@ -2369,6 +2485,7 @@ export class BucketService {
 
     response = await this.getFileFromBucket(pathOrigin);
     if (response && response.ContentType.includes('pdf')) {
+      //@ts-ignore
       newPDF = await this.replaceLastPage(response.base64Data, file);
     }
 

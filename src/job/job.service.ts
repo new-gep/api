@@ -108,13 +108,13 @@ export class JobService {
 
   async UploadJobFileSignature(
     upadteJobDto: UpadteJobDto,
-    file: Express.Multer.File,
   ) {
+    
     return this.bucketService.UploadJobFileSignature(
-      file,
       upadteJobDto.name,
       upadteJobDto.idJob,
       upadteJobDto.dynamic,
+      upadteJobDto.pages
     );
   }
 
@@ -761,7 +761,7 @@ export class JobService {
           where: { id: id },
           relations: ['user_create', 'CPF_collaborator'],
         });
-      if (response.user_create) {
+      if (response) {
           if(response?.benefits){
             response.benefits = JSON.parse(response.benefits);
           }
@@ -775,6 +775,7 @@ export class JobService {
             const collaborator: any = await this.collaboratorService.findOne(
               candidate.cpf,
             );
+            if(collaborator.status === 409) continue
             const picture: any = await this.bucketService.getFileFromBucket(
               `collaborator/${candidate.cpf}/Picture`,
             );
@@ -811,6 +812,7 @@ export class JobService {
   async update(id: string, updateJobDto: UpdateJobDto) {
     const time = FindTimeSP();
     updateJobDto.update_at = time;
+    console.log('aqui')
     
     try {
       const response = await this.jobRepository.update(id, updateJobDto);
