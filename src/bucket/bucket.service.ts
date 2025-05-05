@@ -8,7 +8,11 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { execSync } from 'child_process';
+import * as sharp from 'sharp';
+import { compress } from 'compress-pdf';
+import { exec, execSync } from 'child_process';
+import { cwd } from 'process';
+import { promisify } from 'util';
 
 @Injectable()
 export class BucketService {
@@ -81,22 +85,25 @@ export class BucketService {
   //   return Buffer.from(pdfModificado);
   // }
 
-  async replaceLastPage(pdfBase64: string, pagesPicture: any[]): Promise<Buffer> {
+  async replaceAllPage(
+    pdfBase64: string,
+    pagesPicture: any[],
+  ): Promise<Buffer> {
     // Remove o prefixo 'data:application/pdf;base64,' se presente
     pdfBase64 = pdfBase64.replace('data:application/pdf;base64,', '');
-  
+
     // Converte a string base64 em bytes
     const pdfBytes = Buffer.from(pdfBase64, 'base64');
-  
+
     // Carrega o documento PDF
     const pdfDoc = await PDFDocument.load(pdfBytes);
-  
+
     // Remove todas as páginas existentes
     const numPages = pdfDoc.getPageCount();
     for (let i = numPages - 1; i >= 0; i--) {
       pdfDoc.removePage(i);
     }
-  
+
     // Itera sobre o array de imagens e adiciona cada uma como uma nova página
     for (const page of pagesPicture) {
       // Verifica se a imagem existe e tem a propriedade base64
@@ -104,35 +111,44 @@ export class BucketService {
         console.warn('Imagem inválida encontrada em pagesPicture:', page);
         continue;
       }
-  
+
       // Remove o prefixo 'data:image/png;base64,' se presente
-      const imageBase64 = page.base64.replace(/^data:image\/[a-z]+;base64,/, '');
-  
+      const imageBase64 = page.base64.replace(
+        /^data:image\/[a-z]+;base64,/,
+        '',
+      );
+
       // Converte a imagem base64 em bytes
       const imageBytes = Buffer.from(imageBase64, 'base64');
-  
+
+      // const optimizedImageBytes = await sharp(imageBytes)
+      // .resize({ width: 800 }) // ou ajuste conforme necessário
+      // .png({ quality: 50 })   // compacta mantendo boa qualidade
+      // .toBuffer();
+
+
       // Embutir a imagem no PDF (assumindo que é PNG, ajuste se necessário)
       const image = await pdfDoc.embedPng(imageBytes);
-  
+
       // Adiciona uma nova página
       const newPage = pdfDoc.addPage();
-  
+
       // Obtém as dimensões da página e da imagem
       const pageWidth = newPage.getWidth();
       const pageHeight = newPage.getHeight();
       const imageWidth = image.width;
       const imageHeight = image.height;
-  
+
       // Calcula a escala para ajustar a imagem à página, mantendo a proporção
       let scale = 1;
       if (imageWidth > pageWidth || imageHeight > pageHeight) {
         scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
       }
-  
+
       // Aplica a escala à imagem
       const scaledWidth = imageWidth * scale;
       const scaledHeight = imageHeight * scale;
-  
+
       // Desenha a imagem no centro da página
       newPage.drawImage(image, {
         x: (pageWidth - scaledWidth) / 2,
@@ -141,10 +157,10 @@ export class BucketService {
         height: scaledHeight,
       });
     }
-  
+
     // Salva o PDF modificado
     const pdfModificado = await pdfDoc.save();
-  
+
     // Retorna o Buffer do PDF modificado
     return Buffer.from(pdfModificado);
   }
@@ -190,17 +206,17 @@ export class BucketService {
         const poppler = new Poppler();
         const pdfDoc = await PDFDocument.load(buffer);
         const pages = pdfDoc.getPages();
-  
+
         const options = {
           firstPageToConvert: 1,
           lastPageToConvert: pages.length,
           pngFile: true,
         };
-  
+
         await poppler.pdfToCairo(buffer, './temp/page', options);
-  
+
         const results = [];
-  
+
         for (let i = 1; i <= pages.length; i++) {
           const pageStr = String(i).padStart(2, '0');
           const imagePath = `./temp/page-${pageStr}.png`;
@@ -211,7 +227,7 @@ export class BucketService {
             change: false,
           });
         }
-  
+
         resolve(results);
       } catch (error) {
         console.error('Erro ao converter PDF para imagem:', error);
@@ -219,7 +235,6 @@ export class BucketService {
       }
     });
   }
-  
 
   async getFileFromBucket(key: string): Promise<any> {
     try {
@@ -1133,25 +1148,23 @@ export class BucketService {
     name: string,
     id: number,
     dynamic?: string,
-    pages?:any
+    pages?: any,
   ) {
     let pathOrigin: string;
     let path: string;
     let response: any;
     let newPDF: any;
 
-
     switch (name.toLowerCase()) {
       case 'registration_form':
         pathOrigin = `job/${id}/Admission/Registration_Form`;
         path = `job/${id}/Admission/Complet/Registration_Form`;
         response = await this.getFileFromBucket(pathOrigin);
-        console.log(response)
         if (response && response.ContentType.includes('pdf')) {
-          console.log('caiu aqui')
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
-        }else{
-          console.log(`Origin Não encontrado: ${pathOrigin}`)
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
+        } else {
+          console.log(`Origin Não encontrado: ${pathOrigin}`);
           return {
             status: 400,
             message: `Origin Não encontrado: ${pathOrigin}`,
@@ -1164,7 +1177,8 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Experience_Contract`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'hours_extension':
@@ -1172,7 +1186,8 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Hours_Extension`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'hours_compensation':
@@ -1180,7 +1195,8 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Hours_Compensation`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'transport_voucher':
@@ -1188,7 +1204,8 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/Transport_Voucher`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'dynamic':
@@ -1196,7 +1213,8 @@ export class BucketService {
         path = `job/${id}/Admission/Complet/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'dismissal_dynamic':
@@ -1204,7 +1222,8 @@ export class BucketService {
         path = `job/${id}/Dismissal/Complet/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       case 'dismissal_communication_dynamic':
@@ -1212,7 +1231,8 @@ export class BucketService {
         path = `job/${id}/Dismissal/Complet/Communication/${dynamic}`;
         response = await this.getFileFromBucket(pathOrigin);
         if (response && response.ContentType.includes('pdf')) {
-          newPDF = await this.replaceLastPage(response.base64Data, pages);
+          newPDF = await this.replaceAllPage(response.base64Data, pages);
+          newPDF = await this.compressPdf(newPDF);
         }
         break;
       default:
@@ -1221,7 +1241,7 @@ export class BucketService {
           message: `Tipo de documento não suportado: ${name}`,
         };
     }
-    const mimeType = 'application/pdf'
+    const mimeType = 'application/pdf';
     const fileSignature = {
       Bucket: this.bucketName,
       Key: path,
@@ -1237,7 +1257,7 @@ export class BucketService {
         location: s3Response.Location, // Retorna a URL do arquivo no bucket
       };
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return {
         status: 500,
         message: 'Erro no upload do arquivo',
@@ -1303,7 +1323,6 @@ export class BucketService {
           const registrationSignatureCompletFile = await this.getFileFromBucket(
             registrationSignatureCompletKey,
           );
-
           if (!registrationSignatureFile) {
             return {
               status: 404,
@@ -2379,7 +2398,6 @@ export class BucketService {
   ) {
     let s3Path: string; // Renomeado para evitar conflito com o módulo 'path'
     let fileBuffer = file.buffer; // Buffer original do arquivo
-  
 
     switch (document.toLowerCase()) {
       case 'logo':
@@ -2387,7 +2405,7 @@ export class BucketService {
         break;
       case 'signature':
         s3Path = `company/${cnpj}/Signature/Signature`;
-  
+
         // Verifica se o arquivo é PNG e se o buffer não está vazio
         // if (file.mimetype !== 'image/png') {
         //   return {
@@ -2395,31 +2413,32 @@ export class BucketService {
         //     message: 'Apenas arquivos PNG são suportados para remoção de fundo',
         //   };
         // }
-        
+
         if (!file.buffer || file.buffer.length === 0) {
           return {
             status: 400,
             message: 'O arquivo PNG está vazio ou corrompido',
           };
         }
-  
+
         try {
           // Cria arquivos temporários para entrada e saída
           const tempDir = os.tmpdir();
           const inputPath = path.join(tempDir, `input-${Date.now()}.png`);
           const outputPath = path.join(tempDir, `output-${Date.now()}.png`);
-  
+
           // Salva o buffer de entrada temporariamente
           fs.writeFileSync(inputPath, file.buffer);
-  
+
           // Executa o script Python do Rembg
-          execSync(`python remove_bg.py ${inputPath} ${outputPath}`),{
-            stdio: 'inherit'
-          };
-  
+          execSync(`python remove_bg.py ${inputPath} ${outputPath}`),
+            {
+              stdio: 'inherit',
+            };
+
           // Lê o arquivo de saída (imagem sem fundo)
           fileBuffer = fs.readFileSync(outputPath);
-  
+
           // Remove arquivos temporários
           fs.unlinkSync(inputPath);
           fs.unlinkSync(outputPath);
@@ -2441,21 +2460,21 @@ export class BucketService {
           message: `Tipo de documento não suportado: ${document}`,
         };
     }
-  
+
     const mimeType =
       document.toLowerCase() === 'signature'
         ? 'image/png' // Imagens sem fundo são retornadas como PNG
         : file.mimetype === 'image/pdf'
-        ? 'application/pdf'
-        : file.mimetype;
-  
+          ? 'application/pdf'
+          : file.mimetype;
+
     const jobFile = {
       Bucket: this.bucketName,
       Key: s3Path, // Usa s3Path em vez de path
       Body: fileBuffer, // Usa o buffer processado (sem fundo para signature) ou original
       ContentType: mimeType,
     };
-  
+
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(jobFile).promise();
@@ -2652,4 +2671,18 @@ export class BucketService {
       throw error;
     }
   }
+
+  async compressPdf(inputBuffer: Buffer): Promise<Buffer> {
+    try {
+      // Comprime o PDF diretamente com o buffer
+      const compressedBuffer = await compress(inputBuffer);
+
+      return compressedBuffer;
+    } catch (error) {
+      console.error('Erro ao comprimir o PDF:', error);
+      return inputBuffer; // Retorna o buffer original em caso de erro
+    }
+  }
+
 }
+

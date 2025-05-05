@@ -6,7 +6,6 @@ import { CollaboratorModule } from './collaborator/collaborator.module';
 import { CompanyModule } from './company/company.module';
 import { UserModule } from './user/user.module';
 import { EmailService } from "./email/email.service";
-import { UserTypeModule } from './user_type/user_type.module';
 import { PictureModule } from './picture/picture.module';
 import { JobModule } from './job/job.module';
 import { CardCompanyModule } from './card_company/card_company.module';
@@ -16,9 +15,10 @@ import { LeadModule } from './lead/lead.module';
 import { RedisModule } from './redis/redis.module';
 import { PaymentModule } from './payment/payment.module';
 import { AssistantModule } from './assistant/assistant.module';
+import { SignatureModule } from './signature/signature.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, UserTypeModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule, SignatureModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })
