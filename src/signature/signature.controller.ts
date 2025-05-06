@@ -9,11 +9,10 @@ export class SignatureController {
   constructor(private readonly signatureService: SignatureService) {}
 
   @Post()
-
   create(@Req() request: ExpressRequest, @Body() createSignatureDto: CreateSignatureDto) {
     const ip = request.headers['x-forwarded-for'] || request.socket.remoteAddress;
     const cleanIp = typeof ip === 'string' ? ip.replace('::ffff:', '') : ip?.[0];
-    console.log(`IP do cliente: ${cleanIp}`);
+    createSignatureDto.ip = cleanIp
     return this.signatureService.create(createSignatureDto);
   }
 
@@ -36,4 +35,5 @@ export class SignatureController {
   remove(@Param('id') id: string) {
     return this.signatureService.remove(+id);
   }
+  
 }

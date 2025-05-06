@@ -143,7 +143,7 @@ export class CollaboratorService {
     return this.bucketService.findCollaborator(cpf, file)
   };
 
-  async findDossie(cpf:string,){
+  async findDossie(cpf:string){
     const collaborator = await this.collaboratorRepository.findOne({
       where: { CPF: cpf }, 
       relations: ['id_work']
@@ -160,12 +160,37 @@ export class CollaboratorService {
     return this.bucketService.findDossieCollaborator(cpf, collaborator.id_work.id)
   };
 
-  findAll() {
-    return `This action returns all collaborator`;
+  async findAll() {
+    try{
+      const collaborators = await this.collaboratorRepository.find();
+      const collaboratorsWithPicture = await Promise.all(
+        collaborators.map(async (collaborator) => {
+          const pictureResponse = await this.bucketService.getFileFromBucket(
+            `collaborator/${collaborator.CPF}/Picture`,
+          );
+    
+          return {
+            ...collaborator,
+            picture: pictureResponse || null,
+          };
+        })
+      );
+
+      return {
+        status:200,
+        candidates:collaboratorsWithPicture,
+      };
+    }catch(e){
+      console.log(e)
+      return{
+        status: 500 ,
+        message:'Error internal'
+      }
+    }
   };
 
   async findOne(CPF: string) {
-    let response = await this.collaboratorRepository.findOne({ where: { CPF }, relations: ['id_work'] });
+    let response   = await this.collaboratorRepository.findOne({ where: { CPF }, relations: ['id_work'] });
     const picture  = await this.findFile(CPF, 'picture')
     if(response){
       // if(response.id_work){
@@ -219,10 +244,10 @@ export class CollaboratorService {
         };
 
         return {
-            status: 200,
-            collaborator: response,
-            missingFields: missingFields.length > 0 ? missingFields : null,
-            files : files
+          status: 200,
+          collaborator: response,
+          missingFields: missingFields.length > 0 ? missingFields : null,
+          files : files
         };
         
     } else {

@@ -1,8 +1,8 @@
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Collaborator } from "src/collaborator/entities/collaborator.entity";
 import { Job } from "src/job/entities/job.entity";
 import { User } from "src/user/entities/user.entity";
-import { Column, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
-
+@Entity()
 export class Signature {
     @PrimaryGeneratedColumn()
     id: number;
@@ -28,7 +28,7 @@ export class Signature {
     @Column({length: 50})
     create_at: string;
 
-    @Column({length: 50, default:null})
+    @Column({length: 50, nullable:true})
     update_at: string;
 
 }
