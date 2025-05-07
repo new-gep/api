@@ -834,6 +834,59 @@ export class JobService {
     }
   };
 
+  async applyJob(date: any){
+    const numericId = parseInt(date.id, 10); 
+    console.log(numericId)
+    // 1. Buscar detalhes da vaga
+    const jobResponse = await this.findOne(numericId);
+    console.log(jobResponse)
+    if (jobResponse.status !== 200) {
+      return{
+        error:500,
+        message:'Erro ao buscar detalhes da vaga'
+      }
+    }
+
+    type Candidate = {
+      picture: string;
+      name: string;
+      [key: string]: any;
+    };
+    console.log(jobResponse)
+    return
+    // let currentCandidates = await Promise.all(
+    //   jobResponse.job.candidates?.map(
+    //     async ({ picture, name, ...rest }: Candidate) => {
+    //       // Aqui você pode realizar alguma operação assíncrona se necessário
+    //       return rest; // Remove picture e name
+    //     }
+    //   ) || []
+    // );
+
+    // const alreadyApplied = currentCandidates.some(
+    //   (c: any) => c.cpf === collaborator?.CPF
+    // );
+
+    // if (alreadyApplied) {
+    //   setPreviousCards((prev) => [...prev, cards[0]]);
+    //   setCards((prevCards) => prevCards.slice(1));
+    //   showPopupMessage("Você já aplicou para esta vaga!");
+    //   return;
+    // }
+
+    // // 3. Criar novo candidato formatado
+    // const newCandidate = {
+    //   cpf: collaborator?.CPF,
+    //   step: 0,
+    //   status: null,
+    //   verify: null,
+    //   observation: null,
+    // };
+
+    // // 4. Atualizar lista de candidatos
+    // const updatedCandidates = [...currentCandidates, newCandidate];
+  }
+
   async removeDocumentDynamic(id: number, name: string, where?:string) {
     return this.bucketService.DeleteDocumentDynamic(id, name, where);
   };
