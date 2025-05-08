@@ -810,10 +810,12 @@ export class JobService {
   };
 
   async update(id: string, updateJobDto: UpdateJobDto) {
+    console.log(updateJobDto)
     const time = FindTimeSP();
     updateJobDto.update_at = time;
     
     try {
+      
       const response = await this.jobRepository.update(id, updateJobDto);
       if (response.affected === 1) {
         return {
