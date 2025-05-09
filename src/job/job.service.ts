@@ -838,7 +838,7 @@ export class JobService {
 
   async applyJob(date: any){
     const numericId = parseInt(date.id, 10); 
-    console.log(numericId)
+    // console.log(numericId)
     // 1. Buscar detalhes da vaga
     const jobResponse = await this.findOne(numericId);
     console.log(jobResponse)
