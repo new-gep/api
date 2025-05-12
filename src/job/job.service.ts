@@ -294,8 +294,9 @@ export class JobService {
         CPF_collaborator: IsNull(),
         CNPJ_company: {CNPJ: cnpj},
         delete_at: IsNull(),
-      },
+      }
     });
+    
     const formattedResponse = response.map((job) => {
       return {
         ...job,
@@ -323,7 +324,7 @@ export class JobService {
         CPF_collaborator: IsNull(),
         delete_at: IsNull(),
         function: Like(`%${job}%`), // Use Like operator for partial matching
-      },
+      }, relations: ['CNPJ_company']
     });
     const formattedResponse = response.map((job) => {
       return {
