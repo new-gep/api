@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository, Like } from 'typeorm';
 import { Job } from './entities/job.entity';
 import { UserService } from 'src/user/user.service';
 import { CollaboratorService } from 'src/collaborator/collaborator.service';
@@ -316,6 +316,34 @@ export class JobService {
       message: 'Registro não encontrado',
     };
   };
+
+  async findAllOpen(job: string) {
+    const response = await this.jobRepository.find({
+      where: {
+        CPF_collaborator: IsNull(),
+        delete_at: IsNull(),
+        function: Like(`%${job}%`), // Use Like operator for partial matching
+      },
+    });
+    const formattedResponse = response.map((job) => {
+      return {
+        ...job,
+        candidates: job.candidates
+          ? JSON.parse(job.candidates)
+          : job.candidates, // Parse JSON if candidates is a string
+      };
+    });
+    if (response) {
+      return {
+        status: 200,
+        job: formattedResponse,
+      };
+    }
+    return {
+      status: 409,
+      message: 'Registro não encontrado',
+    };
+  }
 
   async findAllJobsCollaborator(cpf: string) {
     const response = await this.jobRepository.find({

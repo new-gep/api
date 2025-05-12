@@ -126,6 +126,11 @@ export class JobController {
     return this.jobService.findAll();
   }
 
+  @Get('search/:job')
+  findAllOpen(@Param('job') job: string) {
+    return this.jobService.findAllOpen(job);
+  }
+
   @Get('collaborator/company/:cnpj')
   findCollaboratorCompany(@Param('cnpj') cnpj: string) {
     return this.jobService.findCollaboratorCompany(cnpj);
