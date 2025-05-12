@@ -5,6 +5,7 @@ import sys
 input_path = sys.argv[1]
 output_path = sys.argv[2]
 
+
 # Carregar imagem
 image = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
 
