@@ -2585,7 +2585,7 @@ export class BucketService {
       .promise();
 
     const arquivos = lista.Contents || [];
-    console.log(arquivos);
+
     for (const obj of arquivos) {
       const key = obj.Key;
       if (!key) continue;
@@ -2603,16 +2603,18 @@ export class BucketService {
         if (arquivo) {
           arquivosBase64.push({
             key,
-            documento: tipoDocumento,
-            tipo: match[1], // complet, front, back
-            // base64: arquivo.base64Data,
-            // contentType: arquivo.ContentType,
+            document: tipoDocumento,
+            type: match[1], // complet, front, back
+            base64: arquivo.base64Data,
+            contentType: arquivo.ContentType.includes('application/pdf') ? 'pdf':'picture',
+            status:'approved'
           });
         }
       }
     }
 
-    const childrens = this.getAllFilesChildrenFromBucket(cpf);
+    const childrens = await this.getAllFilesChildrenFromBucket(cpf);
+    // console.log('children',childrens);
 
     return {
       files: arquivosBase64,
@@ -2637,25 +2639,26 @@ export class BucketService {
 
         // Para cada objeto listado, pegar os dados e converter para base64
         for (let obj of data.Contents) {
-          const fileData = await this.bucket
-            .getObject({
-              Bucket: this.bucketName,
-              Key: obj.Key,
-            })
-            .promise();
+          const fileData = await this.getFileFromBucket(obj.Key);
+          // const fileData = await this.bucket
+          //   .getObject({
+          //     Bucket: this.bucketName,
+          //     Key: obj.Key,
+          //   })
+          //   .promise();
 
-          // Converte o arquivo para base64
-          const base64Data = fileData.Body.toString('base64');
 
           // Nome do documento pode ser extraído do Key
-          const nomeDocumento = obj.Key.split('/').pop();
+          const nameDocument = obj.Key.split('/').pop();
 
           // Adiciona os dados na lista de arquivos
           arquivos.push({
             key: obj.Key,
-            documento: nomeDocumento,
-            // base64: base64Data,
-            contentType: fileData.ContentType,
+            document: nameDocument,
+            base64: fileData.base64Data,
+            twoPicture: 'complet',
+            contentType: fileData.ContentType.includes('application/pdf') ? 'pdf' : 'picture',
+            status:'approved',
           });
         }
 
