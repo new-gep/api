@@ -724,7 +724,7 @@ export class JobService {
             try {
               job.demission = JSON.parse(job.demission); // Converte demission para JSON
               //@ts-ignore
-              if (job.demission && job.demission.step == 4) {
+              if (job.demission && job.demission.step == 'finish') {
                 return null; // Remove o job se o step for igual a 4
               }
             } catch (error) {
