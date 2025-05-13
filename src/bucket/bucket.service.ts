@@ -2559,9 +2559,9 @@ export class BucketService {
   // collaborator
 
   async findDossieCollaborator(cpf: string, id_work: number) {
-    const admission = `job/${4}/Admission/Complet`;
-    const dismissal_communication = `job/${4}/Dismissal/Complet/Communication`;
-    const dismissal = `job/${4}/Dismissal/Complet`;
+    const admission = `job/${id_work}/Admission/Complet`;
+    const dismissal_communication = `job/${id_work}/Dismissal/Complet/Communication`;
+    const dismissal = `job/${id_work}/Dismissal/Complet`;
     const document = `collaborator/${cpf}`;
 
     const documentFiles = await this.findFileCollaborator(cpf);
