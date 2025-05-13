@@ -23,7 +23,7 @@ export class PictureService {
           delete_at: IsNull(),
         },
       });
-
+      console.log('picture', picture);
       if (picture) {
         return {
           status: 409,
@@ -116,6 +116,7 @@ export class PictureService {
   }
 
   async findOne(CPF_collaborator: string,) {
+    console.log('CPF_collaborator', CPF_collaborator);
     try {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({
