@@ -25,7 +25,7 @@ export class JobService {
     readonly companyService: CompanyService,
     readonly absenceService: AbsenceService,
     readonly ServiceService: ServiceService,
-    
+
     private serviceService: ServiceService,
   ) {}
 
@@ -40,19 +40,18 @@ export class JobService {
         localities,
         ...rest
       } = createJobDto;
-  
+
       // Limpa salário e CEP
       const cleanedSalary = defaultJob.salary.replace(/[^\d]/g, '');
       const cleanedCep = defaultJob.cep.replace('-', '');
-  
+
       // Filtra somente os benefits ativos
-      const activeBenefits = benefits
-        ?.filter(b => b.active)
-        .map(b => b.name) || [];
-  
+      const activeBenefits =
+        benefits?.filter((b) => b.active).map((b) => b.name) || [];
+
       // Extrai só os nomes das skills
-      const skillNames = skills?.map(s => s.name) || [];
-  
+      const skillNames = skills?.map((s) => s.name) || [];
+
       // Base da vaga tratada
       const baseJob = {
         ...defaultJob,
@@ -64,29 +63,28 @@ export class JobService {
         user_create: createJobDto.user_create,
         CNPJ_company: createJobDto.CNPJ_company,
       };
-  
+
       // Verifica localities para duplicar ou não
       const jobsToCreate = [
         baseJob, // sempre inclui o job padrão
         ...(localities && localities.length > 0
           ? localities
-              .filter(l => l?.locality && l?.cep)
-              .map(l => ({
+              .filter((l) => l?.locality && l?.cep)
+              .map((l) => ({
                 ...baseJob,
                 locality: l.locality,
                 cep: l.cep.replace('-', ''),
               }))
           : []),
       ]; // só 1 se não tiver localities
-        
+
       // Salva todas as vagas
       const savedJobs = await this.jobRepository.save(jobsToCreate);
-  
+
       return {
         status: 201,
         message: `${savedJobs.length} vaga(s) criada(s).`,
       };
-  
     } catch (e) {
       console.log(e);
       return {
@@ -95,7 +93,7 @@ export class JobService {
       };
     }
   }
-  
+
   async uploadFile(upadteJobDto: UpadteJobDto, file: Express.Multer.File) {
     return await this.bucketService.UploadJob(
       file,
@@ -106,19 +104,19 @@ export class JobService {
     );
   }
 
-  async UploadJobFileSignature(
-    upadteJobDto: UpadteJobDto,
-  ) {
-    
+  async UploadJobFileSignature(upadteJobDto: UpadteJobDto) {
     return this.bucketService.UploadJobFileSignature(
       upadteJobDto.name,
       upadteJobDto.idJob,
       upadteJobDto.dynamic,
-      upadteJobDto.pages
+      upadteJobDto.pages,
     );
   }
 
-  async UploadJobFileAbsence(uploadAbsenceDto: UploadAbsenceDto, file: Express.Multer.File) {
+  async UploadJobFileAbsence(
+    uploadAbsenceDto: UploadAbsenceDto,
+    file: Express.Multer.File,
+  ) {
     const createAbsenceDto: CreateAbsenceDto = {
       id_work: Number(uploadAbsenceDto.id_work),
       name: uploadAbsenceDto.name,
@@ -126,7 +124,7 @@ export class JobService {
       status: null,
       CPF_collaborator: uploadAbsenceDto.CPF_collaborator,
       create_at: null,
-      date: uploadAbsenceDto.date
+      date: uploadAbsenceDto.date,
     };
     const response = await this.absenceService.create(createAbsenceDto);
     if (response.status === 201) {
@@ -138,7 +136,7 @@ export class JobService {
         uploadAbsenceDto.year,
         uploadAbsenceDto.month,
         uploadAbsenceDto.id_work,
-        uploadAbsenceDto.type
+        uploadAbsenceDto.type,
       );
       return uploadResponse;
     }
@@ -146,117 +144,164 @@ export class JobService {
 
   async checkDocumentAdmissional(id: number) {
     return this.bucketService.checkJobAdmissionBucketDocumentsObligation(id);
-  };
+  }
 
   async checkDocumentDismissal(id: number) {
     return this.bucketService.checkJobDismissalBucketDocumentsObligation(id);
-  };
+  }
 
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
     return this.bucketService.findJob(id, name, signature, dynamic);
-  };
+  }
 
-  async FindAllServiceByMonthAndYear(cnpj: string, month: string, year: string, type: string) {
+  async FindAllServiceByMonthAndYear(
+    cnpj: string,
+    month: string,
+    year: string,
+    type: string,
+  ) {
     try {
       const uniqueJobs = [];
       const uniqueSignature = [];
 
-      const response = await this.serviceService.FindAllByMonthAndYear(cnpj, month, year, type);
-      if(!response || response.status == 404){
+      const response = await this.serviceService.FindAllByMonthAndYear(
+        cnpj,
+        month,
+        year,
+        type,
+      );
+      if (!response || response.status == 404) {
         return response;
       }
 
       for (const item of response.services) {
-        const [action, type, year_file, month_file, id_service] = item.name.split('_');
+        const [action, type, year_file, month_file, id_service] =
+          item.name.split('_');
 
-        if (year === year_file && month === month_file && action.toLowerCase() !== 'signature') {
-          
+        if (
+          year === year_file &&
+          month === month_file &&
+          action.toLowerCase() !== 'signature'
+        ) {
           const responseJob = await this.jobRepository.findOne({
-             //@ts-ignore
+            //@ts-ignore
             where: { id: item.id_work },
             relations: ['CNPJ_company'],
           });
           //@ts-ignore
-          if(responseJob && responseJob.status === 200){
-            //@ts-ignore
-            const responseCollaborator = await this.collaboratorService.findOne(responseJob.job.CPF_collaborator.CPF);
-            if(responseJob.CNPJ_company.CNPJ !== cnpj){
+          if (responseJob && responseJob.status === 200) {
+            const responseCollaborator = await this.collaboratorService.findOne(
+              //@ts-ignore
+              responseJob.job.CPF_collaborator.CPF,
+            );
+            if (responseJob.CNPJ_company.CNPJ !== cnpj) {
               continue;
             }
-               //@ts-ignore
-            const ServiceComplet = { job: responseJob.job, collaborator: responseCollaborator.collaborator, picture: responseCollaborator.picture};
-            const pictureService = await this.bucketService.findOneService(item.id_work, item.type, year, month, item.name);
+            const ServiceComplet = {
+              //@ts-ignore
+              job: responseJob.job,
+              collaborator: responseCollaborator.collaborator,
+              picture: responseCollaborator.picture,
+            };
+            const pictureService = await this.bucketService.findOneService(
+              item.id_work,
+              item.type,
+              year,
+              month,
+              item.name,
+            );
             const newName = item.name.replace(/^[^_]+/, 'Full');
-            const pictureFull = await this.bucketService.findOneService(item.id_work, type, year, month, newName);
+            const pictureFull = await this.bucketService.findOneService(
+              item.id_work,
+              type,
+              year,
+              month,
+              newName,
+            );
 
-        
-
-            if(pictureService.status === 200 && pictureFull.status === 200){
+            if (pictureService.status === 200 && pictureFull.status === 200) {
               //@ts-ignore
-              ServiceComplet.service = [{ [item.name]: { item, pictureService, pictureFull } }];
-            }else if(pictureService.status === 200 && pictureFull.status !== 200){
+              ServiceComplet.service = [
+                { [item.name]: { item, pictureService, pictureFull } },
+              ];
+            } else if (
+              pictureService.status === 200 &&
+              pictureFull.status !== 200
+            ) {
               //@ts-ignore
-              ServiceComplet.service = [{ [item.name]: { item, pictureService } }];
-            }else{
+              ServiceComplet.service = [
+                { [item.name]: { item, pictureService } },
+              ];
+            } else {
               //@ts-ignore
               ServiceComplet.service = [{ [item.name]: { item } }];
             }
-
 
             uniqueJobs.push(ServiceComplet);
           }
         }
 
-        if(action.toLowerCase() === 'signature' && year === year_file && month === month_file){
+        if (
+          action.toLowerCase() === 'signature' &&
+          year === year_file &&
+          month === month_file
+        ) {
           //@ts-ignore
           const responseJob = await this.findOne(item.id_work.toString());
           //@ts-ignore
-          if(responseJob.job.CNPJ_company !== cnpj){
+          if (responseJob.job.CNPJ_company !== cnpj) {
             continue;
           }
 
-          uniqueSignature.push({true_id: id_service, service: item});
-          continue
+          uniqueSignature.push({ true_id: id_service, service: item });
+          continue;
         }
+      }
 
-      };
-      
-
-      if(uniqueJobs.length <= 0){
+      if (uniqueJobs.length <= 0) {
         return {
           status: 404,
           message: 'service not found',
         };
-      };
+      }
 
-      if(uniqueSignature.length > 0){
+      if (uniqueSignature.length > 0) {
         for (const item of uniqueSignature) {
           for (const unique of uniqueJobs) {
             if (String(unique.job.id) === String(item.service.id_work)) {
               unique.signature = item;
-              const response = await this.bucketService.findOneService(unique.job.id, type, year, month, item.service.name);
-              
-              if(response.status === 200){
+              const response = await this.bucketService.findOneService(
+                unique.job.id,
+                type,
+                year,
+                month,
+                item.service.name,
+              );
+
+              if (response.status === 200) {
                 unique.signature.picture = response;
               }
-
             }
           }
         }
-      };
+      }
 
       // const uniqueJobsArray = uniqueJobs.filter((job, index, self) =>
       //   index === self.findIndex((c) => c.collaborator.cpf === job.collaborator.cpf)
       // );
 
       const mergedJobs = uniqueJobs.reduce((acc, job) => {
-        const existing = acc.find((c) => c.collaborator.cpf === job.collaborator.cpf);
-      
+        const existing = acc.find(
+          (c) => c.collaborator.cpf === job.collaborator.cpf,
+        );
+
         if (existing) {
           // Se já existe, adiciona diretamente o conteúdo de job.service
-          const newService = Array.isArray(job.service) ? job.service : [job.service];
+          const newService = Array.isArray(job.service)
+            ? job.service
+            : [job.service];
           existing.service.push(...newService);
-      
+
           // Atualiza o signature, se existir
           if (job.signature) {
             existing.signature = job.signature;
@@ -268,35 +313,32 @@ export class JobService {
             service: Array.isArray(job.service) ? job.service : [job.service],
           });
         }
-      
+
         return acc;
       }, []);
-      
-      
-    
+
       return {
         status: 200,
         collaborators: mergedJobs,
       };
-
     } catch (error) {
-      console.log("error", error);
+      console.log('error', error);
       return {
         status: 500,
         message: 'Error to find service',
       };
     }
-  };
+  }
 
   async findJobOpen(cnpj: string) {
     const response = await this.jobRepository.find({
       where: {
         CPF_collaborator: IsNull(),
-        CNPJ_company: {CNPJ: cnpj},
+        CNPJ_company: { CNPJ: cnpj },
         delete_at: IsNull(),
-      }
+      },
     });
-    
+
     const formattedResponse = response.map((job) => {
       return {
         ...job,
@@ -316,7 +358,7 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  };
+  }
 
   async findAllOpen(job: string) {
     const response = await this.jobRepository.find({
@@ -324,7 +366,8 @@ export class JobService {
         CPF_collaborator: IsNull(),
         delete_at: IsNull(),
         function: Like(`%${job}%`), // Use Like operator for partial matching
-      }, relations: ['CNPJ_company']
+      },
+      relations: ['CNPJ_company'],
     });
     const formattedResponse = response.map((job) => {
       return {
@@ -349,7 +392,7 @@ export class JobService {
   async findAllJobsCollaborator(cpf: string) {
     const response = await this.jobRepository.find({
       where: {
-        CPF_collaborator: {CPF: cpf},
+        CPF_collaborator: { CPF: cpf },
         delete_at: IsNull(),
       },
     });
@@ -364,30 +407,32 @@ export class JobService {
       status: 409,
       message: 'Registro não encontrado',
     };
-  };
+  }
 
   async findCollaboratorCompany(cnpj: string) {
     const collaboratorCompany = [] as any;
     const response = await this.jobRepository.find({
       where: [
-        { CNPJ_company: {CNPJ: cnpj}, CPF_collaborator: Not(IsNull()) }, 
+        { CNPJ_company: { CNPJ: cnpj }, CPF_collaborator: Not(IsNull()) },
       ],
       relations: ['CPF_collaborator'],
       order: {
         delete_at: 'DESC', // Para garantir que, entre os deletados, o mais recente seja priorizado
-        update_at: 'DESC' // Caso queira priorizar o mais recente em termos de atualização, caso seja necessário
-      }
+        update_at: 'DESC', // Caso queira priorizar o mais recente em termos de atualização, caso seja necessário
+      },
     });
-   
-    if(response.length > 0){
+
+    if (response.length > 0) {
       let uniqueJobs = [] as any;
       const seenCpfs = new Set();
-      uniqueJobs = response.filter(job => {
+      uniqueJobs = response.filter((job) => {
         // Se o CPF já foi visto, verifica se o registro atual tem prioridade
         if (seenCpfs.has(job.CPF_collaborator.CPF)) {
           // Encontra o registro existente com o mesmo CPF
-          const existingJob = response.find(j => j.CPF_collaborator.CPF === job.CPF_collaborator.CPF);
-          
+          const existingJob = response.find(
+            (j) => j.CPF_collaborator.CPF === job.CPF_collaborator.CPF,
+          );
+
           // Se o registro atual tem `demission: null` e o existente não, substitui
           if (job.demission === null && existingJob.demission !== null) {
             // Remove o registro existente e adiciona o atual
@@ -403,7 +448,7 @@ export class JobService {
           return true;
         }
       });
-  
+
       if (uniqueJobs.length > 0 && uniqueJobs.length > 0) {
         await Promise.all(
           uniqueJobs.map(async (job) => {
@@ -418,21 +463,21 @@ export class JobService {
             }
           }),
         );
-  
-        const uniqueCollaborators = collaboratorCompany.filter((value, index, self) => 
-          index === self.findIndex((t) => (
-            t.collaborator.CPF === value.collaborator.CPF
-          ))
+
+        const uniqueCollaborators = collaboratorCompany.filter(
+          (value, index, self) =>
+            index ===
+            self.findIndex(
+              (t) => t.collaborator.CPF === value.collaborator.CPF,
+            ),
         );
 
-  
         return {
           status: 200,
           collaborator: uniqueCollaborators,
-          
         };
       }
-  
+
       return {
         status: 409,
         message: 'Registro não encontrado',
@@ -443,8 +488,7 @@ export class JobService {
       status: 500,
       message: 'Erro ao buscar colaborador',
     };
-
-  };
+  }
 
   async findAllAplicatedInJob(CPF_collaborator: string) {
     // Consulta todas as vagas abertas
@@ -453,44 +497,51 @@ export class JobService {
         candidates: Not(IsNull()),
         delete_at: IsNull(),
         CPF_collaborator: IsNull(),
-      }, 
-      relations: ['CNPJ_company'],  
+      },
+      relations: ['CNPJ_company'],
     });
-  
+
     // Filtra todas as vagas onde o candidato está aplicado (independente do step)
-    const jobsWithCpfAll = await Promise.all(openJobs.filter((job) => {
-      const candidates = JSON.parse(job.candidates);
-      return candidates.some(
-        (candidate) => String(candidate.cpf) === String(CPF_collaborator)
-      );
-    }).map(async (job) => {
-      const company = await this.companyService.findOne(job.CNPJ_company.CNPJ);
-      return {
-        ...job,
-        company: company.company
-      };
-    }));
-  
+    const jobsWithCpfAll = await Promise.all(
+      openJobs
+        .filter((job) => {
+          const candidates = JSON.parse(job.candidates);
+          return candidates.some(
+            (candidate) => String(candidate.cpf) === String(CPF_collaborator),
+          );
+        })
+        .map(async (job) => {
+          const company = await this.companyService.findOne(
+            job.CNPJ_company.CNPJ,
+          );
+          return {
+            ...job,
+            company: company.company,
+          };
+        }),
+    );
+
     // Filtra as vagas onde o candidato possui step > 0
     const jobsWithCpfStepGreaterThanZero = jobsWithCpfAll.filter((job) => {
       let candidates = JSON.parse(job.candidates);
       // console.log('Candidatos da vaga antes do filtro:', candidates);
-      
+
       // Filtra apenas o candidato com o CPF específico
-      candidates = candidates.filter(candidate => String(candidate.cpf) === String(CPF_collaborator));
-      
+      candidates = candidates.filter(
+        (candidate) => String(candidate.cpf) === String(CPF_collaborator),
+      );
+
       // Atualiza a lista de candidatos na vaga para conter apenas o candidato específico
       job.candidates = JSON.stringify(candidates);
-      
+
       // console.log('Candidatos da vaga após filtro:', candidates);
-      
+
       // Verifica se o candidato tem step > 0
-      return candidates.some(candidate => candidate.step > 0);
+      return candidates.some((candidate) => candidate.step > 0);
     });
-  
+
     // console.log('jobsWithCpfStepGreaterThanZero', jobsWithCpfStepGreaterThanZero.length);
     // console.log('jobsWithCpfAll', jobsWithCpfAll.length);
-  
 
     // Se existir ao menos uma vaga com step > 0, retorna apenas essas vagas
     if (jobsWithCpfStepGreaterThanZero.length > 0) {
@@ -501,7 +552,7 @@ export class JobService {
         processAdmission: true,
       };
     }
-  
+
     // Caso não haja nenhuma vaga com step > 0, mas o candidato esteja aplicado em alguma vaga,
     // retorna todas as vagas em que o candidato está
     if (jobsWithCpfAll.length > 0) {
@@ -513,56 +564,67 @@ export class JobService {
         processAdmission: false,
       };
     }
-  
+
     // Caso o candidato não esteja aplicado em nenhuma vaga aberta
     return {
       status: 404,
       message: `O CPF ${CPF_collaborator} não foi encontrado em nenhuma vaga aberta.`,
     };
-  };
+  }
 
   async jobServices(id: any, typeService: any, year: any, month: any) {
-    const response = await this.bucketService.findServices(id, typeService, year, month);
+    const response = await this.bucketService.findServices(
+      id,
+      typeService,
+      year,
+      month,
+    );
     if (response && Array.isArray(response)) {
       // console.log("Response inicial:", response);
       // return;
       const enrichedResponse = await Promise.all(
         response.map(async (item) => {
           try {
-            let service
-            if(typeService.toLowerCase() == 'absence'){
-              const number = parseInt(item.fileName.split("_")[1]);
+            let service;
+            if (typeService.toLowerCase() == 'absence') {
+              const number = parseInt(item.fileName.split('_')[1]);
               service = await this.absenceService.findOne(number);
-            }else{
+            } else {
               service = await this.serviceService.findOne(item.id);
             }
             // console.log("Serviço encontrado:", service);
-            
+
             if (service?.status === 200) {
               const enrichedItem = {
                 ...item,
-                details: typeService.toLowerCase() == 'absence' ? service.absence : service.service
+                details:
+                  typeService.toLowerCase() == 'absence'
+                    ? service.absence
+                    : service.service,
               };
               // console.log("enrichedItem", enrichedItem.length);
               return enrichedItem;
             }
-            
+
             return item;
           } catch (error) {
-            console.error("Erro ao buscar detalhes do serviço para o item", item.id, error);
+            console.error(
+              'Erro ao buscar detalhes do serviço para o item',
+              item.id,
+              error,
+            );
             return item;
           }
-        })
+        }),
       );
-      
+
       // console.log("contagem", enrichedResponse.length);
       return enrichedResponse;
     }
-  };
+  }
 
   async findAll() {
     try {
-
       let response = await this.jobRepository.find({
         where: { delete_at: IsNull(), CPF_collaborator: IsNull() },
         relations: ['CNPJ_company'],
@@ -597,14 +659,14 @@ export class JobService {
         message: 'Erro no servidor',
       };
     }
-  };
+  }
 
   async findProcessAdmissional(cnpj: string) {
     try {
       const response = await this.jobRepository.find({
         where: {
           CPF_collaborator: IsNull(),
-          CNPJ_company: {CNPJ: cnpj},
+          CNPJ_company: { CNPJ: cnpj },
           delete_at: IsNull(),
         },
       });
@@ -627,7 +689,7 @@ export class JobService {
 
           // Processa os candidatos
           await Promise.all(
-            candidates.map(async (candidate:any) => {
+            candidates.map(async (candidate: any) => {
               try {
                 const collaboratorResponse =
                   await this.collaboratorService.findOne(candidate.cpf);
@@ -690,7 +752,7 @@ export class JobService {
         acc[step] = (acc[step] || 0) + 1;
         return acc;
       }, {});
-    
+
       return {
         status: 200,
         candidates: filteredCandidates,
@@ -702,7 +764,7 @@ export class JobService {
         message: 'Unexpected Error',
       };
     }
-  };
+  }
 
   async findProcessDemissional(cnpj: string) {
     try {
@@ -710,7 +772,7 @@ export class JobService {
       const response = await this.jobRepository.find({
         where: {
           CPF_collaborator: Not(IsNull()),
-          CNPJ_company: {CNPJ: cnpj},
+          CNPJ_company: { CNPJ: cnpj },
           delete_at: IsNull(),
           motion_demission: Not(IsNull()),
         },
@@ -719,7 +781,6 @@ export class JobService {
 
       let collaboratorsInProcess = await Promise.all(
         response.flatMap(async (job) => {
-
           if (job && job.demission) {
             try {
               job.demission = JSON.parse(job.demission); // Converte demission para JSON
@@ -735,39 +796,50 @@ export class JobService {
 
           if (job.CPF_collaborator) {
             delete job.CPF_collaborator.password;
-            console.log()
-            const picture = await this.collaboratorService.findFile(job.CPF_collaborator.CPF, 'picture') 
+            console.log();
+            const picture = await this.collaboratorService.findFile(
+              job.CPF_collaborator.CPF,
+              'picture',
+            );
             return {
               ...job,
               collaborator: job.CPF_collaborator,
-              picture: picture
+              picture: picture,
             };
           }
         }),
       );
 
-      collaboratorsInProcess = collaboratorsInProcess.filter(collaborator => collaborator !== null);
+      collaboratorsInProcess = collaboratorsInProcess.filter(
+        (collaborator) => collaborator !== null,
+      );
 
-      if(collaboratorsInProcess.length > 0){
-        stepCounts = collaboratorsInProcess.reduce(async (acc, collaborator) => {
-          try {
-            // Acessar o campo "demission" diretamente
-            const demission = collaborator.demission;
+      if (collaboratorsInProcess.length > 0) {
+        stepCounts = collaboratorsInProcess.reduce(
+          async (acc, collaborator) => {
+            try {
+              // Acessar o campo "demission" diretamente
+              const demission = collaborator.demission;
 
-        
-            // Obter o step e criar a chave dinamicamente
-            if (demission && typeof demission === 'object') {
-              //@ts-ignore
-              const step = `step${demission.step}`;
-              // Incrementar o contador para o step correspondente
-              acc[step] = (acc[step] || 0) + 1;
-            };
-          } catch (error) {
-            console.error("Erro ao processar demission:", collaborator.demission, error);
-          }
-        
-          return acc;
-        }, {});
+              // Obter o step e criar a chave dinamicamente
+              if (demission && typeof demission === 'object') {
+                //@ts-ignore
+                const step = `step${demission.step}`;
+                // Incrementar o contador para o step correspondente
+                acc[step] = (acc[step] || 0) + 1;
+              }
+            } catch (error) {
+              console.error(
+                'Erro ao processar demission:',
+                collaborator.demission,
+                error,
+              );
+            }
+
+            return acc;
+          },
+          {},
+        );
       }
 
       return {
@@ -782,29 +854,29 @@ export class JobService {
         message: 'Unexpected Error',
       };
     }
-  };
+  }
 
   async findOne(id: number) {
     try {
-        let response = await this.jobRepository.findOne({
-          where: { id: id },
-          relations: ['user_create', 'CPF_collaborator'],
-        });
+      let response = await this.jobRepository.findOne({
+        where: { id: id },
+        relations: ['user_create', 'CPF_collaborator'],
+      });
       if (response) {
-          if(response?.benefits){
-            response.benefits = JSON.parse(response.benefits);
-          }
-          if(response?.skills){
-            response.skills = JSON.parse(response.skills);
-          }
-          response.candidates = JSON.parse(response.candidates);
+        if (response?.benefits) {
+          response.benefits = JSON.parse(response.benefits);
+        }
+        if (response?.skills) {
+          response.skills = JSON.parse(response.skills);
+        }
+        response.candidates = JSON.parse(response.candidates);
         if (response.candidates) {
           for (let index = 0; index < response.candidates.length; index++) {
             const candidate: any = response.candidates[index];
             const collaborator: any = await this.collaboratorService.findOne(
               candidate.cpf,
             );
-            if(collaborator.status === 409) continue
+            if (collaborator.status === 409) continue;
             const picture: any = await this.bucketService.getFileFromBucket(
               `collaborator/${candidate.cpf}/Picture`,
             );
@@ -836,16 +908,40 @@ export class JobService {
         message: 'Erro Interno.',
       };
     }
-  };
+  }
 
   async update(id: string, updateJobDto: UpdateJobDto) {
-    console.log(updateJobDto)
+
+    const {
+      default: defaultJob,
+      benefits,
+      skills,
+      localities,
+      ...rest
+    } = updateJobDto;
     const time = FindTimeSP();
     updateJobDto.update_at = time;
-    
+
+    const cleanedSalary  = defaultJob.salary.replace(/[^\d]/g, '');
+    const cleanedCep     = defaultJob.cep.replace('-', '');
+    const activeBenefits = benefits?.filter((b) => b.active).map((b) => b.name) || [];
+
+    // Extrai só os nomes das skills
+    const skillNames = skills?.map((s) => s.name) || [];
+    const baseJob = {
+      ...defaultJob,
+      salary: cleanedSalary,
+      cep: cleanedCep,
+      benefits: JSON.stringify(activeBenefits),
+      skills: JSON.stringify(skillNames),
+      create_at: time,
+      user_edit: updateJobDto.user_edit,
+      CNPJ_company: updateJobDto.CNPJ_company,
+    };
+
+
     try {
-      
-      const response = await this.jobRepository.update(id, updateJobDto);
+      const response = await this.jobRepository.update(id, baseJob);
       if (response.affected === 1) {
         return {
           status: 200,
@@ -863,19 +959,19 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  };
+  }
 
-  async applyJob(date: any){
-    const numericId = parseInt(date.id, 10); 
+  async applyJob(date: any) {
+    const numericId = parseInt(date.id, 10);
     // console.log(numericId)
     // 1. Buscar detalhes da vaga
     const jobResponse = await this.findOne(numericId);
-    console.log(jobResponse)
+    console.log(jobResponse);
     if (jobResponse.status !== 200) {
-      return{
-        error:500,
-        message:'Erro ao buscar detalhes da vaga'
-      }
+      return {
+        error: 500,
+        message: 'Erro ao buscar detalhes da vaga',
+      };
     }
 
     type Candidate = {
@@ -883,8 +979,8 @@ export class JobService {
       name: string;
       [key: string]: any;
     };
-    console.log(jobResponse)
-    return
+    console.log(jobResponse);
+    return;
     // let currentCandidates = await Promise.all(
     //   jobResponse.job.candidates?.map(
     //     async ({ picture, name, ...rest }: Candidate) => {
@@ -918,14 +1014,14 @@ export class JobService {
     // const updatedCandidates = [...currentCandidates, newCandidate];
   }
 
-  async removeDocumentDynamic(id: number, name: string, where?:string) {
+  async removeDocumentDynamic(id: number, name: string, where?: string) {
     return this.bucketService.DeleteDocumentDynamic(id, name, where);
-  };
+  }
 
   async remove(id: string) {
     try {
       const time = FindTimeSP();
-      
+
       const propsDelete = {
         delete_at: time,
       };
@@ -948,5 +1044,5 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
-  };
+  }
 }

@@ -1,6 +1,11 @@
 export class UpdateJobDto {
+    default: any;
     obligations?: string;
-    benefits?: string;
+    cep     ?: string;
+    locality?: string;
+    benefits?: any;
+    skills  ?: any;
+    localities?: string;
     details ?: string;
     image   ?: string;
     function?: string;
@@ -14,5 +19,6 @@ export class UpdateJobDto {
     user_edit ?:any;
     update_at ?:string;
     CPF_collaborator?:any;
+    CNPJ_company?:any;
     transportation_voucher?:string;
 }
