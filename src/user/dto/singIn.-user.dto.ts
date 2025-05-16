@@ -1,4 +1,4 @@
 export class SingInUserDto {
-    user    :string
+    email    :string
     password?:string
 }

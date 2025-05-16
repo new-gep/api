@@ -1,6 +1,6 @@
 export class CreateUserDto {
     id?:string
-    user:string
+    // user:string
     avatar?:string
     hierarchy:string
     password:string

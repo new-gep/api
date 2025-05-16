@@ -17,10 +17,10 @@ export class Company {
     @Column({length: 10})
     type_account: string;
 
-    @Column({length: 150})
+    @Column({length: 150, default: null})
     state_registration: string;
 
-    @Column({length: 150})
+    @Column({length: 150, default:null} )
     municipal_registration: string;
 
     @Column({length: 150})

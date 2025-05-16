@@ -9,7 +9,7 @@ export class User {
     @Column({length: 50, default:null })
     avatar: string;
 
-    @Column({length: 50})
+    @Column({length: 50, default:null})
     user: string;
 
     @Column({length: 200})

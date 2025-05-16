@@ -4,8 +4,8 @@ export class CreateCompanyDto {
     CNPJ    :string
     email   : string
     company_name: string
-    municipal_registration: string
-    state_registration    : string
+    municipal_registration?: string
+    state_registration    ?: string
     type_account:string
     phone   : string
     responsible: string

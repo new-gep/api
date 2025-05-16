@@ -16,20 +16,20 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: { user: createUserDto.user },
-    });
+    // const existingUser = await this.userRepository.findOne({
+    //   where: { email: createUserDto.email },
+    // });
 
     const existingEmail = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
 
-    if (existingUser) {
-      return {
-        status: 409,
-        message: 'Usário já existe.',
-      };
-    }
+    // if (existingUser) {
+    //   return {
+    //     status: 409,
+    //     message: 'Usário já existe.',
+    //   };
+    // }
 
     if (existingEmail) {
       return {
@@ -47,7 +47,6 @@ export class UserService {
     if (newUser) {
       const token = await GenerateToken({
         id: newUser.id,
-        user: newUser.user,
         name: newUser.name,
         email: newUser.email,
         phone: newUser.phone,
@@ -93,20 +92,20 @@ export class UserService {
   }
 
   async singUp(createUserDto: CreateUserDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: { user: createUserDto.user },
-    });
+    // const existingUser = await this.userRepository.findOne({
+    //   where: { user: createUserDto.user },
+    // });
 
     const existingEmail = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
 
-    if (existingUser) {
-      return {
-        status: 409,
-        message: 'Usário já existe.',
-      };
-    }
+    // if (existingUser) {
+    //   return {
+    //     status: 409,
+    //     message: 'Usário já existe.',
+    //   };
+    // }
 
     if (existingEmail) {
       return {
@@ -120,14 +119,14 @@ export class UserService {
 
   async singIn(singInUserDto: SingInUserDto) {
     const user = await this.userRepository.findOne({
-      where: { user: singInUserDto.user, delete_at: IsNull() },
+      where: { email: singInUserDto.email, delete_at: IsNull() },
       relations: ['CNPJ_company'],
     });
 
     if (!user) {
       return {
         status: 409,
-        message: 'Usário não existe.',
+        message: 'Usário não encontrado.',
       };
     }
 
@@ -135,7 +134,7 @@ export class UserService {
       return {
         status: 200,
         name: user.name,
-        message: 'Usúario existe',
+        message: 'Usúario encontrado',
       };
     }
 
@@ -144,7 +143,6 @@ export class UserService {
       const token = await GenerateToken({
         id: user.id,
         avatar: user.avatar,
-        user: user.user,
         name: user.name,
         email: user.email,
         phone: user.phone,
