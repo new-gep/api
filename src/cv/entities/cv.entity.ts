@@ -13,19 +13,13 @@ export class Cv {
   id: number;
 
   @Column({ type: 'longtext' })
-  school: string;
+  education: string;
 
   @Column({ type: 'longtext' })
   experience: string;
 
-  @Column({ type: 'longtext' })
+  @Column({ type: 'longtext', default: null })
   skills: string;
-
-  @Column({ length: 50 })
-  acting: string;
-
-  @Column({ length: 1 })
-  working: string;
 
   @ManyToOne(() => Collaborator, (collaborator) => collaborator.CPF, { nullable: false })
   @JoinColumn({ name: 'CPF_collaborator', referencedColumnName: 'CPF' })
