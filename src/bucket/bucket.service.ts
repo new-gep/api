@@ -401,6 +401,9 @@ export class BucketService {
         case 'picture':
           path = `collaborator/${cpf}/Picture`;
           break;
+        case 'cv':
+          path = `collaborator/${cpf}/CV`;
+          break;
         case 'rg':
           path = `collaborator/${cpf}/RG/${side}`;
           break;
@@ -693,6 +696,16 @@ export class BucketService {
               type: 'picture',
               path: pictureFile.base64Data, // arquivo base64 de endereço
             };
+
+          case 'cv':
+            const cvKey = `collaborator/${cpf}/CV`;
+            const cvFile = await this.getFileFromBucket(cvKey);
+            return{
+              status: 200,
+              type: 'pdf',
+              path: cvFile.base64Data,
+            }
+            break;
 
           case 'medical_examination':
             const medicalKey = `collaborator/${cpf}/Medical_Examination`;
