@@ -912,7 +912,6 @@ export class JobService {
   }
 
   async update(id: string, updateJobDto: UpdateJobDto) {
-
     const {
       default: defaultJob,
       benefits,
@@ -924,9 +923,10 @@ export class JobService {
     const time = FindTimeSP();
     updateJobDto.update_at = time;
 
-    const cleanedSalary  = defaultJob?.salary.replace(/[^\d]/g, '');
-    const cleanedCep     = defaultJob?.cep.replace('-', '');
-    const activeBenefits = benefits?.filter((b) => b.active).map((b) => b.name) || [];
+    const cleanedSalary = defaultJob?.salary.replace(/[^\d]/g, '');
+    const cleanedCep = defaultJob?.cep.replace('-', '');
+    const activeBenefits =
+      benefits?.filter((b) => b.active).map((b) => b.name) || [];
 
     // Extrai só os nomes das skills
     const skillNames = skills?.map((s) => s.name) || [];
@@ -934,14 +934,13 @@ export class JobService {
       ...defaultJob,
       salary: cleanedSalary,
       cep: cleanedCep,
-      candidates:candidates,
+      candidates: candidates,
       benefits: JSON.stringify(activeBenefits),
       skills: JSON.stringify(skillNames),
       create_at: time,
       user_edit: updateJobDto.user_edit,
       CNPJ_company: updateJobDto.CNPJ_company,
     };
-
 
     try {
       const response = await this.jobRepository.update(id, baseJob);
@@ -964,57 +963,113 @@ export class JobService {
     }
   }
 
-  async applyJob(date: any) {
-    const numericId = parseInt(date.id, 10);
-    // console.log(numericId)
-    // 1. Buscar detalhes da vaga
-    const jobResponse = await this.findOne(numericId);
-    console.log(jobResponse);
-    if (jobResponse.status !== 200) {
+  async applyJob(id: number, cpf: string) {
+    const response = await this.jobRepository.findOne({ where: { id } });
+
+    if (!response) {
       return {
-        error: 500,
-        message: 'Erro ao buscar detalhes da vaga',
+        status: 404,
+        message: 'Job not found',
       };
     }
 
-    type Candidate = {
-      picture: string;
-      name: string;
-      [key: string]: any;
+    // ✅ Tratamento seguro do JSON
+    let currentCandidates: any[] = [];
+    try {
+      currentCandidates = response.candidates
+        ? JSON.parse(response.candidates)
+        : [];
+    } catch (e) {
+      console.error('Erro ao fazer parse dos candidatos:', e);
+      currentCandidates = [];
+    }
+
+    // ✅ Verificar duplicidade de CPF
+    const cpfAlreadyExists = currentCandidates.some(
+      (candidate) => candidate.cpf === cpf,
+    );
+
+    if (cpfAlreadyExists) {
+      return {
+        status: 400,
+        message: 'CPF já está cadastrado como candidato nesta vaga.',
+      };
+    }
+
+    const newCandidate = {
+      cpf: cpf,
+      step: 0,
+      status: null,
+      verify: null,
+      observation: null,
     };
-    console.log(jobResponse);
-    return;
-    // let currentCandidates = await Promise.all(
-    //   jobResponse.job.candidates?.map(
-    //     async ({ picture, name, ...rest }: Candidate) => {
-    //       // Aqui você pode realizar alguma operação assíncrona se necessário
-    //       return rest; // Remove picture e name
-    //     }
-    //   ) || []
-    // );
 
-    // const alreadyApplied = currentCandidates.some(
-    //   (c: any) => c.cpf === collaborator?.CPF
-    // );
+    const updatedCandidates = [...currentCandidates, newCandidate];
+    const updatedJob = {
+      candidates: JSON.stringify(updatedCandidates),
+    };
 
-    // if (alreadyApplied) {
-    //   setPreviousCards((prev) => [...prev, cards[0]]);
-    //   setCards((prevCards) => prevCards.slice(1));
-    //   showPopupMessage("Você já aplicou para esta vaga!");
-    //   return;
-    // }
+    try {
+      const updateResult = await this.jobRepository.update(id, updatedJob);
 
-    // // 3. Criar novo candidato formatado
-    // const newCandidate = {
-    //   cpf: collaborator?.CPF,
-    //   step: 0,
-    //   status: null,
-    //   verify: null,
-    //   observation: null,
-    // };
+      if (updateResult.affected === 1) {
+        return {
+          status: 200,
+          message: 'Candidato aplicado com sucesso!',
+        };
+      }
 
-    // // 4. Atualizar lista de candidatos
-    // const updatedCandidates = [...currentCandidates, newCandidate];
+      return {
+        status: 404,
+        message: 'Não foi possível aplicar para a vaga.',
+      };
+    } catch (e) {
+      console.error(e);
+      return {
+        status: 500,
+        message: 'Erro interno.',
+      };
+    }
+  }
+
+  async unapplyJob(id: number, cpf: string) {
+    const response = await this.jobRepository.findOne({ where: { id } });
+    if (!response) {
+      return {
+        status: 404,
+        message: 'Job not found',
+      };
+    }
+    const currentCandidates = JSON.parse(response?.candidates);
+    const updatedCandidates = currentCandidates.filter((candidate) => {
+      const candidateCpf = String(candidate.cpf).replace(/\D/g, '');
+      const collaboratorCpf = String(cpf).replace(/\D/g, '');
+      return candidateCpf !== collaboratorCpf;
+    });
+    const updatedJob = {
+      candidates: JSON.stringify(updatedCandidates),
+    };
+    try {
+      const response = await this.jobRepository.update(id, updatedJob);
+      if (response.affected === 1) {
+        return {
+          status: 200,
+          message: 'Job unapplied successfully!',
+        };
+      }
+      return {
+        status: 404,
+        message: 'Could not unapply the job, something went wrong!',
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'Internal error.',
+      };
+    }
+
+    console.log(updatedCandidates);
   }
 
   async removeDocumentDynamic(id: number, name: string, where?: string) {

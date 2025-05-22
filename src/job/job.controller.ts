@@ -177,6 +177,16 @@ export class JobController {
     return this.jobService.update(id, updateJobDto);
   }
 
+  @Patch('apply/:id/:cpf')
+  apply(@Param('id') id: string, @Param('cpf') cpf: string) {
+    return this.jobService.applyJob(+id, cpf);
+  }
+
+  @Patch('unapply/:id/:cpf')
+  unapplyJob(@Param('id') id: string, @Param('cpf') cpf: string) {
+    return this.jobService.unapplyJob(+id, cpf);
+  }
+
   @Delete('document/dynamic/:name/:id/:where')
   removeDocumentDynamic(
     @Param('name') name: string,
