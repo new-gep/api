@@ -930,7 +930,7 @@ export class JobService {
     const skillNames = skills?.map((s) => s.name) || [];
     const baseJob = {
       ...defaultJob,
-      salary: cleanedSalary,
+      salary: cleanedSalary || defaultJob.salary,
       cep: cleanedCep,
       benefits: JSON.stringify(activeBenefits),
       skills: JSON.stringify(skillNames),
