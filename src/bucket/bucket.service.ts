@@ -126,7 +126,6 @@ export class BucketService {
       // .png({ quality: 50 })   // compacta mantendo boa qualidade
       // .toBuffer();
 
-
       // Embutir a imagem no PDF (assumindo que é PNG, ajuste se necessário)
       const image = await pdfDoc.embedPng(imageBytes);
 
@@ -700,11 +699,11 @@ export class BucketService {
           case 'cv':
             const cvKey = `collaborator/${cpf}/CV`;
             const cvFile = await this.getFileFromBucket(cvKey);
-            return{
+            return {
               status: 200,
               type: 'pdf',
               path: cvFile.base64Data,
-            }
+            };
             break;
 
           case 'medical_examination':
@@ -739,6 +738,7 @@ export class BucketService {
   }
 
   async checkCollaboratorBucketDocuments(collaborator: any) {
+    console.log(collaborator);
     const missingDocuments = [];
     const missingDocumentsChildren = [];
 
@@ -816,6 +816,19 @@ export class BucketService {
       for (const childKey in collaborator.children) {
         if (collaborator.children.hasOwnProperty(childKey)) {
           const child = collaborator.children[childKey];
+          const [d, m, y] = child.birth.split('/'); // "DD/MM/YYYY"
+          const birthDate = new Date(`${y}-${m}-${d}`);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          const dayDiff = today.getDate() - birthDate.getDate();
+          if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+            age--; // ainda não fez aniversário esse ano
+          }
+          console.log('Idade:', age);
+          if (age > 14) {
+            continue;
+          }
           const childName = Mask('firstName', child.name);
           // Lista de documentos a serem verificados para cada filho
           const childrenDocuments = [`Birth_Certificate_${childName}`];
@@ -2619,8 +2632,10 @@ export class BucketService {
             document: tipoDocumento,
             type: match[1], // complet, front, back
             base64: arquivo.base64Data,
-            contentType: arquivo.ContentType.includes('application/pdf') ? 'pdf':'picture',
-            status:'approved'
+            contentType: arquivo.ContentType.includes('application/pdf')
+              ? 'pdf'
+              : 'picture',
+            status: 'approved',
           });
         }
       }
@@ -2660,7 +2675,6 @@ export class BucketService {
           //   })
           //   .promise();
 
-
           // Nome do documento pode ser extraído do Key
           const nameDocument = obj.Key.split('/').pop();
 
@@ -2670,8 +2684,10 @@ export class BucketService {
             document: nameDocument,
             base64: fileData.base64Data,
             twoPicture: 'complet',
-            contentType: fileData.ContentType.includes('application/pdf') ? 'pdf' : 'picture',
-            status:'approved',
+            contentType: fileData.ContentType.includes('application/pdf')
+              ? 'pdf'
+              : 'picture',
+            status: 'approved',
           });
         }
 
@@ -2699,6 +2715,4 @@ export class BucketService {
       return inputBuffer; // Retorna o buffer original em caso de erro
     }
   }
-
 }
-
