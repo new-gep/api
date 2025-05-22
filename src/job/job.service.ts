@@ -922,26 +922,31 @@ export class JobService {
     const time = FindTimeSP();
     updateJobDto.update_at = time;
 
-    const cleanedSalary  = defaultJob.salary.replace(/[^\d]/g, '');
-    const cleanedCep     = defaultJob.cep.replace('-', '');
-    const activeBenefits = benefits?.filter((b) => b.active).map((b) => b.name) || [];
-
-    // Extrai só os nomes das skills
-    const skillNames = skills?.map((s) => s.name) || [];
-    const baseJob = {
+    // Monta o objeto de atualização apenas com os campos enviados
+    const updateFields: any = {
       ...defaultJob,
-      salary: cleanedSalary || defaultJob.salary,
-      cep: cleanedCep,
-      benefits: JSON.stringify(activeBenefits),
-      skills: JSON.stringify(skillNames),
-      create_at: time,
+      update_at: time,
       user_edit: updateJobDto.user_edit,
       CNPJ_company: updateJobDto.CNPJ_company,
     };
 
+    if (defaultJob?.salary !== undefined) {
+      updateFields.salary = defaultJob.salary.replace(/[^\d]/g, '');
+    }
+    if (defaultJob?.cep !== undefined) {
+      updateFields.cep = defaultJob.cep.replace('-', '');
+    }
+    if (benefits !== undefined) {
+      updateFields.benefits = JSON.stringify(
+        benefits.filter((b) => b.active).map((b) => b.name)
+      );
+    }
+    if (skills !== undefined) {
+      updateFields.skills = JSON.stringify(skills.map((s) => s.name));
+    }
 
     try {
-      const response = await this.jobRepository.update(id, baseJob);
+      const response = await this.jobRepository.update(id, updateFields);
       if (response.affected === 1) {
         return {
           status: 200,
