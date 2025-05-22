@@ -819,13 +819,15 @@ export class BucketService {
           const [d, m, y] = child.birth.split('/'); // "DD/MM/YYYY"
           const birthDate = new Date(`${y}-${m}-${d}`);
           const today = new Date();
+          
           let age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
           const dayDiff = today.getDate() - birthDate.getDate();
+
           if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
             age--; // ainda não fez aniversário esse ano
           }
-          console.log('Idade:', age);
+
           if (age > 14) {
             continue;
           }
