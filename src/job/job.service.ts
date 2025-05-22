@@ -912,7 +912,7 @@ export class JobService {
   }
 
   async update(id: string, updateJobDto: UpdateJobDto) {
-    console.log(updateJobDto)
+
     const {
       default: defaultJob,
       benefits,
