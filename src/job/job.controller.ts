@@ -182,6 +182,11 @@ export class JobController {
     return this.jobService.applyJob(+id, cpf);
   }
 
+  @Patch('statusCandidate/:id/')
+  statusCandidate(@Param('id') id, @Body() updateStatusCandidateDto: {candidate:string}) {
+    return this.jobService.updateStatusCandidate(updateStatusCandidateDto, +id);
+  }
+
   @Patch('unapply/:id/:cpf')
   unapplyJob(@Param('id') id: string, @Param('cpf') cpf: string) {
     return this.jobService.unapplyJob(+id, cpf);

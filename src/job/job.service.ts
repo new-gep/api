@@ -922,7 +922,6 @@ export class JobService {
     } = updateJobDto;
     const time = FindTimeSP();
     updateJobDto.update_at = time;
-
     const cleanedSalary = defaultJob?.salary.replace(/[^\d]/g, '');
     const cleanedCep = defaultJob?.cep.replace('-', '');
     const activeBenefits =
@@ -961,6 +960,59 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
+  }
+
+  async updateStatusCandidate(candidate: any, id: number) {
+    const response = await this.jobRepository.findOne({ where: { id } });
+
+    if (!response) {
+      return {
+        status: 500,
+        message: 'Job not found',
+      };
+    }
+
+    // Parse dos candidatos atuais salvos no banco
+    let currentCandidates: any[] = [];
+    try {
+      currentCandidates = response.candidates
+        ? JSON.parse(response.candidates)
+        : [];
+    } catch (e) {
+      console.error('Erro ao fazer parse dos candidatos:', e);
+      currentCandidates = [];
+    }
+
+    // Parse dos candidatos recebidos no body
+    let updatedCandidates: any[] = [];
+    try {
+      updatedCandidates = JSON.parse(candidate.candidates);
+    } catch (e) {
+      console.error('Erro ao fazer parse dos candidatos recebidos:', e);
+      updatedCandidates = [];
+    }
+
+    // Atualizar candidatos existentes
+    const mergedCandidates = currentCandidates.map((existing) => {
+      const update = updatedCandidates.find((u) => u.cpf === existing.cpf);
+      if (update) {
+        return {
+          ...existing,
+          ...update,
+        };
+      }
+      return existing;
+    });
+
+    // Salva os candidatos atualizados no job
+    response.candidates = JSON.stringify(mergedCandidates);
+    await this.jobRepository.save(response);
+
+    return {
+      status: 200,
+      message: 'Candidatos atualizados com sucesso',
+      candidates: mergedCandidates,
+    };
   }
 
   async applyJob(id: number, cpf: string) {
