@@ -165,14 +165,14 @@ export class BucketService {
   }
 
   async clearTempFolder() {
-  try {
-    const files = await readdir('./temp');
-    const deletions = files.map(file => unlink(`./temp/${file}`));
-    await Promise.all(deletions);
-  } catch (error) {
-    console.error('Erro ao limpar a pasta temp:', error);
+    try {
+      const files = await readdir('./temp');
+      const deletions = files.map((file) => unlink(`./temp/${file}`));
+      await Promise.all(deletions);
+    } catch (error) {
+      console.error('Erro ao limpar a pasta temp:', error);
+    }
   }
-}
 
   async convertPDFinImage(base64) {
     return new Promise(async (resolve, reject) => {
@@ -195,8 +195,11 @@ export class BucketService {
 
         for (let i = 1; i <= pages.length; i++) {
           // const pageStr = String(i).padStart(2, '0');
-          const imagePath = `./temp/page-${i}.png`;
-          console.log(imagePath)
+          let imagePath = `./temp/page-${i}.png`;
+          if (!fs.existsSync(imagePath)) {
+            const padded = String(i).padStart(2, '0');
+            imagePath = `./temp/page-${padded}.png`;
+          }
           const base64Image = await ConvertImageToBase64(imagePath);
           results.push({
             page: i,
@@ -798,7 +801,7 @@ export class BucketService {
           const [d, m, y] = child.birth.split('/'); // "DD/MM/YYYY"
           const birthDate = new Date(`${y}-${m}-${d}`);
           const today = new Date();
-          
+
           let age = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
           const dayDiff = today.getDate() - birthDate.getDate();
@@ -1685,7 +1688,7 @@ export class BucketService {
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const dynamicSignatureFile =
-          await this.getFileFromBucket(dynamicSignatureKey);
+            await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Admission/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
