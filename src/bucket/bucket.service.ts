@@ -13,7 +13,7 @@ import { compress } from 'compress-pdf';
 import { exec, execSync } from 'child_process';
 import { cwd } from 'process';
 import { promisify } from 'util';
-
+import { readdir, unlink } from 'fs/promises';
 @Injectable()
 export class BucketService {
   private readonly spacesEndpoint: AWS.Endpoint;
@@ -164,38 +164,15 @@ export class BucketService {
     return Buffer.from(pdfModificado);
   }
 
-  // async convertPDFinImage(base64) {
-  //   return new Promise(async (resolve, reject) => {
-  //     try {
-  //       base64 = base64.replace('data:application/pdf;base64,', '');
-  //       const buffer = await Buffer.from(base64, 'base64');
-  //       const poppler = new Poppler();
-  //       const pdfDoc = await PDFDocument.load(buffer);
-  //       const pages = pdfDoc.getPages();
-
-  //       const options = {
-  //         lastPageToConvert: pages.length,
-  //         pngFile: true,
-  //       };
-
-  //       poppler
-  //         .pdfToCairo(buffer, './temp/example.png', options)
-  //         .then(async (res) => {
-  //           const response = await ConvertImageToBase64(
-  //             `./temp/example.png-${pages.length}.png`,
-  //           );
-  //           resolve(`data:image/png;base64,${response}`);
-  //         })
-  //         .catch((err) => {
-  //           console.error(err);
-  //           reject(err); // Rejeita a promise com o erro
-  //         });
-  //     } catch (error) {
-  //       console.error('Erro ao converter PDF para imagem:', error);
-  //       reject(error); // Rejeita a promise com o erro
-  //     }
-  //   });
-  // }
+  async clearTempFolder() {
+  try {
+    const files = await readdir('./temp');
+    const deletions = files.map(file => unlink(`./temp/${file}`));
+    await Promise.all(deletions);
+  } catch (error) {
+    console.error('Erro ao limpar a pasta temp:', error);
+  }
+}
 
   async convertPDFinImage(base64) {
     return new Promise(async (resolve, reject) => {
@@ -217,8 +194,9 @@ export class BucketService {
         const results = [];
 
         for (let i = 1; i <= pages.length; i++) {
-          const pageStr = String(i).padStart(2, '0');
-          const imagePath = `./temp/page-${pageStr}.png`;
+          // const pageStr = String(i).padStart(2, '0');
+          const imagePath = `./temp/page-${i}.png`;
+          console.log(imagePath)
           const base64Image = await ConvertImageToBase64(imagePath);
           results.push({
             page: i,
@@ -226,9 +204,10 @@ export class BucketService {
             change: false,
           });
         }
-
+        await this.clearTempFolder();
         resolve(results);
       } catch (error) {
+        await this.clearTempFolder();
         console.error('Erro ao converter PDF para imagem:', error);
         reject(error);
       }
@@ -1706,7 +1685,7 @@ export class BucketService {
         if (signature == '1') {
           const dynamicSignatureKey = `job/${id}/Admission/Signature/Collaborator`;
           const dynamicSignatureFile =
-            await this.getFileFromBucket(dynamicSignatureKey);
+          await this.getFileFromBucket(dynamicSignatureKey);
           const dynamicSignatureCompletKey = `job/${id}/Admission/Complet/${dynamic}`;
           const dynamicSignatureCompletFile = await this.getFileFromBucket(
             dynamicSignatureCompletKey,
