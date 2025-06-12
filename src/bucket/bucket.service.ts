@@ -14,6 +14,7 @@ import { exec, execSync } from 'child_process';
 import { cwd } from 'process';
 import { promisify } from 'util';
 import { readdir, unlink } from 'fs/promises';
+import { join } from 'path';
 @Injectable()
 export class BucketService {
   private readonly spacesEndpoint: AWS.Endpoint;
@@ -166,20 +167,58 @@ export class BucketService {
 
   async clearTempFolder() {
     try {
-      const files = await readdir('./temp');
-      const deletions = files.map((file) => unlink(`./temp/${file}`));
+      const tempPath = './temp';
+      const files = await readdir(tempPath);
+
+      if (files.length === 0) {
+        console.log('A pasta temp já está vazia.');
+        return;
+      }
+
+      const deletions = files.map((file) => unlink(join(tempPath, file)));
       await Promise.all(deletions);
+
+      console.log(
+        'Todos os arquivos da pasta temp foram apagados com sucesso.',
+      );
     } catch (error) {
       console.error('Erro ao limpar a pasta temp:', error);
     }
   }
 
-  async convertPDFinImage(base64) {
+  async waitForFile(filePath: string, timeout = 5000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const intervalTime = 100;
+      let elapsed = 0;
+
+      const interval = setInterval(() => {
+        if (fs.existsSync(filePath)) {
+          clearInterval(interval);
+          resolve();
+        } else {
+          elapsed += intervalTime;
+          if (elapsed >= timeout) {
+            clearInterval(interval);
+            reject(new Error(`Arquivo ${filePath} não apareceu a tempo`));
+          }
+        }
+      }, intervalTime);
+    });
+  }
+
+  async convertPDFinImage(base64: string) {
+    const poppler = new Poppler();
+
     return new Promise(async (resolve, reject) => {
+      // Criar subpasta temporária exclusiva
+      const tempRoot = path.join(__dirname, '../../temp'); // ou onde está sua pasta temp
+      const uniqueFolder = path.join(tempRoot, `session-${Date.now()}`);
+      await fs.promises.mkdir(uniqueFolder, { recursive: true });
+
       try {
         base64 = base64.replace('data:application/pdf;base64,', '');
         const buffer = Buffer.from(base64, 'base64');
-        const poppler = new Poppler();
+
         const pdfDoc = await PDFDocument.load(buffer);
         const pages = pdfDoc.getPages();
 
@@ -189,17 +228,24 @@ export class BucketService {
           pngFile: true,
         };
 
-        await poppler.pdfToCairo(buffer, './temp/page', options);
+        await poppler.pdfToCairo(
+          buffer,
+          path.join(uniqueFolder, 'page'),
+          options,
+        );
 
         const results = [];
 
         for (let i = 1; i <= pages.length; i++) {
-          // const pageStr = String(i).padStart(2, '0');
-          let imagePath = `./temp/page-${i}.png`;
+          let imagePath = path.join(uniqueFolder, `page-${i}.png`);
           if (!fs.existsSync(imagePath)) {
             const padded = String(i).padStart(2, '0');
-            imagePath = `./temp/page-${padded}.png`;
+            imagePath = path.join(uniqueFolder, `page-${padded}.png`);
           }
+
+          // Aguarda até que o arquivo exista (máx. 5s)
+          await this.waitForFile(imagePath, 5000);
+
           const base64Image = await ConvertImageToBase64(imagePath);
           results.push({
             page: i,
@@ -207,10 +253,13 @@ export class BucketService {
             change: false,
           });
         }
-        await this.clearTempFolder();
+
+        // Remove a pasta toda (recursivo e forçado)
+        await fs.promises.rm(uniqueFolder, { recursive: true, force: true });
+
         resolve(results);
       } catch (error) {
-        await this.clearTempFolder();
+        await fs.promises.rm(uniqueFolder, { recursive: true, force: true });
         console.error('Erro ao converter PDF para imagem:', error);
         reject(error);
       }
@@ -720,7 +769,6 @@ export class BucketService {
   }
 
   async checkCollaboratorBucketDocuments(collaborator: any) {
-    console.log(collaborator);
     const missingDocuments = [];
     const missingDocumentsChildren = [];
 
