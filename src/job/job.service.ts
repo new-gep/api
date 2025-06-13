@@ -920,6 +920,7 @@ export class JobService {
       candidates,
       ...rest
     } = updateJobDto;
+
     const time = FindTimeSP();
     updateJobDto.update_at = time;
     const cleanedSalary = defaultJob?.salary.replace(/[^\d]/g, '');
@@ -938,6 +939,7 @@ export class JobService {
       skills: JSON.stringify(skillNames),
       create_at: time,
       user_edit: updateJobDto.user_edit,
+      CPF_collaborator: updateJobDto.CPF_collaborator,
       CNPJ_company: updateJobDto.CNPJ_company,
     };
 
