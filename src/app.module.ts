@@ -17,9 +17,10 @@ import { PaymentModule } from './payment/payment.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { SignatureModule } from './signature/signature.module';
 import { CvModule } from './cv/cv.module';
+import { AnnouncementModule } from './announcement/announcement.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule, SignatureModule, CvModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule, SignatureModule, CvModule, AnnouncementModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })
