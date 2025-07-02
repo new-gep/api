@@ -31,61 +31,6 @@ export class BucketService {
     });
   }
 
-  // async replaceLastPage(
-  //   pdfBase64: string,
-  //   pagesPicture: any,
-  // ) {
-  //   pdfBase64 = pdfBase64.replace('data:application/pdf;base64,', '');
-  //   console.log(pagesPicture[0])
-  //   return
-  //   const pdfBytes = Buffer.from(pdfBase64, 'base64');
-
-  //   const pdfDoc = await PDFDocument.load(pdfBytes);
-  //   const pages = pdfDoc.getPages();
-  //   const numPages = pages.length;
-
-  //   // Remove a última página
-  //   pdfDoc.removePage(numPages - 1);
-
-  //   // Adiciona uma nova página
-  //   const novaPagina = pdfDoc.addPage();
-
-  //   // Embutir a imagem na nova página (usando o buffer do Multer)
-  //   // const imagemPdf = await pdfDoc.embedPng(imageFileSignature.buffer);
-
-  //   const paginaLargura = novaPagina.getWidth();
-  //   const paginaAltura = novaPagina.getHeight();
-  //   // const imagemLargura = imagemPdf.width;
-  //   // const imagemAltura = imagemPdf.height;
-
-  //   let escala = 1; // Começa com escala 1:1 (tamanho original)
-
-  //   // Se a imagem for maior que a página em alguma dimensão, calcula a escala
-  //   // if (imagemLargura > paginaLargura || imagemAltura > paginaAltura) {
-  //   //   escala = Math.min(
-  //   //     paginaLargura / imagemLargura,
-  //   //     paginaAltura / imagemAltura,
-  //   //   );
-  //   // }
-
-  //   // const { width, height } = imagemPdf.scale(escala); // Aplica a escala, se necessário
-
-  //   // --- Fim dos ajustes ---
-
-  //   // novaPagina.drawImage(imagemPdf, {
-  //   //   x: novaPagina.getWidth() / 2 - width / 2,
-  //   //   y: novaPagina.getHeight() / 2 - height / 2,
-  //   //   width: width,
-  //   //   height: height,
-  //   // });
-
-  //   // Salva o PDF modificado
-  //   const pdfModificado = await pdfDoc.save();
-
-  //   // --- Ajustar o retorno da função ---
-  //   return Buffer.from(pdfModificado);
-  // }
-
   async replaceAllPage(
     pdfBase64: string,
     pagesPicture: any[],
@@ -2746,5 +2691,57 @@ export class BucketService {
       console.error('Erro ao comprimir o PDF:', error);
       return inputBuffer; // Retorna o buffer original em caso de erro
     }
+  }
+
+  // Announcement
+
+  async uploadAnnouncement(
+    file: Express.Multer.File,
+    id:any,
+  ) {
+    const name = Date.now()
+    const path = `announcement/${id}/${name}`;
+
+    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
+    const AnnouncementFile = {
+      Bucket: this.bucketName,
+      Key: path,
+      Body: file.buffer,
+      ContentType: mimeType || 'application/pdf',
+    };
+
+    try {
+      // Fazendo o upload para o bucket (exemplo com AWS S3)
+      const s3Response = await this.bucket.upload(AnnouncementFile).promise();
+      // console.log(s3Response);
+      return {
+        status: 200,
+        message: 'Upload realizado com sucesso',
+        location: s3Response.Location, // Retorna a URL do arquivo no bucket
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro no upload do arquivo',
+        error: error.message,
+      };
+    }
+  }
+
+  async findAnnouncement(id:any){
+    const prefix = `announcement/${id}/`;
+    const filesBase64 = [];
+    const list = await this.bucket
+      .listObjectsV2({ Bucket: this.bucketName, Prefix: prefix })
+      .promise();
+    if (list.Contents) {
+      for (const obj of list.Contents) {
+        const key = obj.Key;
+        if (!key) continue;
+        const file = await this.getFileFromBucket(key);
+        filesBase64.push({base64: file.base64Data});
+      }
+    }
+    return filesBase64;
   }
 }
