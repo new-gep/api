@@ -12,6 +12,7 @@ import {
 import { AnnouncementService } from './announcement.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import { DeleteFilesAnnouncementDto } from './dto/deleteFiles-announcement.dto';
 import { UploadAnnouncementDto } from './dto/upload-announcement.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -27,6 +28,15 @@ export class AnnouncementController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() uploadCollaboratorDto: UploadAnnouncementDto,
+  ){
+    return this.announcementService.uploadFile(uploadCollaboratorDto, file);
+  }
+
+  @Post('update/upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async updateUploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadCollaboratorDto: UploadAnnouncementDto,
   ){
@@ -49,6 +59,11 @@ export class AnnouncementController {
     @Body() updateAnnouncementDto: UpdateAnnouncementDto,
   ) {
     return this.announcementService.update(+id, updateAnnouncementDto);
+  }
+  
+  @Delete('files')
+  removeFiles(@Body() deleteFilesAnnouncementDto: DeleteFilesAnnouncementDto) {
+    return this.announcementService.removeFile(deleteFilesAnnouncementDto.key);
   }
 
   @Delete(':id')

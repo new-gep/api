@@ -1,4 +1,12 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateAnnouncementDto } from './create-announcement.dto';
-
-export class UpdateAnnouncementDto extends PartialType(CreateAnnouncementDto) {}
+export class UpdateAnnouncementDto {
+  category?: string;
+  title?: string;
+  typePayment?: string;
+  candidates?:any;
+  typeAnnouncement?: string;
+  salary?: string;
+  included?: string;
+  notIncluded?: string;
+  information?: string;
+  update_at?:string;
+}

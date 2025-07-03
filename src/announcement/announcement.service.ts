@@ -45,6 +45,16 @@ export class AnnouncementService {
     );
   }
 
+  async updateUploadFile(
+    uploadAnnouncementDto: UploadAnnouncementDto,
+    file: Express.Multer.File,
+  ) {
+    return await this.bucketService.updateUploadAnnouncement(
+      file,
+      uploadAnnouncementDto.id,
+    );
+  }
+
   findAll() {
     return `This action returns all announcement`;
   }
@@ -85,8 +95,47 @@ export class AnnouncementService {
     }
   }
 
-  update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {
-    return `This action updates a #${id} announcement`;
+  async update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {
+    const time = findTimeSP();
+    updateAnnouncementDto.update_at = time;
+
+    try {
+      const response = await this.announcementRepository.update(
+        id,
+        updateAnnouncementDto,
+      );
+      if (response.affected === 1) {
+        return {
+          status: 200,
+          message: 'Anuncio atualizado com sucesso!',
+        };
+      }
+      return {
+        status: 404,
+        message: 'Não foi possível atualizar o Anuncio, algo deu errado!',
+      };
+    } catch (e) {
+      console.log(e);
+      return {
+        status: 500,
+        message: 'Erro interno.',
+      };
+    }
+  }
+
+  async removeFile(key: string) {
+    const response = await this.bucketService.deleteFile(key);
+    if (response) {
+      console.log('deletado', key)
+      return {
+        status: 200,
+        message: 'Deleted successfully',
+      };
+    }
+    return {
+      status: 500,
+      message: 'error',
+    };
   }
 
   async remove(id: number) {

@@ -406,6 +406,9 @@ export class BucketService {
         case 'medical_examination':
           path = `collaborator/${cpf}/Medical_Examination`;
           break;
+        case 'signature':
+          path = `collaborator/${cpf}/Signature`;
+          break;
         default:
           return {
             status: 400,
@@ -682,6 +685,14 @@ export class BucketService {
             };
             break;
 
+          case 'signature':
+            const SignatureKey = `collaborator/${cpf}/Signature`;
+            const SignatureFile = await this.getFileFromBucket(SignatureKey);
+            return {
+              status: 200,
+              type: 'picture',
+              path: SignatureFile.base64Data, // arquivo base64 de endereço
+            };
           case 'medical_examination':
             const medicalKey = `collaborator/${cpf}/Medical_Examination`;
             const medicalFile = await this.getFileFromBucket(medicalKey);
@@ -2561,6 +2572,8 @@ export class BucketService {
 
   // collaborator
 
+  async findSignature(cpf: string) {}
+
   async findDossieCollaborator(cpf: string, id_work: number) {
     const admission = `job/${id_work}/Admission/Complet`;
     const dismissal_communication = `job/${id_work}/Dismissal/Complet/Communication`;
@@ -2695,14 +2708,12 @@ export class BucketService {
 
   // Announcement
 
-  async uploadAnnouncement(
-    file: Express.Multer.File,
-    id:any,
-  ) {
-    const name = Date.now()
+  async uploadAnnouncement(file: Express.Multer.File, id: any) {
+    const name = Date.now();
     const path = `announcement/${id}/${name}`;
 
-    const mimeType = file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
+    const mimeType =
+      file.mimetype === 'image/pdf' ? 'application/pdf' : file.mimetype;
     const AnnouncementFile = {
       Bucket: this.bucketName,
       Key: path,
@@ -2713,7 +2724,6 @@ export class BucketService {
     try {
       // Fazendo o upload para o bucket (exemplo com AWS S3)
       const s3Response = await this.bucket.upload(AnnouncementFile).promise();
-      // console.log(s3Response);
       return {
         status: 200,
         message: 'Upload realizado com sucesso',
@@ -2728,7 +2738,11 @@ export class BucketService {
     }
   }
 
-  async findAnnouncement(id:any){
+  async updateUploadAnnouncement(newKeys: any, id: any) {
+    const oldKeys = await this.findAnnouncement(id);
+  }
+
+  async findAnnouncement(id: any) {
     const prefix = `announcement/${id}/`;
     const filesBase64 = [];
     const list = await this.bucket
@@ -2739,7 +2753,7 @@ export class BucketService {
         const key = obj.Key;
         if (!key) continue;
         const file = await this.getFileFromBucket(key);
-        filesBase64.push({base64: file.base64Data});
+        filesBase64.push({ base64: file.base64Data, key: key });
       }
     }
     return filesBase64;
