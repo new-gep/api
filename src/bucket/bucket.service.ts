@@ -363,9 +363,9 @@ export class BucketService {
 
   async UploadCollaborator(
     file: Express.Multer.File,
-    name: string,
-    side: string,
-    cpf: string,
+    name?: string,
+    side?: string,
+    cpf?: string,
   ) {
     let path: string;
 

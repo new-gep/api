@@ -31,6 +31,12 @@ export class CollaboratorController {
     return this.collaboratorService.uploadFile(uploadCollaboratorDto,file)
   };
 
+  @Post('upload/signature')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadSignatureFile(@UploadedFile() file: Express.Multer.File, @Body() uploadCollaboratorDto:UploadCollaboratorDto) {
+    return this.collaboratorService.uploadFile(uploadCollaboratorDto,file)
+  };
+
   @Get()
   findAll() {
     return this.collaboratorService.findAll();

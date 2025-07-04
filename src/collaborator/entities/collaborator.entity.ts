@@ -67,6 +67,21 @@ export class Collaborator {
     @Column({length: 50, default:null})
     number: string;
 
+    @Column({length: 200, default:null})
+    presentation: string;
+
+    @Column({ type: 'json', nullable: true })
+    about: any;
+
+    @Column({ type: 'json', nullable: true })
+    howWork: any;
+
+    @Column({ type: 'json', nullable: true })
+    service: any;
+
+    @Column({ type: 'json', nullable: true })
+    social: any;
+
     @Column({length: 50})
     create_at: string;
 

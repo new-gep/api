@@ -215,7 +215,6 @@ export class JobController {
 
   @EventPattern('res_apply')
   async handleApply(@Payload() data: any) {
-    console.log('caiu aqui');
   }
 
   // RESPONSE

@@ -11,6 +11,10 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
     birth?:string;
     terms   ?: string;
     marriage?:string;
+    presentation?:string;
+    about?:any;
+    howWork?:any;
+    service?:any;
     children?: {
         [key: string]: {
             name?: string;
