@@ -376,6 +376,10 @@ export class BucketService {
         case 'picture':
           path = `collaborator/${cpf}/Picture`;
           break;
+        case 'gallery':
+          const newName = Date.now();
+          path = `collaborator/${cpf}/Gallery/${newName}`;
+          break;
         case 'cv':
           path = `collaborator/${cpf}/CV`;
           break;
@@ -693,6 +697,7 @@ export class BucketService {
               type: 'picture',
               path: SignatureFile.base64Data, // arquivo base64 de endereço
             };
+          
           case 'medical_examination':
             const medicalKey = `collaborator/${cpf}/Medical_Examination`;
             const medicalFile = await this.getFileFromBucket(medicalKey);

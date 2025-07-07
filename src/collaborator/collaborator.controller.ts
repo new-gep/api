@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseInterceptors, Upl
 import { CollaboratorService } from './collaborator.service';
 import { CreateCollaboratorDto } from './dto/create-collaborator.dto';
 import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
+import { UpdatePasswordCollaboratorDto } from './dto/updatePassword-collaborator.dto';
 import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
@@ -73,6 +74,11 @@ export class CollaboratorController {
   @Patch(':CPF')
   update(@Param('CPF') CPF: string, @Body() updateCollaboratorDto: UpdateCollaboratorDto) {
     return this.collaboratorService.update(CPF, updateCollaboratorDto);
+  };
+
+  @Patch('password/:CPF')
+  updatePassword(@Param('CPF') CPF: string, @Body() updatePasswordCollaboratorDto: UpdatePasswordCollaboratorDto) {
+    return this.collaboratorService.updatePassword(CPF, updatePasswordCollaboratorDto);
   };
 
   @Patch('idWork/:CPF')
