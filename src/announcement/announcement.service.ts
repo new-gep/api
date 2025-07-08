@@ -78,7 +78,7 @@ export class AnnouncementService {
         return {
           ...announcement,
           gallery, // adiciona imagens ao objeto do anúncio
-          picture: picture.path
+          picture: picture
         };
       }),
     );
