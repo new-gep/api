@@ -67,16 +67,18 @@ export class AnnouncementService {
         },
         delete_at: IsNull(),
       },
+      relations: ['CPF_Creator'],
     });
 
     const enrichedAnnouncements = await Promise.all(
       response.map(async (announcement) => {
-        const gallery = await this.bucketService.findAnnouncement(
-          announcement.id,
-        );
+        const gallery = await this.bucketService.findAnnouncement(announcement.id);
+        const picture = await this.bucketService.findCollaborator(cpf, 'picture');
+
         return {
           ...announcement,
           gallery, // adiciona imagens ao objeto do anúncio
+          picture: picture.path
         };
       }),
     );
