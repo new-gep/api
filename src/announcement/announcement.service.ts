@@ -128,7 +128,6 @@ export class AnnouncementService {
   async removeFile(key: string) {
     const response = await this.bucketService.deleteFile(key);
     if (response) {
-      console.log('deletado', key)
       return {
         status: 200,
         message: 'Deleted successfully',

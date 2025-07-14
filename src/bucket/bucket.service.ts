@@ -230,6 +230,23 @@ export class BucketService {
     }
   }
 
+  async getPasteFromBucket(path: string) {
+    const prefix = path;
+    const filesBase64 = [];
+    const list = await this.bucket
+      .listObjectsV2({ Bucket: this.bucketName, Prefix: prefix })
+      .promise();
+    if (list.Contents) {
+      for (const obj of list.Contents) {
+        const key = obj.Key;
+        if (!key) continue;
+        const file = await this.getFileFromBucket(key);
+        filesBase64.push({ base64: file.base64Data, key: key });
+      }
+    }
+    return filesBase64;
+  }
+
   async getAllFilesChildrenFromBucket(cpf: string) {
     let childrens: AWS.S3.ObjectList = [];
     let data: AWS.S3.ListObjectsV2Output;
@@ -697,7 +714,7 @@ export class BucketService {
               type: 'picture',
               path: SignatureFile.base64Data, // arquivo base64 de endereço
             };
-          
+
           case 'medical_examination':
             const medicalKey = `collaborator/${cpf}/Medical_Examination`;
             const medicalFile = await this.getFileFromBucket(medicalKey);
@@ -717,6 +734,15 @@ export class BucketService {
               status: 200,
               type: 'picture',
               path: medicalFile.base64Data, // arquivo base64 de endereço
+            };
+
+          case 'gallery':
+            const galleryKey = `collaborator/${cpf}/Gallery`;
+            const galleryFile = await this.getPasteFromBucket(galleryKey);
+            return {
+              status: 200,
+              type: 'picture',
+              path: galleryFile, // arquivo base64 de endereço
             };
         }
       }

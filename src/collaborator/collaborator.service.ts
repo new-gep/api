@@ -232,7 +232,6 @@ export class CollaboratorService {
       relations: ['id_work'],
     });
     const picture = await this.findFile(CPF, 'picture');
-    const gallery = await this.findFile(CPF, 'Gallery')
     if (response) {
       return {
         status: 200,
@@ -243,6 +242,20 @@ export class CollaboratorService {
     return {
       status: 409,
       message: 'Registro não encontrado',
+    };
+  }
+
+  async removeFile(key: string) {
+    const response = await this.bucketService.deleteFile(key);
+    if (response) {
+      return {
+        status: 200,
+        message: 'Deleted successfully',
+      };
+    }
+    return {
+      status: 500,
+      message: 'error',
     };
   }
 
