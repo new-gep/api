@@ -30,7 +30,7 @@ export class AnnouncementController {
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadCollaboratorDto: UploadAnnouncementDto,
-  ){
+  ) {
     return this.announcementService.uploadFile(uploadCollaboratorDto, file);
   }
 
@@ -39,13 +39,13 @@ export class AnnouncementController {
   async updateUploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() uploadCollaboratorDto: UploadAnnouncementDto,
-  ){
+  ) {
     return this.announcementService.uploadFile(uploadCollaboratorDto, file);
   }
 
-  @Get()
-  findAll() {
-    return this.announcementService.findAll();
+  @Get('all/:cpf')
+  findAll(@Param('cpf') cpf: string) {
+    return this.announcementService.findAll(cpf);
   }
 
   @Get(':cpf')
@@ -60,7 +60,17 @@ export class AnnouncementController {
   ) {
     return this.announcementService.update(+id, updateAnnouncementDto);
   }
-  
+
+  @Patch('unapply/:id/:cpf')
+  unapplyJob(@Param('id') id: string, @Param('cpf') cpf: string) {
+    return this.announcementService.unapplyJob(+id, cpf);
+  }
+
+  @Patch('apply/:id/:cpf')
+  apply(@Param('id') id: string, @Param('cpf') cpf: string) {
+    return this.announcementService.applyJob(+id, cpf);
+  }
+
   @Delete('files')
   removeFiles(@Body() deleteFilesAnnouncementDto: DeleteFilesAnnouncementDto) {
     return this.announcementService.removeFile(deleteFilesAnnouncementDto.key);

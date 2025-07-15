@@ -759,6 +759,26 @@ export class BucketService {
     const missingDocuments = [];
     const missingDocumentsChildren = [];
 
+    const gallery = await this.checkPaste(
+      `collaborator/${collaborator.CPF}/Gallery`,
+    );
+    if (Object.keys(gallery).length === 0) {
+      missingDocuments.push('Gallery'); // ou outro tratamento que desejar
+    }
+    //CV
+    const cvExists = await this.isDocumentPresent(
+      `collaborator/${collaborator.CPF}/CV`,
+    );
+    if (!cvExists) {
+      missingDocuments.push('CV');
+    }
+    //Signature
+    const signatureExists = await this.isDocumentPresent(
+      `collaborator/${collaborator.CPF}/Signature`,
+    );
+    if (!signatureExists) {
+      missingDocuments.push('Signature');
+    }
     // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
     const rgPdfExists = await this.isDocumentPresent(
       `collaborator/${collaborator.CPF}/RG/complet`,

@@ -70,6 +70,12 @@ export class CollaboratorController {
     return this.collaboratorService.findFile(cpf, file);
   }
 
+
+  @Get('percentage/:cpf')
+  findPercentage(@Param('cpf') cpf: string, @Param('file') file: string) {
+    return this.collaboratorService.findPercentage(cpf);
+  }
+
   @Get('check/AccountCompletion/:cpf')
   checkAccountCompletion(@Param('cpf') cpf: string) {
     return this.collaboratorService.checkAccountCompletion(cpf);

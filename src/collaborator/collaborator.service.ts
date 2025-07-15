@@ -178,6 +178,139 @@ export class CollaboratorService {
     return this.bucketService.findCollaborator(cpf, file);
   }
 
+  async findPercentage(CPF: string) {
+    const response = await this.checkAccountCompletion(CPF);
+    if (response.status === 200) {
+      const progress = this.checkProfileProgress(response);
+      return {
+        status: 200,
+        progress: progress,
+      };
+    } else {
+      return {
+        status: 500,
+        message: 'error',
+      };
+    }
+  }
+
+  checkProfileProgress(data: any) {
+    const collaborator = data.collaborator || {};
+    const missingFields = data.missingFields || [];
+    const files = data.files || {};
+    const missingDocuments = files.missingDocuments || [];
+
+    // Função para verificar todos campos obrigatórios de um objeto, ignorando algumas chaves
+    const allRequiredFieldsFilled = (
+      obj: any,
+      ignoreKeys: string[] = [],
+    ): boolean => {
+      if (!obj) return false;
+
+      return Object.entries(obj)
+        .filter(([key]) => !ignoreKeys.includes(key))
+        .every(([_, value]) => {
+          if (value == null) return false;
+          if (Array.isArray(value)) return value.length > 0;
+          if (typeof value === 'string') return value.trim().length > 0;
+          if (typeof value === 'object') return Object.keys(value).length > 0;
+          return Boolean(value);
+        });
+    };
+
+    // Verifica se pelo menos 1 serviço está preenchido
+    const hasAnyService = (services: any): boolean => {
+      if (!services || typeof services !== 'object') return false;
+      return Object.values(services).some(
+        (service) => service && Object.keys(service).length > 0,
+      );
+    };
+
+    // Verifica se pelo menos 1 rede social está preenchida
+    const hasAnySocial = (social: any): boolean => {
+      if (!social || typeof social !== 'object') return false;
+      return Object.values(social).some(
+        (value) => value && value.toString().trim().length > 0,
+      );
+    };
+
+    // Campos obrigatórios dos dados pessoais, incluindo picture (foto)
+    const personalDataFields = [
+      'CPF',
+      'name',
+      'sex',
+      'PCD',
+      'email',
+      'phone',
+      'birth',
+      'zip_code',
+      'street',
+      'district',
+      'city',
+      'uf',
+      'number',
+    ];
+
+    // Verifica se todos os dados pessoais estão preenchidos, e picture NÃO está em missingFields
+    const isFieldFilled = (value: any) => {
+      if (typeof value === 'string') return value.trim().length > 0;
+      if (Array.isArray(value)) return value.length > 0;
+      return value !== null && value !== undefined;
+    };
+
+    const personalDataComplete =
+      personalDataFields.every((field) => isFieldFilled(collaborator[field])) &&
+      !missingFields.includes('Picture');
+
+    // Documents: verifica se algum dos documentos (exceto Gallery, CV, Signature) está pendente
+    const documentsGroup = [
+      'RG',
+      'Work_Card',
+      'Address',
+      'Military_Certificate',
+      'School_History',
+    ];
+
+    const documentsComplete =
+      documentsGroup.filter((doc) => missingDocuments.includes(doc)).length ===
+      0;
+
+    // Sobre mim: about + presentation
+    const aboutComplete =
+      allRequiredFieldsFilled(collaborator.about) &&
+      collaborator.presentation &&
+      collaborator.presentation.trim().length > 0;
+
+    // Como quer trabalhar: todos obrigatórios exceto locations e showFarWork
+    const howWorkComplete = allRequiredFieldsFilled(collaborator.howWork, [
+      'locations',
+      'showFarWork',
+    ]);
+
+    // Progresso
+    const progress = {
+      personalData: personalDataComplete,
+      socialNetworks: hasAnySocial(collaborator.social),
+      documents: documentsComplete,
+      gallery: !missingDocuments.includes('Gallery'), // gallery único
+      resume: !missingDocuments.includes('CV'), // CV único
+      signature: !missingDocuments.includes('Signature'), // assinatura única
+      aboutMe: aboutComplete,
+      workPreferences: howWorkComplete,
+      services: hasAnyService(collaborator.service),
+      agreement: Boolean(collaborator.terms) && Boolean(collaborator.password),
+    };
+
+    const completedSections = Object.values(progress).filter(Boolean).length;
+    const totalSections = Object.keys(progress).length;
+
+    return {
+      ...progress,
+      percentage: Math.round((completedSections / totalSections) * 100),
+      isComplete: completedSections === totalSections,
+    };
+  }
+
   async findDossie(cpf: string) {
     const collaborator = await this.collaboratorRepository.findOne({
       where: { CPF: cpf },
@@ -232,11 +365,13 @@ export class CollaboratorService {
       relations: ['id_work'],
     });
     const picture = await this.findFile(CPF, 'picture');
+    const gallery = await this.findFile(CPF, 'gallery');
     if (response) {
       return {
         status: 200,
         collaborator: response,
         picture: picture.path,
+        gallery:gallery
       };
     }
     return {
@@ -277,9 +412,11 @@ export class CollaboratorService {
         'uf',
         'number',
       ];
+
       const missingAddressFields = addressFields.filter(
         (field) => !response[field],
       );
+
       if (missingAddressFields.length > 0) {
         missingFields.push('address');
       }
@@ -361,20 +498,20 @@ export class CollaboratorService {
       where: { CPF },
     });
     if (!collaborator) {
-      return{
+      return {
         status: 404,
-        message: 'Colaborador não encontrado'
-      }
-    };
+        message: 'Colaborador não encontrado',
+      };
+    }
 
     const { currentPassword, newPassword } = updatePasswordCollaboratorDto;
 
     if (!currentPassword || !newPassword) {
-      return{
+      return {
         status: 500,
-        message: 'Senha atual e nova senha são obrigatórias'
-      }
-    };
+        message: 'Senha atual e nova senha são obrigatórias',
+      };
+    }
 
     const isMatch = await bcrypt.compare(
       currentPassword,
@@ -382,10 +519,10 @@ export class CollaboratorService {
     );
 
     if (!isMatch) {
-      return{
+      return {
         status: 500,
-        message: 'Senha atual incorreta'
-      }
+        message: 'Senha atual incorreta',
+      };
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -398,7 +535,7 @@ export class CollaboratorService {
       },
     );
 
-    return { status:200, message: 'Senha atualizada com sucesso' };
+    return { status: 200, message: 'Senha atualizada com sucesso' };
   }
 
   async updateIdWork(
