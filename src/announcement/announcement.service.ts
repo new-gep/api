@@ -58,130 +58,62 @@ export class AnnouncementService {
   }
 
   async findAll(cpf: any) {
-    const response = await this.announcementRepository.find({
-      where: {
-        CPF_Creator: {
-          CPF: Not(cpf),
-        },
-        CPF_Responder: {
-          CPF: Not(cpf),
-        },
-        delete_at: IsNull(),
-      },
-      relations: ['CPF_Creator'],
-    });
-
-    const enrichedAnnouncements = await Promise.all(
-      response.map(async (announcement) => {
-        const gallery = await this.bucketService.findAnnouncement(
-          announcement.id,
-        );
-        const picture = await this.bucketService.findCollaborator(
-          announcement.CPF_Creator.CPF,
-          'picture',
-        );
-
-        let parsedCandidates: any[] = [];
-        try {
-          parsedCandidates = announcement.candidates
-            ? JSON.parse(announcement.candidates)
-            : [];
-        } catch (e) {
-          console.error('Erro ao fazer parse de candidates:', e);
-          parsedCandidates = [];
-        }
-
-        const alreadyApplied = parsedCandidates.some((candidate) => {
-          const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
-          const userCpf = String(cpf).replace(/\D/g, '');
-          return candidateCpf === userCpf;
-        });
-
-        return {
-          typeService: 'flex',
-          ...announcement,
-          gallery,
-          picture: picture,
-          apply: alreadyApplied,
-        };
-      }),
-    );
-
-    if (response) {
-      return {
-        status: 200,
-        message: 'success',
-        announcements: enrichedAnnouncements,
-      };
-    } else {
-      return {
-        status: 500,
-        message: 'erro ',
-      };
-    }
-  }
-
-  async findOne(cpf: any) {
   const response = await this.announcementRepository.find({
     where: {
       CPF_Creator: {
-        CPF: cpf,
+        CPF: Not(cpf),
+      },
+      CPF_Responder: {
+        CPF: IsNull(),
       },
       delete_at: IsNull(),
     },
-    relations: ['CPF_Creator', 'CPF_Responder'],
+    relations: ['CPF_Creator'],
   });
 
   const enrichedAnnouncements = await Promise.all(
     response.map(async (announcement) => {
       const gallery = await this.bucketService.findAnnouncement(announcement.id);
-      const picture = await this.bucketService.findCollaborator(cpf, 'picture');
 
-      let candidates = [];
-      if (announcement.candidates) {
-        try {
-          const parsed = JSON.parse(announcement.candidates);
-          candidates = await Promise.all(
-            parsed.map(async (candidate: any) => {
-              const collaborator = await this.collaboratorService.findOne(candidate.cpf);
-              return {
-                ...candidate,
-                collaborator, // estrutura esperada no front
-              };
-            }),
-          );
-        } catch (e) {
-          console.error('Erro ao parsear candidatos:', e);
-        }
+      const picture = await this.bucketService.findCollaborator(
+        announcement.CPF_Creator.CPF,
+        'picture',
+      );
+
+      const creatorGallery = await this.bucketService.findCollaborator(
+        announcement.CPF_Creator.CPF,
+        'Gallery',
+      );
+
+      let parsedCandidates: any[] = [];
+      try {
+        parsedCandidates = announcement.candidates
+          ? JSON.parse(announcement.candidates)
+          : [];
+      } catch (e) {
+        console.error('Erro ao fazer parse de candidates:', e);
+        parsedCandidates = [];
       }
 
-      // ✅ Enriquecer CPF_Responder com mesma estrutura de candidate
-      let enrichedResponder = null;
-      if (announcement.CPF_Responder?.CPF) {
-        const responderCPF = announcement.CPF_Responder.CPF;
-
-        const [collaborator, picture, gallery] = await Promise.all([
-          this.collaboratorService.findOne(responderCPF),
-          this.bucketService.findCollaborator(responderCPF, 'picture'),
-          this.bucketService.findCollaborator(responderCPF, 'Gallery'),
-        ]);
-
-        enrichedResponder = {
-          ...announcement.CPF_Responder,
-          collaborator: {
-            ...collaborator,
-            picture,
-            gallery,
-          },
-        };
-      }
+      const alreadyApplied = parsedCandidates.some((candidate) => {
+        const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
+        const userCpf = String(cpf).replace(/\D/g, '');
+        return candidateCpf === userCpf;
+      });
 
       return {
+        typeService: 'flex',
         ...announcement,
-        gallery,        // do anúncio
-        picture,        // do criador
-        candidates,     // candidatos com collaborator completo
-        CPF_Responder: enrichedResponder || announcement.CPF_Responder,
+        gallery,
+        picture,
+        apply: alreadyApplied,
+        CPF_Creator: {
+          collaborator: {
+            collaborator:announcement.CPF_Creator,
+            picture: picture?.path || null,
+            gallery: creatorGallery || {},
+          },
+        },
       };
     }),
   );
@@ -195,9 +127,126 @@ export class AnnouncementService {
   } else {
     return {
       status: 500,
-      message: 'erro',
+      message: 'erro ',
     };
   }
+  }
+
+  async findOne(cpf: any) {
+    const [created, responded] = await Promise.all([
+      this.announcementRepository.find({
+        where: {
+          CPF_Creator: {
+            CPF: cpf,
+          },
+          delete_at: IsNull(),
+        },
+        relations: ['CPF_Creator', 'CPF_Responder'],
+      }),
+      this.announcementRepository.find({
+        where: {
+          CPF_Responder: {
+            CPF: cpf,
+          },
+          delete_at: IsNull(),
+        },
+        relations: ['CPF_Creator', 'CPF_Responder'],
+      }),
+    ]);
+
+    const processAnnouncements = async (
+      announcements: any[],
+      creatorType: 'my' | 'other',
+    ) => {
+      return Promise.all(
+        announcements.map(async (announcement) => {
+          const gallery = await this.bucketService.findAnnouncement(
+            announcement.id,
+          );
+
+          let candidates = [];
+          if (announcement.candidates) {
+            try {
+              const parsed = JSON.parse(announcement.candidates);
+              candidates = await Promise.all(
+                parsed.map(async (candidate: any) => {
+                  const collaborator = await this.collaboratorService.findOne(
+                    candidate.cpf,
+                  );
+                  return {
+                    ...candidate,
+                    collaborator,
+                  };
+                }),
+              );
+            } catch (e) {
+              console.error('Erro ao parsear candidatos:', e);
+            }
+          }
+
+          let enrichedResponder = null;
+          if (announcement.CPF_Responder?.CPF) {
+            const responderCPF = announcement.CPF_Responder.CPF;
+
+            const [responder, responderPicture, responderGallery] =
+              await Promise.all([
+                this.collaboratorService.findOne(responderCPF),
+                this.bucketService.findCollaborator(responderCPF, 'picture'),
+                this.bucketService.findCollaborator(responderCPF, 'Gallery'),
+              ]);
+
+            enrichedResponder = {
+              collaborator: {
+                ...responder,
+                picture: responderPicture?.path,
+                gallery: responderGallery,
+              },
+            };
+          }
+
+          let enrichedCreator = null;
+          if (announcement.CPF_Creator?.CPF) {
+            const creatorCPF = announcement.CPF_Creator.CPF;
+
+            const [creator, creatorPicture, creatorGallery] = await Promise.all(
+              [
+                this.collaboratorService.findOne(creatorCPF),
+                this.bucketService.findCollaborator(creatorCPF, 'picture'),
+                this.bucketService.findCollaborator(creatorCPF, 'Gallery'),
+              ],
+            );
+
+            enrichedCreator = {
+              collaborator: {
+                ...creator,
+                picture: creatorPicture?.path,
+                gallery: creatorGallery,
+              },
+            };
+          }
+
+          return {
+            creator: creatorType,
+            ...announcement,
+            gallery,
+            CPF_Creator: enrichedCreator || announcement.CPF_Creator,
+            CPF_Responder: enrichedResponder || announcement.CPF_Responder,
+            candidates,
+          };
+        }),
+      );
+    };
+
+    const enrichedCreated = await processAnnouncements(created, 'my');
+    const enrichedResponded = await processAnnouncements(responded, 'other');
+
+    const all = [...enrichedCreated, ...enrichedResponded];
+
+    return {
+      status: 200,
+      message: 'success',
+      announcements: all,
+    };
   }
 
   async update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {

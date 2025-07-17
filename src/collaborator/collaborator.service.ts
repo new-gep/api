@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateCollaboratorDto } from './dto/create-collaborator.dto';
 import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
 import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { Collaborator } from './entities/collaborator.entity';
 import { EmailService } from 'src/email/email.service';
 import { BucketService } from 'src/bucket/bucket.service';
@@ -105,6 +105,35 @@ export class CollaboratorService {
         message: 'Colaborador criado com sucesso! ',
       };
     }
+  }
+
+  async findAllPeople(cpf: string) {
+    const peoples = await this.collaboratorRepository.find({
+      where: {
+        CPF: Not(cpf),
+      },
+    });
+
+    const enrichedPeoples = await Promise.all(
+      peoples.map(async (person) => {
+        const picture = await this.findFile(person.CPF, 'picture');
+        const gallery = await this.findFile(person.CPF, 'gallery');
+
+        return {
+          collaborator: {
+            collaborator: person,
+          },
+          picture,
+          gallery,
+        };
+      }),
+    );
+
+    return {
+      status: 200,
+      message: 'success',
+      peoples: enrichedPeoples,
+    };
   }
 
   async checkCollaborator(createCollaboratorDto: CreateCollaboratorDto) {
@@ -371,7 +400,7 @@ export class CollaboratorService {
         status: 200,
         collaborator: response,
         picture: picture.path,
-        gallery:gallery
+        gallery: gallery,
       };
     }
     return {
