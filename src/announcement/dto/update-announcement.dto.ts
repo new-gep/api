@@ -1,5 +1,6 @@
 export class UpdateAnnouncementDto {
   category?: string;
+  CPF_responder?:any;
   title?: string;
   typePayment?: string;
   candidates?:any;

@@ -63,6 +63,9 @@ export class AnnouncementService {
         CPF_Creator: {
           CPF: Not(cpf),
         },
+        CPF_Responder: {
+          CPF: Not(cpf),
+        },
         delete_at: IsNull(),
       },
       relations: ['CPF_Creator'],
@@ -119,72 +122,88 @@ export class AnnouncementService {
   }
 
   async findOne(cpf: any) {
-    const response = await this.announcementRepository.find({
-      where: {
-        CPF_Creator: {
-          CPF: cpf, // isso funciona somente se CPF for um campo da entidade Collaborator
-        },
-        delete_at: IsNull(),
+  const response = await this.announcementRepository.find({
+    where: {
+      CPF_Creator: {
+        CPF: cpf,
       },
-      relations: ['CPF_Creator'],
-    });
+      delete_at: IsNull(),
+    },
+    relations: ['CPF_Creator', 'CPF_Responder'],
+  });
 
-    const enrichedAnnouncements = await Promise.all(
-      response.map(async (announcement) => {
-        const gallery = await this.bucketService.findAnnouncement(
-          announcement.id,
-        );
-        const picture = await this.bucketService.findCollaborator(
-          cpf,
-          'picture',
-        );
-        let candidates = [];
-        if (announcement.candidates) {
-          try {
-            const parsed = JSON.parse(announcement.candidates);
-            candidates = await Promise.all(
-              parsed.map(async (candidate: any) => {
-                const collaborator = await this.collaboratorService.findOne(
-                  candidate.cpf,
-                );
-                return {
-                  ...candidate,
-                  collaborator, // <- dados reais do colaborador
-                };
-              }),
-            );
-          } catch (e) {
-            console.error('Erro ao parsear candidatos:', e);
-          }
+  const enrichedAnnouncements = await Promise.all(
+    response.map(async (announcement) => {
+      const gallery = await this.bucketService.findAnnouncement(announcement.id);
+      const picture = await this.bucketService.findCollaborator(cpf, 'picture');
+
+      let candidates = [];
+      if (announcement.candidates) {
+        try {
+          const parsed = JSON.parse(announcement.candidates);
+          candidates = await Promise.all(
+            parsed.map(async (candidate: any) => {
+              const collaborator = await this.collaboratorService.findOne(candidate.cpf);
+              return {
+                ...candidate,
+                collaborator, // estrutura esperada no front
+              };
+            }),
+          );
+        } catch (e) {
+          console.error('Erro ao parsear candidatos:', e);
         }
+      }
 
-        return {
-          ...announcement,
-          gallery, // adiciona imagens ao objeto do anúncio
-          picture: picture,
-          candidates
+      // ✅ Enriquecer CPF_Responder com mesma estrutura de candidate
+      let enrichedResponder = null;
+      if (announcement.CPF_Responder?.CPF) {
+        const responderCPF = announcement.CPF_Responder.CPF;
+
+        const [collaborator, picture, gallery] = await Promise.all([
+          this.collaboratorService.findOne(responderCPF),
+          this.bucketService.findCollaborator(responderCPF, 'picture'),
+          this.bucketService.findCollaborator(responderCPF, 'Gallery'),
+        ]);
+
+        enrichedResponder = {
+          ...announcement.CPF_Responder,
+          collaborator: {
+            ...collaborator,
+            picture,
+            gallery,
+          },
         };
-      }),
-    );
+      }
 
-    if (response) {
       return {
-        status: 200,
-        message: 'success',
-        announcements: enrichedAnnouncements,
+        ...announcement,
+        gallery,        // do anúncio
+        picture,        // do criador
+        candidates,     // candidatos com collaborator completo
+        CPF_Responder: enrichedResponder || announcement.CPF_Responder,
       };
-    } else {
-      return {
-        status: 500,
-        message: 'erro ',
-      };
-    }
+    }),
+  );
+
+  if (response) {
+    return {
+      status: 200,
+      message: 'success',
+      announcements: enrichedAnnouncements,
+    };
+  } else {
+    return {
+      status: 500,
+      message: 'erro',
+    };
+  }
   }
 
   async update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {
     const time = findTimeSP();
     updateAnnouncementDto.update_at = time;
-
+    console.log(updateAnnouncementDto);
     try {
       const response = await this.announcementRepository.update(
         id,
