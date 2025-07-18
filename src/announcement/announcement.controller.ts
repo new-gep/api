@@ -48,6 +48,23 @@ export class AnnouncementController {
     return this.announcementService.findAll(cpf);
   }
 
+  @Get('propostal/:cpfResponder/:cpfCreator')
+  findAllPropostal(
+    @Param('cpfResponder') cpfResponder: string,
+    @Param('cpfCreator')   cpfCreator: string
+  ) 
+  {
+    return this.announcementService.findPropostal(cpfResponder,cpfCreator);
+  }
+
+  @Get('propostalByCPF/:cpf/')
+  findAllPropostalsByCPF(
+    @Param('cpf') cpf: string,
+  ) 
+  {
+    return this.announcementService.findAllPropostalsByCPF(cpf);
+  }
+
   @Get(':cpf')
   findOne(@Param('cpf') cpf: string) {
     return this.announcementService.findOne(cpf);
@@ -70,6 +87,12 @@ export class AnnouncementController {
   apply(@Param('id') id: string, @Param('cpf') cpf: string) {
     return this.announcementService.applyJob(+id, cpf);
   }
+
+  @Patch('propostal/apply/:id/:cpf')
+  applyPropostal(@Param('id') id: string, @Param('cpf') cpf: string) {
+    return this.announcementService.applyPropostal(+id, cpf);
+  }
+
 
   @Delete('files')
   removeFiles(@Body() deleteFilesAnnouncementDto: DeleteFilesAnnouncementDto) {

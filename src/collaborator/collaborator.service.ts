@@ -122,9 +122,9 @@ export class CollaboratorService {
         return {
           collaborator: {
             collaborator: person,
-          },
-          picture,
-          gallery,
+            picture:picture.path,
+            gallery,
+          }
         };
       }),
     );

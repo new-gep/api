@@ -58,78 +58,86 @@ export class AnnouncementService {
   }
 
   async findAll(cpf: any) {
-  const response = await this.announcementRepository.find({
-    where: {
-      CPF_Creator: {
-        CPF: Not(cpf),
-      },
-      CPF_Responder: {
-        CPF: IsNull(),
-      },
-      delete_at: IsNull(),
-    },
-    relations: ['CPF_Creator'],
-  });
-
-  const enrichedAnnouncements = await Promise.all(
-    response.map(async (announcement) => {
-      const gallery = await this.bucketService.findAnnouncement(announcement.id);
-
-      const picture = await this.bucketService.findCollaborator(
-        announcement.CPF_Creator.CPF,
-        'picture',
-      );
-
-      const creatorGallery = await this.bucketService.findCollaborator(
-        announcement.CPF_Creator.CPF,
-        'Gallery',
-      );
-
-      let parsedCandidates: any[] = [];
-      try {
-        parsedCandidates = announcement.candidates
-          ? JSON.parse(announcement.candidates)
-          : [];
-      } catch (e) {
-        console.error('Erro ao fazer parse de candidates:', e);
-        parsedCandidates = [];
-      }
-
-      const alreadyApplied = parsedCandidates.some((candidate) => {
-        const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
-        const userCpf = String(cpf).replace(/\D/g, '');
-        return candidateCpf === userCpf;
-      });
-
-      return {
-        typeService: 'flex',
-        ...announcement,
-        gallery,
-        picture,
-        apply: alreadyApplied,
+    const response = await this.announcementRepository.find({
+      where: {
         CPF_Creator: {
-          collaborator: {
-            collaborator:announcement.CPF_Creator,
-            picture: picture?.path || null,
-            gallery: creatorGallery || {},
-          },
+          CPF: Not(cpf),
         },
-      };
-    }),
-  );
+        CPF_Responder: {
+          CPF: IsNull(),
+        },
+        delete_at: IsNull(),
+      },
+      relations: ['CPF_Creator'],
+    });
 
-  if (response) {
+    const enrichedAnnouncements = await Promise.all(
+      response.map(async (announcement) => {
+        let parsedCandidates: any[] = [];
+        try {
+          parsedCandidates = announcement.candidates
+            ? JSON.parse(announcement.candidates)
+            : [];
+        } catch (e) {
+          console.error('Erro ao fazer parse de candidates:', e);
+          parsedCandidates = [];
+        }
+
+        const userCpf = String(cpf).replace(/\D/g, '');
+
+        // Verifica se já foi enviada proposta
+        const hasPropostal = parsedCandidates.some((candidate) => {
+          const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
+          return candidateCpf === userCpf && candidate?.propostal === true;
+        });
+
+        // Se já recebeu proposta, ignora esse anúncio
+        if (hasPropostal) return null;
+
+        const gallery = await this.bucketService.findAnnouncement(
+          announcement.id,
+        );
+
+        const picture = await this.bucketService.findCollaborator(
+          announcement.CPF_Creator.CPF,
+          'picture',
+        );
+
+        const creatorGallery = await this.bucketService.findCollaborator(
+          announcement.CPF_Creator.CPF,
+          'Gallery',
+        );
+
+        const alreadyApplied = parsedCandidates.some((candidate) => {
+          const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
+          return candidateCpf === userCpf;
+        });
+
+        return {
+          typeService: 'flex',
+          ...announcement,
+          gallery,
+          picture,
+          apply: alreadyApplied,
+          CPF_Creator: {
+            collaborator: {
+              collaborator: announcement.CPF_Creator,
+              picture: picture?.path || null,
+              gallery: creatorGallery || {},
+            },
+          },
+        };
+      }),
+    );
+
+    // Remove os retornos nulos (anúncios que tinham proposta)
+    const filtered = enrichedAnnouncements.filter(Boolean);
+
     return {
       status: 200,
       message: 'success',
-      announcements: enrichedAnnouncements,
+      announcements: filtered,
     };
-  } else {
-    return {
-      status: 500,
-      message: 'erro ',
-    };
-  }
   }
 
   async findOne(cpf: any) {
@@ -168,8 +176,11 @@ export class AnnouncementService {
           if (announcement.candidates) {
             try {
               const parsed = JSON.parse(announcement.candidates);
+              const filteredCandidates = parsed.filter(
+                (c: any) => !c.propostal,
+              );
               candidates = await Promise.all(
-                parsed.map(async (candidate: any) => {
+                filteredCandidates.map(async (candidate: any) => {
                   const collaborator = await this.collaboratorService.findOne(
                     candidate.cpf,
                   );
@@ -277,6 +288,166 @@ export class AnnouncementService {
     }
   }
 
+  async findPropostal(cpfResponder: string, cpfCreator: string) {
+    const response = await this.announcementRepository.find({
+      where: {
+        CPF_Creator: { CPF: cpfCreator },
+        CPF_Responder: { CPF: IsNull() },
+        delete_at: IsNull(),
+      },
+      relations: ['CPF_Creator'],
+    });
+
+    const result = response.map((announcement: any) => {
+      let alreadyCandidate = false;
+      let hasPropostal = false;
+
+      try {
+        const candidates = JSON.parse(announcement.candidates || '[]');
+
+        alreadyCandidate = candidates.some(
+          (candidate: any) => candidate.cpf === cpfResponder,
+        );
+
+        hasPropostal = candidates.some(
+          (candidate: any) => candidate.propostal === true,
+        );
+      } catch (err) {
+        console.error('Erro ao fazer parse dos candidates:', err);
+      }
+
+      return {
+        ...announcement,
+        alreadyCandidate,
+        propostal: hasPropostal,
+      };
+    });
+
+    console.log(result);
+
+    return {
+      status: 200,
+      propostal: result,
+    };
+  }
+
+  async findAllPropostalsByCPF(cpf: string) {
+    const response = await this.announcementRepository.find({
+      where: {
+        delete_at: IsNull(),
+        CPF_Responder: { CPF: IsNull() }, // ✅ Apenas vagas em aberto
+      },
+      relations: ['CPF_Creator'],
+    });
+
+    const userCpf = String(cpf).replace(/\D/g, '');
+
+    const result = [];
+
+    for (const announcement of response) {
+      let parsedCandidates: any[] = [];
+      try {
+        parsedCandidates = announcement.candidates
+          ? JSON.parse(announcement.candidates)
+          : [];
+      } catch (e) {
+        console.error('Erro ao fazer parse de candidates:', e);
+        parsedCandidates = [];
+      }
+
+      const hasPropostal = parsedCandidates.some((candidate) => {
+        const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
+        return candidateCpf === userCpf && candidate?.propostal === true;
+      });
+
+      if (hasPropostal) {
+        result.push({
+          ...announcement,
+          title: announcement.title || 'Título não informado',
+          receivedPropostal: true,
+        });
+      }
+    }
+
+    return {
+      status: 200,
+      message: 'success',
+      receivedPropostals: result,
+    };
+  }
+
+  async applyPropostal(id: number, cpf: string) {
+    const response = await this.announcementRepository.findOne({
+      where: { id },
+    });
+
+    if (!response) {
+      return {
+        status: 404,
+        message: 'announcement not found',
+      };
+    }
+
+    // ✅ Tratamento seguro do JSON
+    let currentCandidates: any[] = [];
+    try {
+      currentCandidates = response.candidates
+        ? JSON.parse(response.candidates)
+        : [];
+    } catch (e) {
+      console.error('Erro ao fazer parse dos announcement:', e);
+      currentCandidates = [];
+    }
+
+    // ✅ Verificar duplicidade de CPF
+    const cpfAlreadyExists = currentCandidates.some(
+      (candidate) => candidate.cpf === cpf,
+    );
+
+    if (cpfAlreadyExists) {
+      return {
+        status: 400,
+        message: 'CPF já está cadastrado como candidato nesta vaga.',
+      };
+    }
+
+    const newCandidate = {
+      cpf: cpf,
+      status: null,
+      propostal: true,
+    };
+
+    const updatedCandidates = [...currentCandidates, newCandidate];
+    const updatedJob = {
+      candidates: JSON.stringify(updatedCandidates),
+    };
+
+    try {
+      const updateResult = await this.announcementRepository.update(
+        id,
+        updatedJob,
+      );
+
+      if (updateResult.affected === 1) {
+        return {
+          status: 200,
+          message: 'Proposta aplicada com sucesso!',
+        };
+      }
+
+      return {
+        status: 404,
+        message: 'Não foi possível aplicar para a proposta.',
+      };
+    } catch (e) {
+      console.error(e);
+      return {
+        status: 500,
+        message: 'Erro interno.',
+      };
+    }
+  }
+
   async applyJob(id: number, cpf: string) {
     const response = await this.announcementRepository.findOne({
       where: { id },
@@ -315,7 +486,7 @@ export class AnnouncementService {
     const newCandidate = {
       cpf: cpf,
       status: null,
-      verify: null,
+      propostal: false,
     };
 
     const updatedCandidates = [...currentCandidates, newCandidate];
