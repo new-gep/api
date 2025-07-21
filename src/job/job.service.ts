@@ -151,6 +151,177 @@ export class JobService {
     return this.bucketService.checkJobDismissalBucketDocumentsObligation(id);
   }
 
+  async findActualOrLastCompany(cpf: string) {
+    try {
+      const response = await this.collaboratorService.findOne(cpf);
+
+      if (response.status === 200) {
+        if (response?.collaborator?.id_work) {
+          const job = await this.jobRepository.findOne({
+            where: { id: response.collaborator.id_work.id },
+            relations: ['CNPJ_company'], // importante: carrega os dados da empresa vinculada
+          });
+          return {
+            status: 200,
+            company: {...job, status:'actual' },
+          };
+        }
+      } else {
+        return {
+          status: 404,
+          message: 'Colaborador não encontrado',
+        };
+      }
+
+      const query = `
+      SELECT 
+        j.*,
+        JSON_OBJECT(
+          'CNPJ', c.CNPJ,
+          'company_name', c.company_name,
+          'isVisible', c.isVisible,
+          'email', c.email,
+          'type_account', c.type_account,
+          'state_registration', c.state_registration,
+          'municipal_registration', c.municipal_registration,
+          'responsible', c.responsible,
+          'phone', c.phone,
+          'zip_code', c.zip_code,
+          'street', c.street,
+          'district', c.district,
+          'city', c.city,
+          'uf', c.uf,
+          'state', c.state,
+          'number', c.number,
+          'create_at', c.create_at,
+          'update_at', c.update_at,
+          'delete_at', c.delete_at
+        ) AS CNPJ_company,
+        'demission_finish_last' AS process
+      FROM job j
+      JOIN company c ON c.CNPJ = j.CNPJ_company
+      WHERE j.CPF_collaborator = ?
+        AND j.delete_at IS NULL
+        AND j.demission IS NOT NULL
+        AND JSON_VALID(j.demission)
+        AND JSON_EXTRACT(j.demission, '$.step') = 'finish'
+      ORDER BY j.create_at DESC
+      LIMIT 1;
+      `;
+
+      const result = await this.jobRepository.query(query, [cpf]);
+      if (result.length === 0) {
+        return {
+          status: 404,
+          message: 'Nenhuma demissão encontrada.',
+        };
+      }
+
+      return {
+        status: 200,
+        company: { ...result[0], status: 'last' },
+      };
+    } catch (e) {
+      return {
+        status: 500,
+        message: 'Erro ao buscar última demissão',
+        error: e.message || e.toString(),
+      };
+    }
+  }
+
+  async findProcess(cpf: string) {
+    try {
+      const queryAdmission = `
+      SELECT DISTINCT job.*, 'admission' AS process
+      FROM job
+      JOIN JSON_TABLE(
+        CAST(candidates AS JSON),
+        '$[*]' COLUMNS (
+          cpf VARCHAR(20) PATH '$.cpf',
+          step INT PATH '$.step'
+        )
+      ) AS jt
+      ON TRUE
+      WHERE job.CPF_collaborator IS NULL
+        AND job.delete_at IS NULL
+        AND job.candidates IS NOT NULL
+        AND jt.cpf = ?
+        AND jt.step IN (1, 2, 3);
+    `;
+
+      const responseAdmission = await this.jobRepository.query(queryAdmission, [
+        cpf,
+      ]);
+
+      const queryDemission = `
+      SELECT job.*, 'demission' AS process
+      FROM job
+      WHERE CPF_collaborator = ?
+        AND delete_at IS NULL
+        AND demission IS NOT NULL
+        AND JSON_VALID(demission)
+        AND (
+          CAST(JSON_UNQUOTE(JSON_EXTRACT(demission, '$.step')) AS UNSIGNED) IN (1, 2, 3)
+          OR JSON_EXTRACT(demission, '$.step') IN ('1', '2', '3')
+        );
+    `;
+
+      const responseDemission = await this.jobRepository.query(queryDemission, [
+        cpf,
+      ]);
+
+      // Unir os dois arrays removendo duplicatas por 'id'
+      const combined = [...responseAdmission, ...responseDemission];
+      const uniqueJobsMap = new Map();
+
+      for (const job of combined) {
+        uniqueJobsMap.set(job.id, job);
+      }
+
+      const uniqueJobs = Array.from(uniqueJobsMap.values());
+
+      return {
+        status: 200,
+        data: uniqueJobs,
+      };
+    } catch (error) {
+      // Trate o erro conforme sua necessidade
+      return {
+        status: 500,
+        message: 'Erro ao buscar processos',
+        error: error.message || error,
+      };
+    }
+  }
+
+  async findHistory(cpf: string) {
+    try {
+      const query = `
+      SELECT job.*, 'demission_finish' AS process
+      FROM job
+      WHERE CPF_collaborator = ?
+        AND delete_at IS NULL
+        AND demission IS NOT NULL
+        AND JSON_VALID(demission)
+        AND JSON_EXTRACT(demission, '$.step') = 'finish';
+    `;
+
+      const response = await this.jobRepository.query(query, [cpf]);
+
+      return {
+        status: 200,
+        data: response,
+      };
+    } catch (error) {
+      return {
+        status: 500,
+        message: 'Erro ao buscar demissão finalizada',
+        error: error.message || error,
+      };
+    }
+  }
+
   async findFile(id: number, name: string, signature: any, dynamic?: string) {
     return this.bucketService.findJob(id, name, signature, dynamic);
   }

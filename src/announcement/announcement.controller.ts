@@ -57,6 +57,14 @@ export class AnnouncementController {
     return this.announcementService.findPropostal(cpfResponder,cpfCreator);
   }
 
+  @Get('history/:cpf')
+  findAllHistory(
+    @Param('cpf') cpf: string,
+  ) 
+  {
+    return this.announcementService.findHistory(cpf);
+  }
+
   @Get('propostalByCPF/:cpf/')
   findAllPropostalsByCPF(
     @Param('cpf') cpf: string,

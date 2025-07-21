@@ -131,6 +131,21 @@ export class JobController {
     return this.jobService.findAllOpen(job);
   }
 
+  @Get('process/:cpf')
+  findProcess(@Param('cpf') cpf: string) {
+    return this.jobService.findProcess(cpf);
+  }
+
+  @Get('history/:cpf')
+  findHistory(@Param('cpf') cpf: string) {
+    return this.jobService.findHistory(cpf);
+  }
+
+  @Get('findActualOrLastCompany/:cpf')
+  findActualOrLastCompany(@Param('cpf') cpf: string) {
+    return this.jobService.findActualOrLastCompany(cpf);
+  }
+
   @Get('collaborator/company/:cnpj')
   findCollaboratorCompany(@Param('cnpj') cnpj: string) {
     return this.jobService.findCollaboratorCompany(cnpj);

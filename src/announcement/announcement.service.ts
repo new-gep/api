@@ -260,6 +260,76 @@ export class AnnouncementService {
     };
   }
 
+  async findHistory(cpf: string) {
+    const response = await this.announcementRepository.find({
+      where: [
+        {
+          CPF_Creator: { CPF: cpf },
+          delete_at: Not(IsNull()),
+        },
+        {
+          CPF_Responder: { CPF: cpf },
+          delete_at: Not(IsNull()),
+        },
+      ],
+      relations: ['CPF_Creator', 'CPF_Responder'],
+    });
+
+    const enriched = await Promise.all(
+      response.map(async (announcement) => {
+        const creatorCPF = announcement.CPF_Creator?.CPF;
+        const responderCPF = announcement.CPF_Responder?.CPF;
+
+        // const creatorPicture = await this.bucketService.findCollaborator(
+        //   creatorCPF,
+        //   'picture',
+        // );
+
+        // const creatorGallery = await this.bucketService.findCollaborator(
+        //   creatorCPF,
+        //   'Gallery',
+        // );
+
+        // const responderPicture = await this.bucketService.findCollaborator(
+        //   responderCPF,
+        //   'picture',
+        // );
+
+        // const responderGallery = await this.bucketService.findCollaborator(
+        //   responderCPF,
+        //   'Gallery',
+        // );
+
+        return {
+          ...announcement,
+          typeService: 'flex',
+          createdByUser: creatorCPF === cpf,
+          respondedByUser: responderCPF === cpf,
+          CPF_Creator: {
+            collaborator: {
+              collaborator: announcement.CPF_Creator,
+              // picture: creatorPicture?.path || null,
+              // gallery: creatorGallery || {},
+            },
+          },
+          CPF_Responder: {
+            collaborator: {
+              collaborator: announcement.CPF_Responder,
+              // picture: responderPicture?.path || null,
+              // gallery: responderGallery || {},
+            },
+          },
+        };
+      }),
+    );
+
+    return {
+      status: 200,
+      message: 'success',
+      history: enriched,
+    };
+  }
+
   async update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {
     const time = findTimeSP();
     updateAnnouncementDto.update_at = time;
@@ -323,8 +393,6 @@ export class AnnouncementService {
       };
     });
 
-    console.log(result);
-
     return {
       status: 200,
       propostal: result,
@@ -339,8 +407,6 @@ export class AnnouncementService {
       },
       relations: ['CPF_Creator'],
     });
-
-    const userCpf = String(cpf).replace(/\D/g, '');
 
     const result = [];
 
@@ -357,14 +423,39 @@ export class AnnouncementService {
 
       const hasPropostal = parsedCandidates.some((candidate) => {
         const candidateCpf = String(candidate?.cpf).replace(/\D/g, '');
+        const userCpf = String(cpf).replace(/\D/g, '');
         return candidateCpf === userCpf && candidate?.propostal === true;
       });
 
       if (hasPropostal) {
+        // const gallery = await this.bucketService.findAnnouncement(
+        //   announcement.id,
+        // );
+
+        // const picture = await this.bucketService.findCollaborator(
+        //   announcement.CPF_Creator.CPF,
+        //   'picture',
+        // );
+
+        // const creatorGallery = await this.bucketService.findCollaborator(
+        //   announcement.CPF_Creator.CPF,
+        //   'Gallery',
+        // );
+
         result.push({
+          typeService: 'flex',
           ...announcement,
-          title: announcement.title || 'Título não informado',
+          // gallery,
+          // picture: picture?.path || null,
+          apply: true, // pois já recebeu proposta
           receivedPropostal: true,
+          CPF_Creator: {
+            collaborator: {
+              collaborator: announcement.CPF_Creator,
+              // picture: picture?.path || null,
+              // gallery: creatorGallery || {},
+            },
+          },
         });
       }
     }
