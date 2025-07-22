@@ -10,16 +10,18 @@ import { CompanyModule } from 'src/company/company.module';
 import { AbsenceModule } from 'src/absence/absence.module';
 import { ServiceModule } from 'src/service/service.module';
 import { RabbitModule } from 'src/rabbit/rabbit.module';
+import { AnnouncementModule } from 'src/announcement/announcement.module';
 @Module({
   imports: [
     DatabaseModule,
     UserModule,
     CollaboratorModule,
-    BucketModule,
+    BucketModule,    
     CompanyModule,
     AbsenceModule,
     ServiceModule,
     RabbitModule,
+    AnnouncementModule,
   ],
   controllers: [JobController],
   providers: [JobService, ...jobProviders],

@@ -260,6 +260,104 @@ export class AnnouncementService {
     };
   }
 
+  async findOneById(id: number) {
+    const announcement = await this.announcementRepository.findOne({
+      where: { id },
+      relations: ['CPF_Creator', 'CPF_Responder'],
+    });
+
+    if (!announcement) {
+      return {
+        status: 404,
+        message: 'announcement not found',
+        announcement: null,
+      };
+    }
+
+    // const gallery = await this.bucketService.findAnnouncement(announcement.id);
+
+    // Enriquecer candidatos
+    let candidates = [];
+    if (announcement.candidates) {
+      try {
+        const parsed = JSON.parse(announcement.candidates);
+        const filteredCandidates = parsed.filter((c: any) => !c.propostal);
+
+        candidates = await Promise.all(
+          filteredCandidates.map(async (candidate: any) => {
+            const collaborator = await this.collaboratorService.findOne(
+              candidate.cpf,
+            );
+            return {
+              ...candidate,
+              collaborator,
+            };
+          }),
+        );
+      } catch (e) {
+        console.error('Erro ao parsear candidatos:', e);
+      }
+    }
+
+    // Enriquecer responder
+    let enrichedResponder = null;
+    if (announcement.CPF_Responder?.CPF) {
+      const responderCPF = announcement.CPF_Responder.CPF;
+
+      const [responder, responderPicture, responderGallery] = await Promise.all(
+        [
+          this.collaboratorService.findOne(responderCPF),
+          '',
+          ''
+          // this.bucketService.findCollaborator(responderCPF, 'picture'),
+          // this.bucketService.findCollaborator(responderCPF, 'Gallery'),
+        ],
+      );
+
+      enrichedResponder = {
+        collaborator: {
+          ...responder,
+          // picture: responderPicture?.path,
+          // gallery: responderGallery,
+        },
+      };
+    }
+
+    // Enriquecer creator
+    let enrichedCreator = null;
+    if (announcement.CPF_Creator?.CPF) {
+      const creatorCPF = announcement.CPF_Creator.CPF;
+
+      const [creator, creatorPicture, creatorGallery] = await Promise.all([
+        this.collaboratorService.findOne(creatorCPF),
+        '',
+        '',
+        // this.bucketService.findCollaborator(creatorCPF, 'picture'),
+        // this.bucketService.findCollaborator(creatorCPF, 'Gallery'),
+      ]);
+
+      enrichedCreator = {
+        collaborator: {
+          ...creator,
+          // picture: creatorPicture?.path,
+          // gallery: creatorGallery,
+        },
+      };
+    }
+
+    return {
+      status: 200,
+      message: 'success',
+      announcement: {
+        ...announcement,
+        // gallery,
+        CPF_Creator: enrichedCreator || announcement.CPF_Creator,
+        CPF_Responder: enrichedResponder || announcement.CPF_Responder,
+        candidates,
+      },
+    };
+  }
+
   async findHistory(cpf: string) {
     const response = await this.announcementRepository.find({
       where: [

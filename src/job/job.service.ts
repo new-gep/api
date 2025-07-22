@@ -14,6 +14,7 @@ import { UploadAbsenceDto } from './dto/upload-absence.dto';
 import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
 import { ServiceService } from 'src/service/service.service';
 import { Console } from 'node:console';
+import { AnnouncementService } from 'src/announcement/announcement.service';
 
 @Injectable()
 export class JobService {
@@ -23,6 +24,7 @@ export class JobService {
     readonly userService: UserService,
     readonly collaboratorService: CollaboratorService,
     readonly bucketService: BucketService,
+    readonly announcementService: AnnouncementService,
     readonly companyService: CompanyService,
     readonly absenceService: AbsenceService,
     readonly ServiceService: ServiceService,
@@ -154,7 +156,6 @@ export class JobService {
   async findActualOrLastCompany(cpf: string) {
     try {
       const response = await this.collaboratorService.findOne(cpf);
-
       if (response.status === 200) {
         if (response?.collaborator?.id_work) {
           const job = await this.jobRepository.findOne({
@@ -163,7 +164,7 @@ export class JobService {
           });
           return {
             status: 200,
-            company: {...job, status:'actual' },
+            company: { ...job, status: 'actual' },
           };
         }
       } else {
@@ -233,39 +234,47 @@ export class JobService {
   async findProcess(cpf: string) {
     try {
       const queryAdmission = `
-      SELECT DISTINCT job.*, 'admission' AS process
-      FROM job
-      JOIN JSON_TABLE(
-        CAST(candidates AS JSON),
-        '$[*]' COLUMNS (
-          cpf VARCHAR(20) PATH '$.cpf',
-          step INT PATH '$.step'
-        )
-      ) AS jt
-      ON TRUE
-      WHERE job.CPF_collaborator IS NULL
-        AND job.delete_at IS NULL
-        AND job.candidates IS NOT NULL
-        AND jt.cpf = ?
-        AND jt.step IN (1, 2, 3);
-    `;
+        SELECT 
+          job.*, 
+          'admission' AS process,
+          jt.step AS step
+        FROM job
+        JOIN JSON_TABLE(
+          CAST(job.candidates AS JSON),
+          '$[*]' COLUMNS (
+            cpf VARCHAR(20) PATH '$.cpf',
+            step INT PATH '$.step'
+          )
+        ) AS jt ON TRUE
+        WHERE 
+          job.delete_at IS NULL
+          AND job.CPF_collaborator IS NULL
+          AND job.candidates IS NOT NULL
+          AND jt.cpf = ?
+          AND jt.step IN (1, 2, 3);
+      `;
 
       const responseAdmission = await this.jobRepository.query(queryAdmission, [
         cpf,
       ]);
 
       const queryDemission = `
-      SELECT job.*, 'demission' AS process
-      FROM job
-      WHERE CPF_collaborator = ?
-        AND delete_at IS NULL
-        AND demission IS NOT NULL
-        AND JSON_VALID(demission)
-        AND (
-          CAST(JSON_UNQUOTE(JSON_EXTRACT(demission, '$.step')) AS UNSIGNED) IN (1, 2, 3)
-          OR JSON_EXTRACT(demission, '$.step') IN ('1', '2', '3')
-        );
-    `;
+        SELECT 
+          job.*, 
+          'demission' AS process,
+          CAST(JSON_UNQUOTE(JSON_EXTRACT(job.demission, '$.step')) AS UNSIGNED) AS step
+        FROM job
+        WHERE 
+          job.delete_at IS NULL
+          AND job.CPF_collaborator = ?
+          AND job.motion_demission IS NOT NULL
+          AND job.demission IS NOT NULL
+          AND JSON_VALID(job.demission)
+          AND (
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(job.demission, '$.step')) AS UNSIGNED) IN (1, 2, 3)
+            OR JSON_EXTRACT(job.demission, '$.step') IN ('1', '2', '3')
+          );
+      `;
 
       const responseDemission = await this.jobRepository.query(queryDemission, [
         cpf,
@@ -292,6 +301,232 @@ export class JobService {
         message: 'Erro ao buscar processos',
         error: error.message || error,
       };
+    }
+  }
+
+  async findAllService(cpf: string) {
+    const query = `
+      SELECT *
+      FROM (
+        SELECT
+          job.id,
+          'job' AS source,
+          job.candidates,
+          job.CPF_collaborator,
+          NULL AS CPF_responder,
+          'fix' AS service
+        FROM job
+        WHERE 
+          job.delete_at IS NULL
+          AND job.CPF_collaborator IS NULL
+          AND (
+            job.candidates IS NULL
+            OR (
+              JSON_VALID(job.candidates) = 1
+              AND (
+                JSON_LENGTH(job.candidates) = 0
+                OR (
+                  NOT EXISTS (
+                    SELECT 1
+                    FROM JSON_TABLE(
+                      job.candidates,
+                      '$[*]' COLUMNS (
+                        cpf VARCHAR(20) PATH '$.cpf'
+                      )
+                    ) AS jt
+                    WHERE jt.cpf = ?
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM JSON_TABLE(
+                      job.candidates,
+                      '$[*]' COLUMNS (
+                        step INT PATH '$.step'
+                      )
+                    ) AS jt
+                    WHERE jt.step IS NOT NULL AND jt.step != 0
+                  )
+                )
+              )
+            )
+          )
+
+        UNION ALL
+
+        SELECT
+          announcement.id,
+          'announcement' AS source,
+          announcement.candidates,
+          NULL AS CPF_collaborator,
+          announcement.CPF_responder,
+          'flex' AS service
+        FROM announcement
+        WHERE 
+          announcement.delete_at IS NULL
+          AND announcement.CPF_responder IS NULL
+          AND (
+            announcement.candidates IS NULL
+            OR (
+              JSON_VALID(announcement.candidates) = 1
+              AND (
+                JSON_LENGTH(announcement.candidates) = 0
+                OR NOT EXISTS (
+                  SELECT 1
+                  FROM JSON_TABLE(
+                    announcement.candidates,
+                    '$[*]' COLUMNS (
+                      cpf VARCHAR(20) PATH '$.cpf'
+                    )
+                  ) AS jt
+                  WHERE jt.cpf = ?
+                )
+              )
+            )
+          )
+      ) AS combined_results
+      LIMIT 20;
+    `;
+    const response = await this.jobRepository.query(query, [cpf, cpf]);
+    if (response.length === 0) {
+      return {
+        status: 404,
+        message: 'Nenhuma vaga encontrada para o CPF informado.',
+      };
+    }
+    const services = await Promise.all(
+      response.map(async (item: any) => {
+        if (item.source === 'job') {
+          const job = await this.jobRepository.findOne({
+            where: { id: item.id },
+            relations: ['CNPJ_company'],
+          });
+          return {
+            service: 'fix',
+            job,
+          };
+        } else if (item.source === 'announcement') {
+          const announcement = await this.announcementService.findOneById(
+            item.id,
+          );
+          return {
+            service: 'flex',
+            announcement,
+          };
+        }
+      }),
+    );
+    return {
+      status: 200,
+      data: services,
+    };
+  }
+
+  async FindAllCandidacy(cpf: string) {
+    try {
+      const query = `
+        SELECT 
+          filtered_job.id,
+          'job' AS source,
+          filtered_job.candidates,
+          filtered_job.CPF_collaborator,
+          NULL AS CPF_responder,
+          NULL AS proposal,
+          'fix' AS service
+        FROM (
+          SELECT * 
+          FROM job
+          WHERE 
+            CPF_collaborator IS NULL
+            AND delete_at IS NULL
+            AND candidates IS NOT NULL
+            AND JSON_VALID(candidates) = 1
+        ) AS filtered_job
+        JOIN JSON_TABLE(
+          CAST(filtered_job.candidates AS JSON),
+          '$[*]' COLUMNS (
+            cpf VARCHAR(20) PATH '$.cpf',
+            step_str VARCHAR(10) PATH '$.step'
+          )
+        ) AS jt_match
+        ON jt_match.cpf = ?
+          AND jt_match.step_str = '0'
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM JSON_TABLE(
+            CAST(filtered_job.candidates AS JSON),
+            '$[*]' COLUMNS (
+              step_str VARCHAR(10) PATH '$.step'
+            )
+          ) AS jt_step
+          WHERE jt_step.step_str != '0'
+        )
+        
+        UNION ALL
+        
+        SELECT 
+          announcement.id,
+          'announcement' AS source,
+          announcement.candidates,
+          NULL AS CPF_collaborator,
+          announcement.CPF_responder,
+          jt_ann.proposal,
+          'flex' AS service
+        FROM (
+          SELECT * 
+          FROM announcement
+          WHERE 
+            delete_at IS NULL
+            AND CPF_responder IS NULL
+            AND candidates IS NOT NULL
+            AND JSON_VALID(candidates) = 1
+        ) AS announcement
+        JOIN JSON_TABLE(
+          CAST(announcement.candidates AS JSON),
+          '$[*]' COLUMNS (
+            cpf VARCHAR(20) PATH '$.cpf',
+            proposal BOOLEAN PATH '$.propostal'
+          )
+        ) AS jt_ann
+        ON jt_ann.cpf = ?
+        WHERE jt_ann.proposal IS NULL OR jt_ann.proposal = FALSE;
+      `;
+      const response = await this.jobRepository.query(query, [cpf, cpf]);
+      if (response.length === 0) {
+        return {
+          status: 404,
+          message: 'Nenhuma candidatura encontrada para o CPF informado.',
+        };
+      }
+
+      const tasks = await Promise.all(
+        response.map(async (item: any) => {
+          if (item.source === 'job') {
+            const job = await this.jobRepository.findOne({
+              where: { id: item.id },
+              relations: ['CNPJ_company'],
+            });
+            return {
+              service: 'fix',
+              job,
+            };
+          } else if (item.source === 'announcement') {
+            const announcement = await this.announcementService.findOneById(
+              item.id,
+            );
+            return {
+              service: 'flex',
+              announcement,
+            };
+          }
+        }),
+      );
+
+      return {
+        status: 200,
+        data: tasks,
+      };
+    } catch (e) {
+      console.log(e);
     }
   }
 
@@ -1189,6 +1424,7 @@ export class JobService {
   }
 
   async applyJob(id: number, cpf: string) {
+    console.log('applyJob', id, cpf);
     const response = await this.jobRepository.findOne({ where: { id } });
 
     if (!response) {

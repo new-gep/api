@@ -10,5 +10,6 @@ import { CollaboratorModule } from 'src/collaborator/collaborator.module';
   imports: [DatabaseModule, BucketModule, CollaboratorModule],
   controllers: [AnnouncementController],
   providers: [AnnouncementService, ...announcementProviders],
+  exports: [AnnouncementService],
 })
 export class AnnouncementModule {}

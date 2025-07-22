@@ -146,6 +146,11 @@ export class JobController {
     return this.jobService.findActualOrLastCompany(cpf);
   }
 
+  @Get('FindAllCandidacy/:cpf')
+  FindAllCandidacy(@Param('cpf') cpf: string) {
+    return this.jobService.FindAllCandidacy(cpf);
+  }
+
   @Get('collaborator/company/:cnpj')
   findCollaboratorCompany(@Param('cnpj') cnpj: string) {
     return this.jobService.findCollaboratorCompany(cnpj);
@@ -180,6 +185,11 @@ export class JobController {
   ) {
     // console.log("testando jobServices", id, typeService, year, month);
     return this.jobService.jobServices(id, typeService, year, month);
+  }
+
+  @Get('FindAllService/:cpf')
+  FindAllService(@Param('cpf') cpf: string) {
+    return this.jobService.findAllService(cpf);
   }
 
   @Get('process/demissional/:cnpj')
