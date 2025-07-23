@@ -565,6 +565,7 @@ export class AnnouncementService {
     const response = await this.announcementRepository.findOne({
       where: { id },
     });
+    
 
     if (!response) {
       return {

@@ -383,10 +383,11 @@ export class JobService {
               )
             )
           )
+          AND announcement.CPF_creator COLLATE utf8mb4_general_ci != ? COLLATE utf8mb4_general_ci
       ) AS combined_results
       LIMIT 20;
     `;
-    const response = await this.jobRepository.query(query, [cpf, cpf]);
+    const response = await this.jobRepository.query(query, [cpf, cpf, cpf]);
     if (response.length === 0) {
       return {
         status: 404,
