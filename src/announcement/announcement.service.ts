@@ -274,7 +274,7 @@ export class AnnouncementService {
       };
     }
 
-    // const gallery = await this.bucketService.findAnnouncement(announcement.id);
+    const gallery = await this.bucketService.findAnnouncement(announcement.id);
 
     // Enriquecer candidatos
     let candidates = [];
@@ -307,18 +307,16 @@ export class AnnouncementService {
       const [responder, responderPicture, responderGallery] = await Promise.all(
         [
           this.collaboratorService.findOne(responderCPF),
-          '',
-          ''
-          // this.bucketService.findCollaborator(responderCPF, 'picture'),
-          // this.bucketService.findCollaborator(responderCPF, 'Gallery'),
+          this.bucketService.findCollaborator(responderCPF, 'picture'),
+          this.bucketService.findCollaborator(responderCPF, 'Gallery'),
         ],
       );
 
       enrichedResponder = {
         collaborator: {
           ...responder,
-          // picture: responderPicture?.path,
-          // gallery: responderGallery,
+          picture: responderPicture?.path,
+          gallery: responderGallery,
         },
       };
     }
@@ -330,17 +328,15 @@ export class AnnouncementService {
 
       const [creator, creatorPicture, creatorGallery] = await Promise.all([
         this.collaboratorService.findOne(creatorCPF),
-        '',
-        '',
-        // this.bucketService.findCollaborator(creatorCPF, 'picture'),
-        // this.bucketService.findCollaborator(creatorCPF, 'Gallery'),
+        this.bucketService.findCollaborator(creatorCPF, 'picture'),
+        this.bucketService.findCollaborator(creatorCPF, 'Gallery'),
       ]);
 
       enrichedCreator = {
         collaborator: {
           ...creator,
-          // picture: creatorPicture?.path,
-          // gallery: creatorGallery,
+          picture: creatorPicture?.path,
+          gallery: creatorGallery,
         },
       };
     }
@@ -350,7 +346,7 @@ export class AnnouncementService {
       message: 'success',
       announcement: {
         ...announcement,
-        // gallery,
+        gallery,
         CPF_Creator: enrichedCreator || announcement.CPF_Creator,
         CPF_Responder: enrichedResponder || announcement.CPF_Responder,
         candidates,
@@ -378,25 +374,25 @@ export class AnnouncementService {
         const creatorCPF = announcement.CPF_Creator?.CPF;
         const responderCPF = announcement.CPF_Responder?.CPF;
 
-        // const creatorPicture = await this.bucketService.findCollaborator(
-        //   creatorCPF,
-        //   'picture',
-        // );
+        const creatorPicture = await this.bucketService.findCollaborator(
+          creatorCPF,
+          'picture',
+        );
 
-        // const creatorGallery = await this.bucketService.findCollaborator(
-        //   creatorCPF,
-        //   'Gallery',
-        // );
+        const creatorGallery = await this.bucketService.findCollaborator(
+          creatorCPF,
+          'Gallery',
+        );
 
-        // const responderPicture = await this.bucketService.findCollaborator(
-        //   responderCPF,
-        //   'picture',
-        // );
+        const responderPicture = await this.bucketService.findCollaborator(
+          responderCPF,
+          'picture',
+        );
 
-        // const responderGallery = await this.bucketService.findCollaborator(
-        //   responderCPF,
-        //   'Gallery',
-        // );
+        const responderGallery = await this.bucketService.findCollaborator(
+          responderCPF,
+          'Gallery',
+        );
 
         return {
           ...announcement,
@@ -406,15 +402,15 @@ export class AnnouncementService {
           CPF_Creator: {
             collaborator: {
               collaborator: announcement.CPF_Creator,
-              // picture: creatorPicture?.path || null,
-              // gallery: creatorGallery || {},
+              picture: creatorPicture?.path || null,
+              gallery: creatorGallery || {},
             },
           },
           CPF_Responder: {
             collaborator: {
               collaborator: announcement.CPF_Responder,
-              // picture: responderPicture?.path || null,
-              // gallery: responderGallery || {},
+              picture: responderPicture?.path || null,
+              gallery: responderGallery || {},
             },
           },
         };
@@ -526,32 +522,32 @@ export class AnnouncementService {
       });
 
       if (hasPropostal) {
-        // const gallery = await this.bucketService.findAnnouncement(
-        //   announcement.id,
-        // );
+        const gallery = await this.bucketService.findAnnouncement(
+          announcement.id,
+        );
 
-        // const picture = await this.bucketService.findCollaborator(
-        //   announcement.CPF_Creator.CPF,
-        //   'picture',
-        // );
+        const picture = await this.bucketService.findCollaborator(
+          announcement.CPF_Creator.CPF,
+          'picture',
+        );
 
-        // const creatorGallery = await this.bucketService.findCollaborator(
-        //   announcement.CPF_Creator.CPF,
-        //   'Gallery',
-        // );
+        const creatorGallery = await this.bucketService.findCollaborator(
+          announcement.CPF_Creator.CPF,
+          'Gallery',
+        );
 
         result.push({
           typeService: 'flex',
           ...announcement,
-          // gallery,
-          // picture: picture?.path || null,
+          gallery,
+          picture: picture?.path || null,
           apply: true, // pois já recebeu proposta
           receivedPropostal: true,
           CPF_Creator: {
             collaborator: {
               collaborator: announcement.CPF_Creator,
-              // picture: picture?.path || null,
-              // gallery: creatorGallery || {},
+              picture: picture?.path || null,
+              gallery: creatorGallery || {},
             },
           },
         });

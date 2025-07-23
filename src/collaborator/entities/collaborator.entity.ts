@@ -10,6 +10,9 @@ export class Collaborator {
     @Column({length: 150,})
     name: string;
 
+    @Column({length: 255, default: null})
+    push_token: string;
+
     @ManyToOne(() => Job, job => job.id)
     @JoinColumn({ name: 'id_work' })
     id_work: Job;

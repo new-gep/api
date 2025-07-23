@@ -7,6 +7,7 @@ export class UpdateCollaboratorDto extends PartialType(CreateCollaboratorDto) {
     name    ?: string;
     sex     ?: string;
     phone   ?: string;
+    push_token?: string;
     birth?:string;
     terms   ?: string;
     marriage?:string;
