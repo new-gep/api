@@ -166,7 +166,7 @@ export class CardCompanyService {
   async remove(id: number) {
     try{
       const response = await this.cardCompanyRepository.delete(id);
-      console.log(response);
+
       if(response.affected === 1){
       return {
         status: 200,

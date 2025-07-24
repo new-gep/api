@@ -1425,7 +1425,6 @@ export class JobService {
   }
 
   async applyJob(id: number, cpf: string) {
-    console.log('applyJob', id, cpf);
     const response = await this.jobRepository.findOne({ where: { id } });
 
     if (!response) {
@@ -1531,7 +1530,6 @@ export class JobService {
       };
     }
 
-    console.log(updatedCandidates);
   }
 
   async removeDocumentDynamic(id: number, name: string, where?: string) {

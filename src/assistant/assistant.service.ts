@@ -66,7 +66,7 @@ export class AssistantService {
             return reject('Dados da mensagem não encontrados');
           }
         } else {
-          console.log(`Status do run: ${run.status}`);
+
           return reject(`Status do run não é 'completed': ${run.status}`); // Rejeita se o status não for 'completed'
         };
       } catch (error) {

@@ -116,7 +116,7 @@ export class BucketService {
       const files = await readdir(tempPath);
 
       if (files.length === 0) {
-        console.log('A pasta temp já está vazia.');
+        // console.log('A pasta temp já está vazia.');
         return;
       }
 

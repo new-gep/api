@@ -116,7 +116,7 @@ export class PictureService {
   }
 
   async findOne(CPF_collaborator: string,) {
-    console.log('CPF_collaborator', CPF_collaborator);
+
     try {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({
@@ -178,7 +178,6 @@ export class PictureService {
   async update(CPF: string, updatePictureDto: UpdatePictureDto) {
     try{
       const { status, id_user, id_work } = updatePictureDto;  // Extrai o campo `status` do DTO
-      console.log(status, id_user, id_work, updatePictureDto.picture, CPF)
       // Encontra o registro que corresponde ao CPF e picture
       const pictureRecord = await this.pictureRepository.findOne({
         where: { CPF_collaborator: { CPF: CPF}, picture: updatePictureDto.picture, id_work: { id: id_work } },

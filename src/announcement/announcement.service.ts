@@ -359,10 +359,12 @@ export class AnnouncementService {
       where: [
         {
           CPF_Creator: { CPF: cpf },
+          CPF_Responder: Not(IsNull()),
           delete_at: Not(IsNull()),
         },
         {
           CPF_Responder: { CPF: cpf },
+          CPF_Creator: Not(IsNull()),
           delete_at: Not(IsNull()),
         },
       ],
@@ -427,7 +429,6 @@ export class AnnouncementService {
   async update(id: number, updateAnnouncementDto: UpdateAnnouncementDto) {
     const time = findTimeSP();
     updateAnnouncementDto.update_at = time;
-    console.log(updateAnnouncementDto);
     try {
       const response = await this.announcementRepository.update(
         id,
@@ -744,8 +745,6 @@ export class AnnouncementService {
         message: 'Internal error.',
       };
     }
-
-    console.log(updatedCandidates);
   }
 
   async removeFile(key: string) {

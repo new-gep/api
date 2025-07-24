@@ -182,7 +182,6 @@ export class PaymentService {
           'Authorization': `Bearer ${token}`,
         },
       })
-      console.log('response', response.data);
       const time = findTimeSP()
       const CreatePaymentParams = {
         cel_cash_id:response.data.Charge.galaxPayId,
