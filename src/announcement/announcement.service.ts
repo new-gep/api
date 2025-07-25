@@ -454,39 +454,43 @@ export class AnnouncementService {
   }
 
   async findPropostal(cpfResponder: string, cpfCreator: string) {
-    const response = await this.announcementRepository.find({
-      where: {
-        CPF_Creator: { CPF: cpfCreator },
-        CPF_Responder: { CPF: IsNull() },
-        delete_at: IsNull(),
-      },
-      relations: ['CPF_Creator'],
-    });
+    const query = `
+      SELECT 
+        a.*,
+        CASE 
+          WHEN jt.propostal = 'true' THEN TRUE 
+          ELSE FALSE 
+        END AS propostal,
+        CASE 
+          WHEN jt.propostal = 'false' THEN TRUE 
+          ELSE FALSE 
+        END AS alreadyCandidate
+      FROM announcement a
+      LEFT JOIN JSON_TABLE(
+        a.candidates,
+        '$[*]' COLUMNS (
+          cpf VARCHAR(20) PATH '$.cpf',
+          propostal VARCHAR(10) PATH '$.propostal'
+        )
+      ) AS jt ON jt.cpf = ?
+      WHERE 
+        a.CPF_creator = ?
+        AND a.CPF_responder IS NULL
+        AND a.delete_at IS NULL;
+    `;
 
-    const result = response.map((announcement: any) => {
-      let alreadyCandidate = false;
-      let hasPropostal = false;
+    
+    const result = await this.announcementRepository.query(query, [
+      cpfResponder, // corresponde ao jt.cpf = ?
+      cpfCreator,   // corresponde ao a.CPF_creator = ?
+    ]);
 
-      try {
-        const candidates = JSON.parse(announcement.candidates || '[]');
-
-        alreadyCandidate = candidates.some(
-          (candidate: any) => candidate.cpf === cpfResponder,
-        );
-
-        hasPropostal = candidates.some(
-          (candidate: any) => candidate.propostal === true,
-        );
-      } catch (err) {
-        console.error('Erro ao fazer parse dos candidates:', err);
-      }
-
-      return {
-        ...announcement,
-        alreadyCandidate,
-        propostal: hasPropostal,
-      };
-    });
+    // if (!result || result.length === 0) {
+    //   return {
+    //     status: 404,
+    //     message: 'Nenhuma proposta encontrada para esse candidato.',
+    //   };
+    // }
 
     return {
       status: 200,
@@ -566,7 +570,6 @@ export class AnnouncementService {
     const response = await this.announcementRepository.findOne({
       where: { id },
     });
-    
 
     if (!response) {
       return {
