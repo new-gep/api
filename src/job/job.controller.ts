@@ -22,6 +22,7 @@ import {
   EventPattern,
   MessagePattern,
 } from '@nestjs/microservices';
+import { NotificationJobDto } from './dto/notification-job.dto';
 
 @Controller('job')
 export class JobController {
@@ -42,6 +43,12 @@ export class JobController {
     @Body() uploadCollaboratorDto: UpadteJobDto,
   ) {
     return this.jobService.uploadFile(uploadCollaboratorDto, file);
+  }
+
+  @Post('notification')
+  async notification(@Body() notificationJobDto: NotificationJobDto) 
+  {
+    return this.jobService.sendNotification(notificationJobDto);
   }
 
   @Post('service/upload')
@@ -124,11 +131,6 @@ export class JobController {
   @Get()
   findAll() {
     return this.jobService.findAll();
-  }
-
-  @Get('notification/:token/:title/:message/:image')
-  notification(@Param('title') title: string, @Param('token') token: string, @Param('message') message: string, @Param('image') image: string) {
-    return this.jobService.sendNotification(token, title, message, image);
   }
 
   @Get('search/:job')

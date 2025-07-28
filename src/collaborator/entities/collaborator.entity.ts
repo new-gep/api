@@ -85,6 +85,9 @@ export class Collaborator {
     @Column({ type: 'json', nullable: true })
     social: any;
 
+    @Column({ type: 'longtext', nullable: true })
+    favorite: any;
+
     @Column({length: 50})
     create_at: string;
 

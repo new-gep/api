@@ -19,9 +19,10 @@ import { SignatureModule } from './signature/signature.module';
 import { CvModule } from './cv/cv.module';
 import { AnnouncementModule } from './announcement/announcement.module';
 import { FirebaseModule } from './firebase/firebase.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule, SignatureModule, CvModule, AnnouncementModule, FirebaseModule ],
+  imports: [ConfigModule.forRoot({ envFilePath: ['.env.development.local', '.env.development'],}), CollaboratorModule, CompanyModule, UserModule, PictureModule, JobModule, CardCompanyModule, AbsenceModule, ServiceModule, LeadModule, RedisModule, PaymentModule, AssistantModule, SignatureModule, CvModule, AnnouncementModule, FirebaseModule, NotificationModule ],
   controllers: [AppController],
   providers: [AppService, EmailService],
 })

@@ -16,6 +16,7 @@ import { ServiceService } from 'src/service/service.service';
 import { Console } from 'node:console';
 import { AnnouncementService } from 'src/announcement/announcement.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
+import { NotificationJobDto } from './dto/notification-job.dto';
 
 @Injectable()
 export class JobService {
@@ -426,6 +427,7 @@ export class JobService {
 
   async FindAllCandidacy(cpf: string) {
     try {
+      let favorite = [];
       const query = `
         SELECT 
           filtered_job.id,
@@ -494,6 +496,18 @@ export class JobService {
         WHERE jt_ann.proposal IS NULL OR jt_ann.proposal = FALSE;
       `;
       const response = await this.jobRepository.query(query, [cpf, cpf]);
+      const res = await this.collaboratorService.findOne(cpf)
+      const favorites = JSON.parse(res.collaborator.favorite)
+      favorites.forEach(async (cpf:any) => {
+        const response = await this.collaboratorService.findOne(cpf)
+        if(response.status == 200){
+          favorite.push(
+            response.collaborator
+          )
+        }
+      });
+
+
       if (response.length === 0) {
         return {
           status: 404,
@@ -527,6 +541,7 @@ export class JobService {
       return {
         status: 200,
         data: tasks,
+        favorite:favorite
       };
     } catch (e) {
       console.log(e);
@@ -1566,7 +1581,7 @@ export class JobService {
     }
   }
 
-  async sendNotification(token:string, title:string, body:string, image?:string){
-    await this.firebaseService.sendNotification(token, title, body, image)
+  async sendNotification(notificationJobDto:NotificationJobDto){
+    return await this.firebaseService.sendNotification(notificationJobDto.cpf, notificationJobDto.token, notificationJobDto.title, notificationJobDto.status, notificationJobDto.body, notificationJobDto.image)
   }
 }

@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FirebaseService } from './firebase.service';
+import { NotificationModule } from 'src/notification/notification.module';
 import * as admin from 'firebase-admin';
 
 @Module({
-  imports: [ConfigModule.forRoot()],
+  imports: [ConfigModule.forRoot(), NotificationModule],
   providers: [
     FirebaseService,
     {
