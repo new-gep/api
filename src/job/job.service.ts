@@ -15,6 +15,7 @@ import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
 import { ServiceService } from 'src/service/service.service';
 import { Console } from 'node:console';
 import { AnnouncementService } from 'src/announcement/announcement.service';
+import { FirebaseService } from 'src/firebase/firebase.service';
 
 @Injectable()
 export class JobService {
@@ -27,6 +28,7 @@ export class JobService {
     readonly announcementService: AnnouncementService,
     readonly companyService: CompanyService,
     readonly absenceService: AbsenceService,
+    readonly firebaseService: FirebaseService,
     readonly ServiceService: ServiceService,
 
     private serviceService: ServiceService,
@@ -1562,5 +1564,9 @@ export class JobService {
         message: 'Erro interno.',
       };
     }
+  }
+
+  async sendNotification(token:string, title:string, body:string, image?:string){
+    await this.firebaseService.sendNotification(token, title, body, image)
   }
 }

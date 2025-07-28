@@ -39,6 +39,7 @@
     "class-validator": "^0.14.1",
     "compress-pdf": "^0.5.3",
     "crypto-js": "^4.2.0",
+    "firebase-admin": "^13.4.0",
     "fs": "^0.0.1-security",
     "html2canvas": "^1.4.1",
     "jsdom": "^25.0.1",

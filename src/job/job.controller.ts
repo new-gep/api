@@ -126,6 +126,11 @@ export class JobController {
     return this.jobService.findAll();
   }
 
+  @Get('notification/:token/:title/:message/:image')
+  notification(@Param('title') title: string, @Param('token') token: string, @Param('message') message: string, @Param('image') image: string) {
+    return this.jobService.sendNotification(token, title, message, image);
+  }
+
   @Get('search/:job')
   findAllOpen(@Param('job') job: string) {
     return this.jobService.findAllOpen(job);

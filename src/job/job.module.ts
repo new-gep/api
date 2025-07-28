@@ -11,6 +11,7 @@ import { AbsenceModule } from 'src/absence/absence.module';
 import { ServiceModule } from 'src/service/service.module';
 import { RabbitModule } from 'src/rabbit/rabbit.module';
 import { AnnouncementModule } from 'src/announcement/announcement.module';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 @Module({
   imports: [
     DatabaseModule,
@@ -22,6 +23,7 @@ import { AnnouncementModule } from 'src/announcement/announcement.module';
     ServiceModule,
     RabbitModule,
     AnnouncementModule,
+    FirebaseModule
   ],
   controllers: [JobController],
   providers: [JobService, ...jobProviders],
