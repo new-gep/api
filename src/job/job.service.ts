@@ -427,7 +427,6 @@ export class JobService {
 
   async FindAllCandidacy(cpf: string) {
     try {
-      let favorite = [];
       const query = `
         SELECT 
           filtered_job.id,
@@ -496,17 +495,34 @@ export class JobService {
         WHERE jt_ann.proposal IS NULL OR jt_ann.proposal = FALSE;
       `;
       const response = await this.jobRepository.query(query, [cpf, cpf]);
-      const res = await this.collaboratorService.findOne(cpf)
-      const favorites = JSON.parse(res.collaborator.favorite)
-      favorites.forEach(async (cpf:any) => {
-        const response = await this.collaboratorService.findOne(cpf)
-        if(response.status == 200){
-          favorite.push(
-            response.collaborator
-          )
-        }
-      });
+      const res = await this.collaboratorService.findOne(cpf);
 
+      let favorites: string[] = [];
+      try {
+        favorites = JSON.parse(res.collaborator.favorite);
+        if (typeof favorites === 'string') {
+          // Parse novamente se for string (JSON duplo)
+          favorites = JSON.parse(favorites);
+        }
+      } catch (err) {
+        console.warn('Erro ao fazer JSON.parse em favorite:', err);
+      }
+      // Aguarda todos os CPFs de favoritos serem resolvidos
+      const favoriteResponses = await Promise.all(
+        favorites.map((cpf) => this.collaboratorService.findOne(cpf)),
+      );
+
+      // Só inclui os que foram encontrados com sucesso
+      const favorite = favoriteResponses
+        .filter((res) => res?.status === 200)
+        .map((res) => ({
+          collaborator: {
+            collaborator: {...res.collaborator},
+            picture: res.picture,
+            gallery: res.gallery,
+            status: res.status,
+          },
+        }));
 
       if (response.length === 0) {
         return {
@@ -541,7 +557,7 @@ export class JobService {
       return {
         status: 200,
         data: tasks,
-        favorite:favorite
+        favorite: favorite,
       };
     } catch (e) {
       console.log(e);
@@ -1546,7 +1562,6 @@ export class JobService {
         message: 'Internal error.',
       };
     }
-
   }
 
   async removeDocumentDynamic(id: number, name: string, where?: string) {
@@ -1581,7 +1596,14 @@ export class JobService {
     }
   }
 
-  async sendNotification(notificationJobDto:NotificationJobDto){
-    return await this.firebaseService.sendNotification(notificationJobDto.cpf, notificationJobDto.token, notificationJobDto.title, notificationJobDto.status, notificationJobDto.body, notificationJobDto.image)
+  async sendNotification(notificationJobDto: NotificationJobDto) {
+    return await this.firebaseService.sendNotification(
+      notificationJobDto.cpf,
+      notificationJobDto.token,
+      notificationJobDto.title,
+      notificationJobDto.status,
+      notificationJobDto.body,
+      notificationJobDto.image,
+    );
   }
 }

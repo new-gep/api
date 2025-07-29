@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { Repository } from 'typeorm';
@@ -11,6 +11,8 @@ export class CvService {
   constructor(
     @Inject('CV_REPOSITORY')
     private CVRepository: Repository<Cv>,
+    
+    @Inject(forwardRef(() => CollaboratorService))
     readonly collaboratorService: CollaboratorService,
   ) {}
 

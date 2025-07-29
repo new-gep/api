@@ -9,15 +9,18 @@ import { BucketService } from 'src/bucket/bucket.service';
 import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
 import { UpdateIdWorkCollaboratorDto } from './dto/updateIdWork-collaborator.dto';
 import { UpdatePasswordCollaboratorDto } from './dto/updatePassword-collaborator.dto';
+import { CvService } from 'src/cv/cv.service';
 import * as bcrypt from 'bcrypt';
 import FindTimeSP from 'hooks/time';
 @Injectable()
 export class CollaboratorService {
+  dataSource: any;
   constructor(
     @Inject('COLLABORATOR_REPOSITORY')
     private collaboratorRepository: Repository<Collaborator>,
     private readonly emailService: EmailService,
     private readonly bucketService: BucketService,
+    private readonly cvService: CvService,
   ) {}
 
   async singIn(singInCollaboratorDto: SingInCollaboratorDto) {
@@ -122,9 +125,9 @@ export class CollaboratorService {
         return {
           collaborator: {
             collaborator: person,
-            picture:picture.path,
+            picture: picture.path,
             gallery,
-          }
+          },
         };
       }),
     );
@@ -223,7 +226,7 @@ export class CollaboratorService {
     }
   }
 
-  checkProfileProgress(data: any) {
+  async checkProfileProgress(data: any) {
     const collaborator = data.collaborator || {};
     const missingFields = data.missingFields || [];
     const files = data.files || {};
@@ -315,6 +318,10 @@ export class CollaboratorService {
       'locations',
       'showFarWork',
     ]);
+    const resume = await this.cvService.findOne(collaborator.CPF);
+    const resumeComplete =
+      (resume?.status === 200 && !!resume?.cv) ||
+      !missingDocuments.includes('CV');
 
     // Progresso
     const progress = {
@@ -322,7 +329,7 @@ export class CollaboratorService {
       socialNetworks: hasAnySocial(collaborator.social),
       documents: documentsComplete,
       gallery: !missingDocuments.includes('Gallery'), // gallery único
-      resume: !missingDocuments.includes('CV'), // CV único
+      resume: resumeComplete, // CV único
       signature: !missingDocuments.includes('Signature'), // assinatura única
       aboutMe: aboutComplete,
       workPreferences: howWorkComplete,
@@ -542,14 +549,13 @@ export class CollaboratorService {
       };
     }
 
-
-    if(currentPassword !== 'newpass@32735714^^^^^^^~~çsaklfmsçkflçk'){
+    if (currentPassword !== 'newpass@32735714^^^^^^^~~çsaklfmsçkflçk') {
       const isMatch = await bcrypt.compare(
         currentPassword,
         collaborator.password,
       );
-  
-      if (!isMatch ) {
+
+      if (!isMatch) {
         return {
           status: 500,
           message: 'Senha atual incorreta',
