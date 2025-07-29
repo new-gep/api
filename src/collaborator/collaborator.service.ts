@@ -213,7 +213,8 @@ export class CollaboratorService {
   async findPercentage(CPF: string) {
     const response = await this.checkAccountCompletion(CPF);
     if (response.status === 200) {
-      const progress = this.checkProfileProgress(response);
+      const progress = await this.checkProfileProgress(response);
+
       return {
         status: 200,
         progress: progress,
