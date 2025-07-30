@@ -41,6 +41,30 @@ export class Announcement {
   @Column({ length: 100 , nullable: true })
   salary: string;
 
+  @Column({ length: 100 , nullable: true })
+  model: string;
+
+  @Column({ length: 255 , nullable: true })
+  street: string;
+
+  @Column({ length: 100 , nullable: true })
+  number: string;
+
+  @Column({ length: 255 , nullable: true })
+  complement: string;
+
+  @Column({ length: 100 , nullable: true })
+  city: string;
+
+  @Column({ length: 100 , nullable: true })
+  district: string;
+
+  @Column({ length: 100 , nullable: true })
+  state: string;
+
+  @Column({ length: 8 , nullable: true })
+  zip: string;
+
   @Column({ length: 50 })
   create_at: string;
 

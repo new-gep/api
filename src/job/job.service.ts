@@ -31,7 +31,6 @@ export class JobService {
     readonly absenceService: AbsenceService,
     readonly firebaseService: FirebaseService,
     readonly ServiceService: ServiceService,
-
     private serviceService: ServiceService,
   ) {}
 
