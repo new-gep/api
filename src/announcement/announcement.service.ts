@@ -811,7 +811,8 @@ export class AnnouncementService {
         where: {
           delete_at: IsNull(),
           CPF_Responder: IsNull(),
-        },
+        }, 
+        relations: ['CPF_Creator'],
       });
       const now = new Date();
       for (const item of all) {
@@ -826,28 +827,21 @@ export class AnnouncementService {
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
         if (diffDays >= 7) {
-          // 🗑️ 7 dias → deletar
-          const collaboratorResponse = await this.collaboratorService.findOne(
-            item.CPF_Creator?.CPF,
-          );
-          if (
-            collaboratorResponse.status == 200 &&
-            collaboratorResponse.collaborator?.push_token
-          ) {
+          // 🗑️ 7 dias → deletar {
             await this.firebaseService.sendNotification(
-              item.CPF_Creator?.CPF,
-              item.CPF_Creator?.push_token,
+              item.CPF_Creator.CPF,
+              item.CPF_Creator.push_token,
               `Anúncio ${item.title} Deletado`,
               'warning',
               'Seu anúncio está sendo deletado por falta atividade.',
             );
-            await this.announcementRepository.delete(item.id);
-          }
+            // await this.announcementRepository.delete(item.id);
         } else if (diffDays === 5) {
           // ⚠️ 5 dias → notificação mais forte
+          console.log(item.CPF_Creator?.push_token)
           await this.firebaseService.sendNotification(
-            item.CPF_Creator?.CPF,
-            item.CPF_Creator?.push_token,
+            item.CPF_Creator.CPF,
+            item.CPF_Creator.push_token,
             `Anúncio ${item.title} vai expirar`,
             'warning',
             'Seu anúncio está inativo há 5 dias e será deletado em breve se continuar sem movimentação.',
