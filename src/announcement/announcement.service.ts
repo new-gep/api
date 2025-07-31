@@ -5,8 +5,10 @@ import { UploadAnnouncementDto } from './dto/upload-announcement.dto';
 import { Announcement } from './entities/announcement.entity';
 import { BucketService } from 'src/bucket/bucket.service';
 import { IsNull, Not, Repository } from 'typeorm';
-import findTimeSP from 'hooks/time';
+import { FirebaseService } from 'src/firebase/firebase.service';
 import { CollaboratorService } from 'src/collaborator/collaborator.service';
+import findTimeSP from 'hooks/time';
+import * as cron from 'node-cron';
 @Injectable()
 export class AnnouncementService {
   constructor(
@@ -14,7 +16,16 @@ export class AnnouncementService {
     private announcementRepository: Repository<Announcement>,
     private readonly collaboratorService: CollaboratorService,
     private readonly bucketService: BucketService,
+    private readonly firebaseService: FirebaseService,
   ) {}
+
+  onModuleInit() {
+    this.deleteInactive();
+    cron.schedule('0 2 * * *', async () => {
+      console.log('🧹 Executando limpeza de anúncios inativos...');
+      this.deleteInactive();
+    });
+  }
 
   async create(createAnnouncementDto: CreateAnnouncementDto) {
     const time = findTimeSP();
@@ -479,10 +490,9 @@ export class AnnouncementService {
         AND a.delete_at IS NULL;
     `;
 
-    
     const result = await this.announcementRepository.query(query, [
       cpfResponder, // corresponde ao jt.cpf = ?
-      cpfCreator,   // corresponde ao a.CPF_creator = ?
+      cpfCreator, // corresponde ao a.CPF_creator = ?
     ]);
 
     // if (!result || result.length === 0) {
@@ -792,6 +802,73 @@ export class AnnouncementService {
         status: 500,
         message: 'Erro interno.',
       };
+    }
+  }
+
+  async deleteInactive() {
+    try {
+      const all = await this.announcementRepository.find({
+        where: {
+          delete_at: IsNull(),
+          CPF_Responder: IsNull(),
+        },
+      });
+      const now = new Date();
+      for (const item of all) {
+        const baseDate = item.update_at
+          ? new Date(item.update_at)
+          : new Date(item.create_at);
+
+        // Diferença em milissegundos
+        const diffMs = now.getTime() - baseDate.getTime();
+
+        // Converte para dias inteiros
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays >= 7) {
+          // 🗑️ 7 dias → deletar
+          const collaboratorResponse = await this.collaboratorService.findOne(
+            item.CPF_Creator?.CPF,
+          );
+          if (
+            collaboratorResponse.status == 200 &&
+            collaboratorResponse.collaborator?.push_token
+          ) {
+            await this.firebaseService.sendNotification(
+              item.CPF_Creator?.CPF,
+              item.CPF_Creator?.push_token,
+              `Anúncio ${item.title} Deletado`,
+              'warning',
+              'Seu anúncio está sendo deletado por falta atividade.',
+            );
+            await this.announcementRepository.delete(item.id);
+          }
+        } else if (diffDays === 5) {
+          // ⚠️ 5 dias → notificação mais forte
+          await this.firebaseService.sendNotification(
+            item.CPF_Creator?.CPF,
+            item.CPF_Creator?.push_token,
+            `Anúncio ${item.title} vai expirar`,
+            'warning',
+            'Seu anúncio está inativo há 5 dias e será deletado em breve se continuar sem movimentação.',
+          );
+
+          // aqui você escreve sua lógica
+        } else if (diffDays === 3) {
+          // 🔔 3 dias → lembrete
+          await this.firebaseService.sendNotification(
+            item.CPF_Creator.CPF,
+            item.CPF_Creator.push_token,
+            `Anúncio ${item.title} está parado`,
+            'info',
+            'Seu anúncio está sem atividade há 3 dias. Mantenha ele atualizado para evitar remoção automática.',
+          );
+
+          // aqui você escreve sua lógica
+        }
+      }
+    } catch (e) {
+      console.log(e);
     }
   }
 }

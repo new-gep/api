@@ -16,9 +16,11 @@ import { DeleteFilesAnnouncementDto } from './dto/deleteFiles-announcement.dto';
 import { UploadAnnouncementDto } from './dto/upload-announcement.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+
 @Controller('announcement')
 export class AnnouncementController {
   constructor(private readonly announcementService: AnnouncementService) {}
+  
 
   @Post()
   create(@Body() createAnnouncementDto: CreateAnnouncementDto) {

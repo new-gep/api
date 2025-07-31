@@ -18,6 +18,9 @@ export class Cv {
   @Column({ type: 'longtext' })
   experience: string;
 
+  @Column({ type: 'longtext' })
+  progress: string;
+
   @Column({ type: 'longtext', default: null })
   skills: string;
 

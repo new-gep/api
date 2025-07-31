@@ -116,7 +116,6 @@ export class PictureService {
   }
 
   async findOne(CPF_collaborator: string,) {
-
     try {
       const response = await this.collaboratorService.findOne(CPF_collaborator);
       let pictures = await this.pictureRepository.find({

@@ -431,7 +431,8 @@ export class CollaboratorService {
     };
   }
 
-  async checkAccountCompletion(CPF: string) {
+  async checkAccountCompletion(CPF: any) {
+    console.log(CPF)
     const response = await this.collaboratorRepository.findOne({
       where: { CPF },
     });
@@ -439,7 +440,7 @@ export class CollaboratorService {
     if (response) {
       const missingFields = [];
       const files =
-        await this.bucketService.checkCollaboratorBucketDocuments(response);
+      await this.bucketService.newCheckCollaboratorBucketDocuments(response);
       // Verifica se o endereço está completo
       const addressFields = [
         'zip_code',
@@ -459,14 +460,14 @@ export class CollaboratorService {
       }
 
       // Verifica se o campo marriage está preenchido
-      if (!response.marriage) {
-        missingFields.push('marriage');
-      }
+      // if (!response.marriage) {
+      //   missingFields.push('marriage');
+      // }
 
       // Verifica se o campo children está preenchido
-      if (!response.children && response.children != 0) {
-        missingFields.push('children');
-      }
+      // if (!response.children && response.children != 0) {
+      //   missingFields.push('children');
+      // }
 
       if (files.missingDocuments) {
         if (files.missingDocuments.includes('Picture')) {

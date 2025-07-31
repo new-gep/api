@@ -950,6 +950,58 @@ export class BucketService {
     };
   }
 
+  async newCheckCollaboratorBucketDocuments(collaborator: any) {
+    const missingDocuments = [];
+    const missingDocumentsChildren = [];
+
+    // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
+    const rgPdfExists = await this.isDocumentPresent(
+      `collaborator/${collaborator.CPF}/RG/complet`,
+    );
+    let rgDocumentMissing = false;
+    if (!rgPdfExists) {
+      const rgFrontExists = await this.isDocumentPresent(
+        `collaborator/${collaborator.CPF}/RG/front`,
+      );
+      const rgBackExists = await this.isDocumentPresent(
+        `collaborator/${collaborator.CPF}/RG/back`,
+      );
+      // Se nem o PDF, nem o Front, nem o Back existem, considera o RG como faltante
+      if (!rgFrontExists || !rgBackExists) {
+        rgDocumentMissing = true;
+      }
+    }
+    if (rgDocumentMissing) {
+      missingDocuments.push('RG');
+    }
+
+    // Verifica os comprovantes de endereço
+    const addressDocuments = ['Address', 'Address.pdf'];
+    let documentFound = false;
+    // Verifica se pelo menos um dos documentos existe
+    for (const document of addressDocuments) {
+      if (
+        await this.isDocumentPresent(
+          `collaborator/${collaborator.CPF}/${document}`,
+        )
+      ) {
+        documentFound = true;
+        break; // Se encontrar um dos documentos, sai do loop
+      }
+    }
+    // Se nenhum dos documentos foi encontrado, adiciona ao array de documentos faltantes
+    if (!documentFound) {
+      missingDocuments.push('Address');
+    }
+
+    return {
+      status: 200,
+      missingDocuments: missingDocuments.length > 0 ? missingDocuments : null,
+      missingDocumentsChildren:
+        missingDocumentsChildren.length > 0 ? missingDocumentsChildren : null,
+    };
+  }
+
   // Job Dismissal
 
   async checkJobDismissalBucketDocumentsObligation(id: number) {

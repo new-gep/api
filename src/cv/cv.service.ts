@@ -46,6 +46,7 @@ export class CvService {
       cv.education  = JSON.parse(cv.education);
       cv.experience = JSON.parse(cv.experience);
       cv.skills     = JSON.parse(cv.skills);
+      cv.progress   ? cv.progress = JSON.parse(cv.progress) : null;
       return { cv: cv, status: 200, message: 'success' };
     }
     const collaborator = await this.collaboratorService.findOne(cpf);

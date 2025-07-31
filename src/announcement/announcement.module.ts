@@ -5,9 +5,10 @@ import { DatabaseModule } from 'src/database/database.module';
 import { BucketModule } from 'src/bucket/bucket.module';
 import { announcementProviders } from './announcement.provider';
 import { CollaboratorModule } from 'src/collaborator/collaborator.module';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 
 @Module({
-  imports: [DatabaseModule, BucketModule, CollaboratorModule],
+  imports: [DatabaseModule, BucketModule, CollaboratorModule, FirebaseModule],
   controllers: [AnnouncementController],
   providers: [AnnouncementService, ...announcementProviders],
   exports: [AnnouncementService],

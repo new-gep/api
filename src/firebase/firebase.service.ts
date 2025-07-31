@@ -4,6 +4,7 @@ import { UpdateFirebaseDto } from './dto/update-firebase.dto';
 import { NotificationService } from 'src/notification/notification.service';
 import * as admin from 'firebase-admin';
 import FindTimeSP from 'hooks/time';
+
 @Injectable()
 export class FirebaseService {
   constructor(
