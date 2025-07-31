@@ -22,7 +22,6 @@ export class AnnouncementService {
   onModuleInit() {
     this.deleteInactive();
     cron.schedule('0 2 * * *', async () => {
-      console.log('🧹 Executando limpeza de anúncios inativos...');
       this.deleteInactive();
     });
   }
@@ -446,6 +445,20 @@ export class AnnouncementService {
         updateAnnouncementDto,
       );
       if (response.affected === 1) {
+        if(updateAnnouncementDto.isPropostal){
+          const response = await this.findOneById(id)
+          
+          if(response.announcement.CPF_Creator?.push_token){
+            const collaborator = await this.collaboratorService.findOne(updateAnnouncementDto.CPF_responder)
+            await this.firebaseService.sendNotification(
+              response.announcement.CPF_Creator.CPF,
+              response.announcement.CPF_Creator.push_token,
+              `Opa! Sua proposta foi aceita`,
+              'success',
+              `${collaborator.collaborator.name} acabou de aceita sua proposta, ${response.announcement.title}`
+            );
+          }
+        }
         return {
           status: 200,
           message: 'Anuncio atualizado com sucesso!',
@@ -579,6 +592,7 @@ export class AnnouncementService {
   async applyPropostal(id: number, cpf: string) {
     const response = await this.announcementRepository.findOne({
       where: { id },
+      relations: ['CPF_Creator']
     });
 
     if (!response) {
@@ -629,6 +643,16 @@ export class AnnouncementService {
       );
 
       if (updateResult.affected === 1) {
+        const candidate = await this.collaboratorService.findOne(cpf);
+         if (candidate.collaborator.push_token) {
+          await this.firebaseService.sendNotification(
+            candidate.collaborator.CPF,
+            candidate.collaborator.push_token,
+            `Opa! Você recebeu uma proposta`,
+            'success',
+            `${response.CPF_Creator.name} acabou de enviar uma proposta para você, ${response.title}`
+          );
+        }
         return {
           status: 200,
           message: 'Proposta aplicada com sucesso!',
@@ -651,6 +675,7 @@ export class AnnouncementService {
   async applyJob(id: number, cpf: string) {
     const response = await this.announcementRepository.findOne({
       where: { id },
+      relations: ['CPF_Creator']
     });
 
     if (!response) {
@@ -701,6 +726,16 @@ export class AnnouncementService {
       );
 
       if (updateResult.affected === 1) {
+        const candidate = await this.collaboratorService.findOne(cpf);
+         if (response.CPF_Creator?.push_token) {
+          await this.firebaseService.sendNotification(
+            response.CPF_Creator.CPF,
+            response.CPF_Creator.push_token,
+            `Opa! Encontramos um candidato`,
+            'success',
+            `${candidate.collaborator.name} acabou de se candidatar para o seu anúncio ${response.title}`
+          );
+        }
         return {
           status: 200,
           message: 'Candidato aplicado com sucesso!',

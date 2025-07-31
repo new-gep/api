@@ -9,5 +9,6 @@ export class UpdateAnnouncementDto {
   included?: string;
   notIncluded?: string;
   information?: string;
+  isPropostal?: any
   update_at?:string;
 }
