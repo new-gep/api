@@ -432,7 +432,6 @@ export class CollaboratorService {
   }
 
   async checkAccountCompletion(CPF: any) {
-    console.log(CPF)
     const response = await this.collaboratorRepository.findOne({
       where: { CPF },
     });

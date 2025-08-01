@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create-job.dto';
+import { FilterServiceDto } from './dto/filter-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpadteJobDto } from './dto/update.job.dto';
@@ -34,6 +35,11 @@ export class JobController {
   @Post()
   create(@Body() createJobDto: CreateJobDto) {
     return this.jobService.create(createJobDto);
+  }
+
+  @Post('findAll')
+  findAllService(@Body() filterServiceDto: FilterServiceDto) {
+    return this.jobService.findAllService(filterServiceDto);
   }
 
   @Post('upload')
@@ -196,7 +202,7 @@ export class JobController {
 
   @Get('FindAllService/:cpf')
   FindAllService(@Param('cpf') cpf: string) {
-    return this.jobService.findAllService(cpf);
+    // return this.jobService.findAllService(cpf);
   }
 
   @Get('process/demissional/:cnpj')

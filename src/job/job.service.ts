@@ -13,10 +13,10 @@ import { AbsenceService } from 'src/absence/absence.service';
 import { UploadAbsenceDto } from './dto/upload-absence.dto';
 import { CreateAbsenceDto } from 'src/absence/dto/create-absence.dto';
 import { ServiceService } from 'src/service/service.service';
-import { Console } from 'node:console';
 import { AnnouncementService } from 'src/announcement/announcement.service';
 import { FirebaseService } from 'src/firebase/firebase.service';
 import { NotificationJobDto } from './dto/notification-job.dto';
+import { FilterServiceDto } from './dto/filter-job.dto';
 
 @Injectable()
 export class JobService {
@@ -306,8 +306,182 @@ export class JobService {
     }
   }
 
-  async findAllService(cpf: string) {
-    const query = `
+  // async findAllService(cpf: string) {
+  //   const query = `
+  //     SELECT *
+  //     FROM (
+  //       SELECT
+  //         job.id,
+  //         'job' AS source,
+  //         job.candidates,
+  //         job.CPF_collaborator,
+  //         NULL AS CPF_responder,
+  //         'fix' AS service
+  //       FROM job
+  //       WHERE
+  //         job.delete_at IS NULL
+  //         AND job.CPF_collaborator IS NULL
+  //         AND (
+  //           job.candidates IS NULL
+  //           OR (
+  //             JSON_VALID(job.candidates) = 1
+  //             AND (
+  //               JSON_LENGTH(job.candidates) = 0
+  //               OR (
+  //                 NOT EXISTS (
+  //                   SELECT 1
+  //                   FROM JSON_TABLE(
+  //                     job.candidates,
+  //                     '$[*]' COLUMNS (
+  //                       cpf VARCHAR(20) PATH '$.cpf'
+  //                     )
+  //                   ) AS jt
+  //                   WHERE jt.cpf = ?
+  //                 )
+  //                 AND NOT EXISTS (
+  //                   SELECT 1
+  //                   FROM JSON_TABLE(
+  //                     job.candidates,
+  //                     '$[*]' COLUMNS (
+  //                       step INT PATH '$.step'
+  //                     )
+  //                   ) AS jt
+  //                   WHERE jt.step IS NOT NULL AND jt.step != 0
+  //                 )
+  //               )
+  //             )
+  //           )
+  //         )
+
+  //       UNION ALL
+
+  //       SELECT
+  //         announcement.id,
+  //         'announcement' AS source,
+  //         announcement.candidates,
+  //         NULL AS CPF_collaborator,
+  //         announcement.CPF_responder,
+  //         'flex' AS service
+  //       FROM announcement
+  //       WHERE
+  //         announcement.delete_at IS NULL
+  //         AND announcement.CPF_responder IS NULL
+  //         AND (
+  //           announcement.candidates IS NULL
+  //           OR (
+  //             JSON_VALID(announcement.candidates) = 1
+  //             AND (
+  //               JSON_LENGTH(announcement.candidates) = 0
+  //               OR NOT EXISTS (
+  //                 SELECT 1
+  //                 FROM JSON_TABLE(
+  //                   announcement.candidates,
+  //                   '$[*]' COLUMNS (
+  //                     cpf VARCHAR(20) PATH '$.cpf'
+  //                   )
+  //                 ) AS jt
+  //                 WHERE jt.cpf = ?
+  //               )
+  //             )
+  //           )
+  //         )
+  //         AND announcement.CPF_creator COLLATE utf8mb4_general_ci != ? COLLATE utf8mb4_general_ci
+  //     ) AS combined_results
+  //     LIMIT 20;
+  //   `;
+  //   const response = await this.jobRepository.query(query, [cpf, cpf, cpf]);
+  //   if (response.length === 0) {
+  //     return {
+  //       status: 404,
+  //       message: 'Nenhuma vaga encontrada para o CPF informado.',
+  //     };
+  //   }
+  //   const services = await Promise.all(
+  //     response.map(async (item: any) => {
+  //       if (item.source === 'job') {
+  //         const job = await this.jobRepository.findOne({
+  //           where: { id: item.id },
+  //           relations: ['CNPJ_company'],
+  //         });
+  //         return {
+  //           service: 'fix',
+  //           job,
+  //         };
+  //       } else if (item.source === 'announcement') {
+  //         const announcement = await this.announcementService.findOneById(
+  //           item.id,
+  //         );
+  //         return {
+  //           service: 'flex',
+  //           announcement,
+  //         };
+  //       }
+  //     }),
+  //   );
+  //   return {
+  //     status: 200,
+  //     data: services,
+  //   };
+  // }
+
+  async findAllService(filterServiceDto: FilterServiceDto) {
+    const {
+      cpf,
+      serviceSelected = [],
+      timeSelected = [],
+      paymentSelected = [],
+      contractSelected = [],
+      modalitySelected = [],
+      categorySelected = [],
+      title,
+    } = filterServiceDto;
+
+    const filters: string[] = [];
+    const params: any[] = [cpf, cpf, cpf];
+
+    if (serviceSelected.length) {
+      filters.push(
+        `combined_results.service IN (${serviceSelected.map(() => '?').join(',')})`,
+      );
+      params.push(...serviceSelected);
+    }
+
+    if (paymentSelected.length) {
+      filters.push(
+        `JSON_EXTRACT(combined_results.job, '$.payment') IN (${paymentSelected.map(() => '?').join(',')})`,
+      );
+      params.push(...paymentSelected);
+    }
+
+    if (contractSelected.length) {
+      filters.push(
+        `JSON_EXTRACT(combined_results.job, '$.contract') IN (${contractSelected.map(() => '?').join(',')})`,
+      );
+      params.push(...contractSelected);
+    }
+
+    if (modalitySelected.length) {
+      filters.push(
+        `JSON_EXTRACT(combined_results.job, '$.modality') IN (${modalitySelected.map(() => '?').join(',')})`,
+      );
+      params.push(...modalitySelected);
+    }
+
+    if (categorySelected.length) {
+      filters.push(
+        `JSON_EXTRACT(combined_results.job, '$.category') IN (${categorySelected.map(() => '?').join(',')})`,
+      );
+      params.push(...categorySelected);
+    }
+
+    if (title) {
+      filters.push(`combined_results.title LIKE ?`);
+      params.push(`%${title}%`);
+    }
+
+    const whereExtra = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+
+    const baseQuery = `
       SELECT *
       FROM (
         SELECT
@@ -316,7 +490,14 @@ export class JobService {
           job.candidates,
           job.CPF_collaborator,
           NULL AS CPF_responder,
-          'fix' AS service
+          'fix' AS service,
+          JSON_OBJECT(
+            'payment', job.salary,
+            'contract', job.contract,
+            'modality', job.modality,
+            'category', job.category
+          ) AS job,
+          job.title
         FROM job
         WHERE 
           job.delete_at IS NULL
@@ -330,22 +511,12 @@ export class JobService {
                 OR (
                   NOT EXISTS (
                     SELECT 1
-                    FROM JSON_TABLE(
-                      job.candidates,
-                      '$[*]' COLUMNS (
-                        cpf VARCHAR(20) PATH '$.cpf'
-                      )
-                    ) AS jt
+                    FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt
                     WHERE jt.cpf = ?
                   )
                   AND NOT EXISTS (
                     SELECT 1
-                    FROM JSON_TABLE(
-                      job.candidates,
-                      '$[*]' COLUMNS (
-                        step INT PATH '$.step'
-                      )
-                    ) AS jt
+                    FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (step INT PATH '$.step')) AS jt
                     WHERE jt.step IS NOT NULL AND jt.step != 0
                   )
                 )
@@ -361,7 +532,13 @@ export class JobService {
           announcement.candidates,
           NULL AS CPF_collaborator,
           announcement.CPF_responder,
-          'flex' AS service
+          'flex' AS service,
+          JSON_OBJECT(
+            'payment', announcement.typePayment,
+            'contract', announcement.typeAnnouncement,
+            'modality', announcement.modality
+          ) AS job,
+          announcement.title
         FROM announcement
         WHERE 
           announcement.delete_at IS NULL
@@ -374,12 +551,7 @@ export class JobService {
                 JSON_LENGTH(announcement.candidates) = 0
                 OR NOT EXISTS (
                   SELECT 1
-                  FROM JSON_TABLE(
-                    announcement.candidates,
-                    '$[*]' COLUMNS (
-                      cpf VARCHAR(20) PATH '$.cpf'
-                    )
-                  ) AS jt
+                  FROM JSON_TABLE(announcement.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt
                   WHERE jt.cpf = ?
                 )
               )
@@ -387,15 +559,18 @@ export class JobService {
           )
           AND announcement.CPF_creator COLLATE utf8mb4_general_ci != ? COLLATE utf8mb4_general_ci
       ) AS combined_results
-      LIMIT 20;
+      ${whereExtra}
     `;
-    const response = await this.jobRepository.query(query, [cpf, cpf, cpf]);
-    if (response.length === 0) {
+
+    const response = await this.jobRepository.query(baseQuery, params);
+
+    if (!response.length) {
       return {
         status: 404,
         message: 'Nenhuma vaga encontrada para o CPF informado.',
       };
     }
+
     const services = await Promise.all(
       response.map(async (item: any) => {
         if (item.source === 'job') {
@@ -403,21 +578,16 @@ export class JobService {
             where: { id: item.id },
             relations: ['CNPJ_company'],
           });
-          return {
-            service: 'fix',
-            job,
-          };
+          return { service: 'fix', job };
         } else if (item.source === 'announcement') {
           const announcement = await this.announcementService.findOneById(
             item.id,
           );
-          return {
-            service: 'flex',
-            announcement,
-          };
+          return { service: 'flex', announcement };
         }
       }),
     );
+
     return {
       status: 200,
       data: services,
@@ -516,7 +686,7 @@ export class JobService {
         .filter((res) => res?.status === 200)
         .map((res) => ({
           collaborator: {
-            collaborator: {...res.collaborator},
+            collaborator: { ...res.collaborator },
             picture: res.picture,
             gallery: res.gallery,
             status: res.status,

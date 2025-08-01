@@ -440,22 +440,26 @@ export class AnnouncementService {
     const time = findTimeSP();
     updateAnnouncementDto.update_at = time;
     try {
+      const { isPropostal, ...rest } = updateAnnouncementDto;
       const response = await this.announcementRepository.update(
         id,
-        updateAnnouncementDto,
+        rest,
       );
       if (response.affected === 1) {
         if(updateAnnouncementDto.isPropostal){
-          const response = await this.findOneById(id)
-          
-          if(response.announcement.CPF_Creator?.push_token){
+          const response = await this.announcementRepository.findOne({
+            where: { id },
+            relations: ['CPF_Creator', 'CPF_Responder'], // seus relations aqui
+          });
+
+          if(response.CPF_Creator?.push_token){
             const collaborator = await this.collaboratorService.findOne(updateAnnouncementDto.CPF_responder)
             await this.firebaseService.sendNotification(
-              response.announcement.CPF_Creator.CPF,
-              response.announcement.CPF_Creator.push_token,
+              response.CPF_Creator.CPF,
+              response.CPF_Creator.push_token,
               `Opa! Sua proposta foi aceita`,
               'success',
-              `${collaborator.collaborator.name} acabou de aceita sua proposta, ${response.announcement.title}`
+              `${collaborator.collaborator.name} acabou de aceita sua proposta, ${response.title}`
             );
           }
         }
