@@ -10,6 +10,7 @@ export class UpdateAnnouncementDto {
   notIncluded?: string;
   information?: string;
   isPropostal?: any
+  model ?: string;
   street ?: string;
   complement ?: string;
   number ?: string;
