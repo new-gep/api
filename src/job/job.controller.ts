@@ -134,6 +134,11 @@ export class JobController {
     return this.jobService.findAllJobsCollaborator(cpf);
   }
 
+  @Get('test')
+  test() {
+    return this.jobService.test();
+  }
+
   @Get()
   findAll() {
     return this.jobService.findAll();

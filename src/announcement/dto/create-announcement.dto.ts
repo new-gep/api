@@ -15,6 +15,6 @@ export class CreateAnnouncementDto {
   city   : string;
   district : string;
   state : string;
-  zip : string;
+  cep : string;
   create_at:string;
 }

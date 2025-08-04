@@ -63,7 +63,7 @@ export class Announcement {
   state: string;
 
   @Column({ length: 8 , nullable: true })
-  zip: string;
+  cep: string;
 
   @Column({ length: 50 })
   create_at: string;

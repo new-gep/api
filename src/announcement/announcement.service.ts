@@ -904,4 +904,12 @@ export class AnnouncementService {
       console.log(e);
     }
   }
+
+  async helpSearch(announcementQuery:any, announcementParams:any){
+    const announcementResults = await this.announcementRepository.query(
+      announcementQuery,
+      announcementParams,
+    );
+    return announcementResults
+  }
 }

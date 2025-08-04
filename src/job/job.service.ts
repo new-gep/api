@@ -34,6 +34,14 @@ export class JobService {
     private serviceService: ServiceService,
   ) {}
 
+  async test() {
+    const response = await this.firebaseService.getDistanceFromCepToCep(
+      '08151073',
+      '05051000',
+    );
+    return response;
+  }
+
   async create(createJobDto: CreateJobDto) {
     try {
       const time = FindTimeSP();
@@ -385,7 +393,7 @@ export class JobService {
   //             )
   //           )
   //         )
-  //         AND announcement.CPF_creator COLLATE utf8mb4_general_ci != ? COLLATE utf8mb4_general_ci
+  //         AND announcement.CPF_creator != ?
   //     ) AS combined_results
   //     LIMIT 20;
   //   `;
@@ -427,170 +435,238 @@ export class JobService {
   async findAllService(filterServiceDto: FilterServiceDto) {
     const {
       cpf,
+      cep, // CEP do usuário (origem)
+      distance = 2, // raio máximo em km (number)
+      showFarWork = true, // flag para mostrar além do raio
       serviceSelected = [],
-      timeSelected = [],
       paymentSelected = [],
       contractSelected = [],
       modalitySelected = [],
       categorySelected = [],
-      title,
+      title = '',
     } = filterServiceDto;
 
-    const filters: string[] = [];
-    const params: any[] = [cpf, cpf, cpf];
+    const jobFilters: string[] = [];
+    const announcementFilters: string[] = [];
+    const jobParams: any[] = [cpf];
+    const announcementParams: any[] = [cpf];
 
-    if (serviceSelected.length) {
-      filters.push(
-        `combined_results.service IN (${serviceSelected.map(() => '?').join(',')})`,
-      );
-      params.push(...serviceSelected);
-    }
-
-    if (paymentSelected.length) {
-      filters.push(
-        `JSON_EXTRACT(combined_results.job, '$.payment') IN (${paymentSelected.map(() => '?').join(',')})`,
-      );
-      params.push(...paymentSelected);
-    }
-
-    if (contractSelected.length) {
-      filters.push(
-        `JSON_EXTRACT(combined_results.job, '$.contract') IN (${contractSelected.map(() => '?').join(',')})`,
-      );
-      params.push(...contractSelected);
-    }
-
-    if (modalitySelected.length) {
-      filters.push(
-        `JSON_EXTRACT(combined_results.job, '$.modality') IN (${modalitySelected.map(() => '?').join(',')})`,
-      );
-      params.push(...modalitySelected);
-    }
-
-    if (categorySelected.length) {
-      filters.push(
-        `JSON_EXTRACT(combined_results.job, '$.category') IN (${categorySelected.map(() => '?').join(',')})`,
-      );
-      params.push(...categorySelected);
-    }
-
+    // Título
     if (title) {
-      filters.push(`combined_results.title LIKE ?`);
-      params.push(`%${title}%`);
+      jobFilters.push(`job.function LIKE ?`);
+      announcementFilters.push(`announcement.title LIKE ?`);
+      jobParams.push(`%${title}%`);
+      announcementParams.push(`%${title}%`);
     }
 
-    const whereExtra = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    // Pagamentos
+    if (paymentSelected.length) {
+      jobFilters.push(
+        `job.salary IN (${paymentSelected.map(() => '?').join(',')})`,
+      );
+      announcementFilters.push(
+        `announcement.typePayment IN (${paymentSelected.map(() => '?').join(',')})`,
+      );
+      jobParams.push(...paymentSelected);
+      announcementParams.push(...paymentSelected);
+    }
 
-    const baseQuery = `
-      SELECT *
-      FROM (
-        SELECT
-          job.id,
-          'job' AS source,
-          job.candidates,
-          job.CPF_collaborator,
-          NULL AS CPF_responder,
-          'fix' AS service,
-          JSON_OBJECT(
-            'payment', job.salary,
-            'contract', job.contract,
-            'modality', job.modality,
-            'category', job.category
-          ) AS job,
-          job.title
-        FROM job
-        WHERE 
-          job.delete_at IS NULL
-          AND job.CPF_collaborator IS NULL
-          AND (
-            job.candidates IS NULL
-            OR (
-              JSON_VALID(job.candidates) = 1
-              AND (
-                JSON_LENGTH(job.candidates) = 0
-                OR (
-                  NOT EXISTS (
-                    SELECT 1
-                    FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt
-                    WHERE jt.cpf = ?
-                  )
-                  AND NOT EXISTS (
-                    SELECT 1
-                    FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (step INT PATH '$.step')) AS jt
-                    WHERE jt.step IS NOT NULL AND jt.step != 0
-                  )
+    // Contratos
+    if (contractSelected.length) {
+      jobFilters.push(
+        `job.contract IN (${contractSelected.map(() => '?').join(',')})`,
+      );
+      announcementFilters.push(
+        `announcement.typeAnnouncement IN (${contractSelected.map(() => '?').join(',')})`,
+      );
+      jobParams.push(...contractSelected);
+      announcementParams.push(...contractSelected);
+    }
+
+    // Modalidades
+    if (modalitySelected.length) {
+      jobFilters.push(
+        `job.model IN (${modalitySelected.map(() => '?').join(',')})`,
+      );
+      announcementFilters.push(
+        `announcement.model IN (${modalitySelected.map(() => '?').join(',')})`,
+      );
+      jobParams.push(...modalitySelected);
+      announcementParams.push(...modalitySelected);
+    }
+
+    // Categorias (aplica só para announcement)
+    if (categorySelected.length) {
+      announcementFilters.push(
+        `announcement.category IN (${categorySelected.map(() => '?').join(',')})`,
+      );
+      announcementParams.push(...categorySelected);
+    }
+
+    // Serviços (jobs e/ou announcements)
+    const includeJob =
+      !serviceSelected.length || serviceSelected.includes('Empresas');
+    const includeAnnouncement =
+      !serviceSelected.length || serviceSelected.includes('Serviços informais');
+
+    let results: any[] = [];
+
+    if (includeJob) {
+      const jobQuery = `
+      SELECT
+        job.id,
+        'job' AS source,
+        job.function AS title,
+        job.cep
+      FROM job
+      WHERE
+        job.delete_at IS NULL
+        AND job.CPF_collaborator IS NULL
+        AND (
+          job.candidates IS NULL
+          OR (
+            JSON_VALID(job.candidates) = 1 AND (
+              JSON_LENGTH(job.candidates) = 0
+              OR (
+                NOT EXISTS (
+                  SELECT 1 FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt WHERE jt.cpf = ?
+                )
+                AND NOT EXISTS (
+                  SELECT 1 FROM JSON_TABLE(job.candidates, '$[*]' COLUMNS (step INT PATH '$.step')) AS jt WHERE jt.step IS NOT NULL AND jt.step != 0
                 )
               )
             )
           )
-
-        UNION ALL
-
-        SELECT
-          announcement.id,
-          'announcement' AS source,
-          announcement.candidates,
-          NULL AS CPF_collaborator,
-          announcement.CPF_responder,
-          'flex' AS service,
-          JSON_OBJECT(
-            'payment', announcement.typePayment,
-            'contract', announcement.typeAnnouncement,
-            'modality', announcement.modality
-          ) AS job,
-          announcement.title
-        FROM announcement
-        WHERE 
-          announcement.delete_at IS NULL
-          AND announcement.CPF_responder IS NULL
-          AND (
-            announcement.candidates IS NULL
-            OR (
-              JSON_VALID(announcement.candidates) = 1
-              AND (
-                JSON_LENGTH(announcement.candidates) = 0
-                OR NOT EXISTS (
-                  SELECT 1
-                  FROM JSON_TABLE(announcement.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt
-                  WHERE jt.cpf = ?
-                )
-              )
-            )
-          )
-          AND announcement.CPF_creator COLLATE utf8mb4_general_ci != ? COLLATE utf8mb4_general_ci
-      ) AS combined_results
-      ${whereExtra}
+        )
+        ${jobFilters.length ? `AND ${jobFilters.join(' AND ')}` : ''}
     `;
+      const jobResults = await this.jobRepository.query(jobQuery, jobParams);
+      results.push(...jobResults);
+    }
 
-    const response = await this.jobRepository.query(baseQuery, params);
+    if (includeAnnouncement) {
+      const announcementQuery = `
+      SELECT
+        announcement.id,
+        'announcement' AS source,
+        announcement.title,
+        announcement.cep
+      FROM announcement
+      WHERE
+        announcement.delete_at IS NULL
+        AND announcement.CPF_responder IS NULL
+        AND announcement.CPF_creator != ?
+        AND (
+          announcement.candidates IS NULL
+          OR (
+            JSON_VALID(announcement.candidates) = 1 AND (
+              JSON_LENGTH(announcement.candidates) = 0
+              OR NOT EXISTS (
+                SELECT 1 FROM JSON_TABLE(announcement.candidates, '$[*]' COLUMNS (cpf VARCHAR(20) PATH '$.cpf')) AS jt WHERE jt.cpf = ?
+              )
+            )
+          )
+        )
+        ${announcementFilters.length ? `AND ${announcementFilters.join(' AND ')}` : ''}
+    `;
+      // Atenção: no params, o primeiro é para announcement.CPF_creator != ?
+      announcementParams.unshift(cpf);
 
-    if (!response.length) {
+
+      const announcementResults = await this.announcementService.helpSearch(
+        announcementQuery,
+        announcementParams,
+      );
+      results.push(...announcementResults);
+    }
+
+    if (!results.length) {
       return {
         status: 404,
         message: 'Nenhuma vaga encontrada para o CPF informado.',
       };
     }
 
-    const services = await Promise.all(
-      response.map(async (item: any) => {
+    // Enriquecendo resultados com distância e tempo
+    const enrichedServices = await Promise.all(
+      results.map(async (item) => {
+        // Pegando o cep da vaga/anúncio
+        const destinationCep = item.cep;
+
+        // Calcular distância e tempos, tratamento de erro incluso
+        let distanceInfo = {
+          distance: 'Não disponível',
+          drivingTime: 'Não disponível',
+          transitTime: 'Não disponível',
+        };
+
+        if (cep && destinationCep) {
+          try {
+            distanceInfo = await this.firebaseService.getDistanceFromCepToCep(
+              cep,
+              destinationCep,
+            );
+
+          } catch {
+            // Se não conseguir calcular, mantém 'Não disponível'
+          }
+        }
+
         if (item.source === 'job') {
           const job = await this.jobRepository.findOne({
             where: { id: item.id },
             relations: ['CNPJ_company'],
           });
-          return { service: 'fix', job };
-        } else if (item.source === 'announcement') {
+          return { service: 'fix', job, distanceInfo };
+        } else {
           const announcement = await this.announcementService.findOneById(
             item.id,
           );
-          return { service: 'flex', announcement };
+          return { service: 'flex', announcement, distanceInfo };
         }
       }),
     );
 
+    // Filtra por distância se necessário
+    const filteredSortedServices = enrichedServices
+      .filter(({ distanceInfo }) => {
+        if (
+          !distanceInfo ||
+          !distanceInfo?.distance ||
+          distanceInfo?.distance === 'Não disponível'
+        )
+          return true;
+        const km = parseFloat(
+          distanceInfo?.distance.replace(/[^\d.,]/g, '').replace(',', '.'),
+        );
+        if (isNaN(km)) return true;
+        if (!distance || showFarWork) return true;
+        return km <= distance;
+      }).sort((a, b) => {
+        const kmA =
+          a.distanceInfo?.distance &&
+          a.distanceInfo?.distance !== 'Não disponível'
+            ? parseFloat(
+                a.distanceInfo?.distance
+                  .replace(/[^\d.,]/g, '')
+                  .replace(',', '.'),
+              )
+            : Infinity;
+        const kmB =
+          b.distanceInfo?.distance &&
+          b.distanceInfo?.distance !== 'Não disponível'
+            ? parseFloat(
+                b.distanceInfo?.distance
+                  .replace(/[^\d.,]/g, '')
+                  .replace(',', '.'),
+              )
+            : Infinity;
+        return kmA - kmB;
+      });
+
     return {
       status: 200,
-      data: services,
+      data: filteredSortedServices,
     };
   }
 

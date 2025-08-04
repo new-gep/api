@@ -10,5 +10,12 @@ export class UpdateAnnouncementDto {
   notIncluded?: string;
   information?: string;
   isPropostal?: any
+  street ?: string;
+  complement ?: string;
+  number ?: string;
+  city   ?: string;
+  district ?: string;
+  state ?: string;
+  cep ?: string;
   update_at?:string;
 }
