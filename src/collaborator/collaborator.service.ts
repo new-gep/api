@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateCollaboratorDto } from './dto/create-collaborator.dto';
 import { UpdateCollaboratorDto } from './dto/update-collaborator.dto';
 import { SingInCollaboratorDto } from './dto/auth/singIn.dto';
-import { Not, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Collaborator } from './entities/collaborator.entity';
 import { EmailService } from 'src/email/email.service';
 import { BucketService } from 'src/bucket/bucket.service';
@@ -12,6 +12,8 @@ import { UpdatePasswordCollaboratorDto } from './dto/updatePassword-collaborator
 import { CvService } from 'src/cv/cv.service';
 import * as bcrypt from 'bcrypt';
 import FindTimeSP from 'hooks/time';
+import { FilterPeopleDto } from './dto/filter-collaborator.dto';
+import { FirebaseService } from 'src/firebase/firebase.service';
 @Injectable()
 export class CollaboratorService {
   dataSource: any;
@@ -21,6 +23,7 @@ export class CollaboratorService {
     private readonly emailService: EmailService,
     private readonly bucketService: BucketService,
     private readonly cvService: CvService,
+    readonly firebaseService: FirebaseService,
   ) {}
 
   async singIn(singInCollaboratorDto: SingInCollaboratorDto) {
@@ -110,32 +113,164 @@ export class CollaboratorService {
     }
   }
 
-  async findAllPeople(cpf: string) {
+  async findAllPeople(filterPeopleDto: FilterPeopleDto) {
+    const {
+      cpf,
+      cep,
+      distance = 2,
+      showFarWork = true,
+      serviceSelected = [],
+      timeSelected = [],
+      paymentSelected = [],
+      contractSelected = [],
+      modalitySelected = [],
+      categorySelected = [],
+      title,
+    } = filterPeopleDto;
+
+    const categoryMap: Record<string, string> = {
+      Automotivo: 'auto',
+      Eventos: 'event',
+      'Saúde e Bem-estar': 'health',
+      'Reformas e Reparos': 'reform',
+      Educação: 'school',
+      'Moda e Estilo': 'fashion',
+      'Design e Tecnologia': 'designTec',
+      'Serviços Domésticos': 'domestics',
+      'Assistência Técnica': 'assistance',
+      'Consultoria e Treinamento': 'consultancy',
+    };
+
+    // Busca todos os colaboradores exceto o próprio usuário
     const peoples = await this.collaboratorRepository.find({
       where: {
         CPF: Not(cpf),
+        delete_at: IsNull(),
       },
     });
 
+    // Aplica os filtros dinâmicos baseados em howWork e service
+    const filteredPeoples = peoples.filter((person) => {
+      const howWork = person.howWork || {};
+      const services = person.service || {};
+
+      // Filtros de howWork
+      const matchesTime =
+        !timeSelected.length ||
+        timeSelected.some((t) => howWork.horary?.includes(t));
+      const matchesPayment =
+        !paymentSelected.length ||
+        paymentSelected.some((p) => howWork.payment?.includes(p));
+      const matchesContract =
+        !contractSelected.length ||
+        contractSelected.some((c) => howWork.contract?.includes(c));
+      const matchesModality =
+        !modalitySelected.length ||
+        modalitySelected.some((m) => howWork.modality?.includes(m));
+      const matchesTitle =
+        !title || person.name.toLowerCase().includes(title.toLowerCase());
+
+      const matchesCategory =
+        !categorySelected.length ||
+        categorySelected
+          .map((pt) => categoryMap[pt])
+          .filter(Boolean)
+          .some((internalCategory) => {
+            const categoryContent = services?.[internalCategory];
+            return (
+              categoryContent &&
+              Object.values(categoryContent).some(
+                (subItems: any[]) => subItems.length > 0,
+              )
+            );
+          });
+
+      return (
+        matchesTime &&
+        matchesPayment &&
+        matchesContract &&
+        matchesModality &&
+        matchesCategory &&
+        matchesTitle
+      );
+    });
+
+    // Enriquecendo com distância, imagem e galeria
     const enrichedPeoples = await Promise.all(
-      peoples.map(async (person) => {
+      filteredPeoples.map(async (person) => {
         const picture = await this.findFile(person.CPF, 'picture');
         const gallery = await this.findFile(person.CPF, 'gallery');
+
+        let distanceInfo = {
+          distance: 'Não disponível',
+          drivingTime: 'Não disponível',
+          transitTime: 'Não disponível',
+        };
+
+        // Cálculo da distância usando CEP
+        if (cep && person.zip_code) {
+          try {
+            distanceInfo = await this.firebaseService.getDistanceFromCepToCep(
+              cep,
+              person.zip_code,
+            );
+          } catch {
+            // distância não disponível
+          }
+        }
 
         return {
           collaborator: {
             collaborator: person,
-            picture: picture.path,
+            picture: picture?.path || null,
             gallery,
           },
+          distanceInfo,
         };
       }),
     );
 
+    // Filtro final por distância
+    const filteredByDistance = enrichedPeoples
+      .filter(({ distanceInfo }) => {
+        if (
+          !distanceInfo ||
+          !distanceInfo.distance ||
+          distanceInfo.distance === 'Não disponível'
+        )
+          return true;
+
+        const km = parseFloat(
+          distanceInfo.distance.replace(/[^\d.,]/g, '').replace(',', '.'),
+        );
+        if (isNaN(km)) return true;
+
+        return showFarWork || km <= distance;
+      })
+      .sort((a, b) => {
+        const kmA =
+          a.distanceInfo?.distance !== 'Não disponível'
+            ? parseFloat(
+                a.distanceInfo.distance
+                  .replace(/[^\d.,]/g, '')
+                  .replace(',', '.'),
+              )
+            : Infinity;
+        const kmB =
+          b.distanceInfo?.distance !== 'Não disponível'
+            ? parseFloat(
+                b.distanceInfo.distance
+                  .replace(/[^\d.,]/g, '')
+                  .replace(',', '.'),
+              )
+            : Infinity;
+        return kmA - kmB;
+      });
+
     return {
       status: 200,
       message: 'success',
-      peoples: enrichedPeoples,
+      peoples: filteredByDistance,
     };
   }
 
@@ -439,7 +574,7 @@ export class CollaboratorService {
     if (response) {
       const missingFields = [];
       const files =
-      await this.bucketService.newCheckCollaboratorBucketDocuments(response);
+        await this.bucketService.newCheckCollaboratorBucketDocuments(response);
       // Verifica se o endereço está completo
       const addressFields = [
         'zip_code',

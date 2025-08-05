@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadCollaboratorDto } from './dto/upload-collaborator.sto';
 import { UpdateIdWorkCollaboratorDto } from './dto/updateIdWork-collaborator.dto';
 import { DeleteFilesCollaboratorDto } from './dto/deleteFiles-collaborator.dto';
+import { FilterPeopleDto } from './dto/filter-collaborator.dto';
 @Controller('collaborator')
 export class CollaboratorController {
   constructor(private readonly collaboratorService: CollaboratorService) {}
@@ -70,9 +71,14 @@ export class CollaboratorController {
     return this.collaboratorService.findFile(cpf, file);
   }
 
-  @Get('people/:cpf')
-  findAllPeople(@Param('cpf') cpf: string, @Param('file') file: string) {
-    return this.collaboratorService.findAllPeople(cpf);
+  // @Get('people/:cpf')
+  // findAllPeople(@Param('cpf') cpf: string, @Param('file') file: string) {
+  //   return this.collaboratorService.findAllPeople(cpf);
+  // }
+
+  @Post('people')
+  findAllPeople(@Body() filterPeopleDto: FilterPeopleDto) {
+    return this.collaboratorService.findAllPeople(filterPeopleDto);
   }
 
   @Get('percentage/:cpf')

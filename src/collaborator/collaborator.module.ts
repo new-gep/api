@@ -6,9 +6,10 @@ import { collaboratorProviders } from './collaborator.provider';
 import { EmailModule } from 'src/email/email.module';
 import { BucketModule } from 'src/bucket/bucket.module';
 import { CvModule } from 'src/cv/cv.module';
+import { FirebaseModule } from 'src/firebase/firebase.module';
 
 @Module({
-  imports:[DatabaseModule, EmailModule, BucketModule, forwardRef(() => CvModule)],
+  imports:[DatabaseModule, FirebaseModule,EmailModule, BucketModule, forwardRef(() => CvModule)],
   controllers: [CollaboratorController],
   providers: [CollaboratorService, ...collaboratorProviders],
   exports: [CollaboratorService]
