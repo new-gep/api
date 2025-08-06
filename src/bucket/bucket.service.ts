@@ -954,43 +954,59 @@ export class BucketService {
     const missingDocuments = [];
     const missingDocumentsChildren = [];
 
-    // Verifica a presença do documento de RG (se o PDF estiver presente, dispensa as imagens)
+    // Verifica a presença do RG
     const rgPdfExists = await this.isDocumentPresent(
       `collaborator/${collaborator.CPF}/RG/complet`,
     );
-    let rgDocumentMissing = false;
-    if (!rgPdfExists) {
+    let rgComplete = false;
+    if (rgPdfExists) {
+      rgComplete = true;
+    } else {
       const rgFrontExists = await this.isDocumentPresent(
         `collaborator/${collaborator.CPF}/RG/front`,
       );
       const rgBackExists = await this.isDocumentPresent(
         `collaborator/${collaborator.CPF}/RG/back`,
       );
-      // Se nem o PDF, nem o Front, nem o Back existem, considera o RG como faltante
-      if (!rgFrontExists || !rgBackExists) {
-        rgDocumentMissing = true;
-      }
+      rgComplete = rgFrontExists && rgBackExists;
     }
-    if (rgDocumentMissing) {
-      missingDocuments.push('RG');
+
+    // Verifica a presença da CNH
+    const cnhPdfExists = await this.isDocumentPresent(
+      `collaborator/${collaborator.CPF}/CNH/complet`,
+    );
+    let cnhComplete = false;
+    if (cnhPdfExists) {
+      cnhComplete = true;
+    } else {
+      const cnhFrontExists = await this.isDocumentPresent(
+        `collaborator/${collaborator.CPF}/CNH/front`,
+      );
+      const cnhBackExists = await this.isDocumentPresent(
+        `collaborator/${collaborator.CPF}/CNH/back`,
+      );
+      cnhComplete = cnhFrontExists && cnhBackExists;
+    }
+
+    // Se nenhum dos dois está completo, marca como faltando
+    if (!rgComplete && !cnhComplete) {
+      missingDocuments.push('RG ou CNH');
     }
 
     // Verifica os comprovantes de endereço
     const addressDocuments = ['Address', 'Address.pdf'];
-    let documentFound = false;
-    // Verifica se pelo menos um dos documentos existe
+    let addressFound = false;
     for (const document of addressDocuments) {
       if (
         await this.isDocumentPresent(
           `collaborator/${collaborator.CPF}/${document}`,
         )
       ) {
-        documentFound = true;
-        break; // Se encontrar um dos documentos, sai do loop
+        addressFound = true;
+        break;
       }
     }
-    // Se nenhum dos documentos foi encontrado, adiciona ao array de documentos faltantes
-    if (!documentFound) {
+    if (!addressFound) {
       missingDocuments.push('Address');
     }
 
